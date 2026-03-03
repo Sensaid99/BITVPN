@@ -25,6 +25,7 @@
    - базу данных **bitvpn-db** (PostgreSQL, бесплатно);
    - сервис **bitvpn-api** (Web Service).
 5. Нажмите **Apply**.
+6. Если на GitHub код лежит внутри папки **VPN BOT**: зайдите в сервис **bitvpn-api** → **Settings** → **Root Directory** укажите `VPN BOT` → **Save**. Затем **Manual Deploy** → **Deploy latest commit**.
 
 ---
 
