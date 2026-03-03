@@ -1,0 +1,6 @@
+{
+  "name": "vpn-bot-miniapp",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Mini App для VPN Telegram Bot — деплой на Vercel"
+}

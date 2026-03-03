@@ -1,0 +1,15 @@
+[Unit]
+Description=Bit VPN Mini App API
+After=network.target
+
+[Service]
+Type=simple
+User=root
+WorkingDirectory=/opt/vpn-bot
+Environment=PATH=/opt/vpn-bot/venv/bin:/usr/local/bin:/usr/bin:/bin
+ExecStart=/opt/vpn-bot/venv/bin/uvicorn api_miniapp:app --host 0.0.0.0 --port 8765
+Restart=always
+RestartSec=10
+
+[Install]
+WantedBy=multi-user.target

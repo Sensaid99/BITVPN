@@ -1,0 +1,25 @@
+# Render Blueprint: API мини-приложения Bit VPN
+# После подключения репозитория: New → Blueprint → указать этот репозиторий.
+# В сервисе api вручную добавить переменную BOT_TOKEN (токен бота).
+
+databases:
+  - name: bitvpn-db
+    plan: free
+
+services:
+  - type: web
+    runtime: python
+    name: bitvpn-api
+    region: frankfurt
+
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn api_miniapp:app --host 0.0.0.0 --port $PORT
+
+    envVars:
+      - key: DATABASE_URL
+        fromDatabase:
+          name: bitvpn-db
+          property: connectionString
+      - key: BOT_TOKEN
+        generateValue: false
+        sync: false

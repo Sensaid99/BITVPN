@@ -1,0 +1,2 @@
+# Бот поддержки @HelpBit_bot (можно использовать общий venv с VPN-ботом)
+python-telegram-bot>=20.0
