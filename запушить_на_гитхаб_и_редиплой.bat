@@ -60,12 +60,12 @@ echo Коммит создан.
 echo.
 
 :push
-echo Отправка на GitHub...
-git push -u origin %BRANCH% 2>&1
+echo Отправка на GitHub (ветка main — именно её смотрит Render)...
+git push origin %BRANCH%:main 2>&1
 if errorlevel 1 (
     echo.
-    echo Повторная попытка: git push origin %BRANCH%
-    git push origin %BRANCH% 2>&1
+    echo Повторная попытка...
+    git push origin %BRANCH%:main 2>&1
 )
 if errorlevel 1 (
     echo.
@@ -77,12 +77,8 @@ if errorlevel 1 (
 )
 
 echo.
-echo Готово. Код отправлен на GitHub (ветка %BRANCH%).
-echo.
-echo Проверка: откройте в браузере:
-echo   https://github.com/Sensaid99/BitVPN../tree/main
-echo Если в КОРНЕ ветки main виден render.yaml — пуш прошёл. Если видна только папка "VPN BOT" без render.yaml — пуш из этой папки обновляет корень репо, не папку VPN BOT.
-echo.
-echo Если Render подключён к этому репозиторию — редиплой запустится автоматически.
+echo Готово. Код отправлен на GitHub (ветка main).
+echo Проверка: https://github.com/Sensaid99/BitVPN../tree/main — в корне должен быть render.yaml.
+echo Если Render подключён к репозиторию — редиплой запустится автоматически.
 echo.
 pause
