@@ -24,7 +24,7 @@ load_dotenv()
 
 from fastapi import FastAPI, HTTPException, Header, Request
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import FileResponse, Response
+from fastapi.responses import Response
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -198,23 +198,30 @@ def plans_for_miniapp(ctx=None):
     ]
 
 
-# Мини-приложение раздаётся с того же домена, что и API — один URL для Telegram (не уходит в «Загрузки»)
-_WEBAPP_HTML_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "webapp", "index.html")
+# Мини-приложение: на Vercel главная отдаётся из public/index.html (rewrite в vercel.json).
+# Если запрос всё же попал в функцию — отдаём HTML без FileResponse (чтобы не падать).
+def _read_webapp_html():
+    path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "webapp", "index.html")
+    try:
+        if os.path.isfile(path):
+            with open(path, "r", encoding="utf-8") as f:
+                return f.read()
+    except Exception as e:
+        logger.warning("serve_webapp read: %s", e)
+    return None
+
+
+_MINIMAL_HTML = """<!DOCTYPE html><html lang="ru"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Bit VPN</title></head><body><p>Bit VPN</p><p>Загрузка… Проверьте настройки Vercel (BOT_TOKEN, DATABASE_URL) и наличие public/index.html.</p></body></html>"""
 
 
 @app.get("/")
 @app.get("/index.html")
 def serve_webapp():
-    """Отдаём HTML мини-приложения с Content-Type: text/html, чтобы Telegram открывал как Web App."""
-    try:
-        if os.path.isfile(_WEBAPP_HTML_PATH):
-            return FileResponse(_WEBAPP_HTML_PATH, media_type="text/html")
-    except Exception as e:
-        logger.warning("serve_webapp FileResponse: %s", e)
-    return Response(
-        content='{"service":"Bit VPN Mini App API","status":"ok"}',
-        media_type="application/json",
-    )
+    """Отдаём HTML с Content-Type: text/html, чтобы Telegram открывал как Web App. Без FileResponse — не падаем на Vercel."""
+    html = _read_webapp_html()
+    if html:
+        return Response(content=html, media_type="text/html")
+    return Response(content=_MINIMAL_HTML, media_type="text/html")
 
 
 @app.get("/health")
