@@ -1255,6 +1255,8 @@
         }
       } catch (e) {}
       window.MINIAPP_API_DEFAULT = 'https://bitvpn-eo9w.vercel.app';
+      window.MINIAPP_BOT_DEFAULT = 'Bitvpnproxy_bot';
+      if (!botUsername && window.MINIAPP_BOT_DEFAULT) botUsername = window.MINIAPP_BOT_DEFAULT;
       var apiBase = (function() { var m = /[?&]api=([^&]+)/.exec(location.search); if (m) return decodeURIComponent(m[1]).replace(/\/+$/, ''); return (window.MINIAPP_API_DEFAULT || ''); })();
       var API_PLANS = null;
       var API_ME = null;

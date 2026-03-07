@@ -100,14 +100,9 @@ db_manager.create_tables()
 
 
 def get_webapp_url():
-    """URL мини-апп. Передаём только bot= — так ссылка короче и надёжнее открывается в Telegram. API берётся в приложении из дефолта (MINIAPP_API_DEFAULT)."""
-    base = Config.WEBAPP_URL
-    if not base:
-        return None
-    sep = "?" if "?" not in base else "&"
-    if Config.BOT_USERNAME:
-        base = base + sep + "bot=" + quote(Config.BOT_USERNAME, safe="")
-    return base
+    """URL мини-апп без параметров — так ссылка короче и стабильнее открывается в Telegram (не уходит в «Загрузки»). API и bot берутся в приложении из дефолта и referrer."""
+    base = (Config.WEBAPP_URL or "").strip()
+    return base if base else None
 
 
 def get_persistent_keyboard():
