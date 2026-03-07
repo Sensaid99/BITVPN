@@ -120,7 +120,7 @@ BITVPN/
 ├── 🚫 .gitignore
 ├── 📦 requirements.txt         # Зависимости Python
 ├── 📖 README.md               # Документация
-├── 🔧 SETUP.md                # Инструкция по настройке
+├── 🔧 README.md               # Документация
 └── 🚀 demo_bot.py             # Этот файл
 """
     print(structure)

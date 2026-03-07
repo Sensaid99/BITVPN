@@ -1333,9 +1333,7 @@
             if (res[0]) {
               if (res[0].plans) API_PLANS = res[0].plans;
               if (res[0].pricing) window.API_PRICING = res[0].pricing;
-              if (res[0].config) window.API_CONFIG = res[0].config;
             }
-            if (!window.API_CONFIG) window.API_CONFIG = {};
             if (res[1]) API_ME = res[1];
             var refEl = document.getElementById('ref-sheet-link');
             if (refEl) {
@@ -1368,16 +1366,10 @@
       }
       window.MINIAPP_API_BASE = apiBase;
       window.MINIAPP_LOAD_AND_REFRESH_REF = function(cb) { loadFromApi(cb); };
-      function updateSupportLinksFromConfig() {
-        var u = (window.API_CONFIG && window.API_CONFIG.support_username) ? window.API_CONFIG.support_username : 'HelpBit_bot';
-        var el = document.getElementById('link-support'); if (el) el.href = 'https://t.me/' + u;
-        el = document.getElementById('profile-link-support'); if (el) el.href = 'https://t.me/' + u;
-      }
       function startAppLoad() {
         loadFromApi(function() {
           if (typeof renderSubsAndPayFromApi === 'function') renderSubsAndPayFromApi();
           if (typeof updateProfileUI === 'function') updateProfileUI();
-          if (typeof updateSupportLinksFromConfig === 'function') updateSupportLinksFromConfig();
         });
       }
       if (tg && tg.ready) tg.ready();
@@ -1809,11 +1801,11 @@
       }
       loadFromApi(function() { renderSubsAndPayFromApi(); });
 
-      function getSupportUsername() { return (window.API_CONFIG && window.API_CONFIG.support_username) ? window.API_CONFIG.support_username : 'HelpBit_bot'; }
       var helpBtn = document.getElementById('btn-help');
+      var SUPPORT_BOT = 'HelpBit_bot';
       if (helpBtn) {
         helpBtn.addEventListener('click', function() {
-          var url = 'https://t.me/' + getSupportUsername();
+          var url = 'https://t.me/' + SUPPORT_BOT;
           if (tg && tg.openTelegramLink) tg.openTelegramLink(url);
           else window.open(url, '_blank');
         });
@@ -1944,13 +1936,11 @@
 
       var supportLink = document.getElementById('link-support');
       if (supportLink) {
-        var supportUser = (window.API_CONFIG && window.API_CONFIG.support_username) ? window.API_CONFIG.support_username : 'HelpBit_bot';
-        supportLink.href = 'https://t.me/' + supportUser;
+        supportLink.href = 'https://t.me/HelpBit_bot';
         supportLink.addEventListener('click', function(e) {
           e.preventDefault();
-          var u = (window.API_CONFIG && window.API_CONFIG.support_username) ? window.API_CONFIG.support_username : 'HelpBit_bot';
-          if (tg && tg.openTelegramLink) tg.openTelegramLink('https://t.me/' + u);
-          else window.open('https://t.me/' + u, '_blank');
+          if (tg && tg.openTelegramLink) tg.openTelegramLink('https://t.me/HelpBit_bot');
+          else window.open('https://t.me/HelpBit_bot', '_blank');
         });
       }
 
@@ -2165,14 +2155,14 @@
       var profileLinkChannel = document.getElementById('profile-link-channel');
       var profileLinkSupport = document.getElementById('profile-link-support');
       var TELEGRAM_CHANNEL = 'BitVpnProxy';
-      var supportUsername = (window.API_CONFIG && window.API_CONFIG.support_username) ? window.API_CONFIG.support_username : 'HelpBit_bot';
+      var TELEGRAM_SUPPORT = 'HelpBit_bot';
       if (profileLinkChannel) {
         profileLinkChannel.href = 'https://t.me/' + TELEGRAM_CHANNEL;
         profileLinkChannel.addEventListener('click', function(e) { e.preventDefault(); if (tg && tg.openTelegramLink) tg.openTelegramLink('https://t.me/' + TELEGRAM_CHANNEL); else window.open('https://t.me/' + TELEGRAM_CHANNEL, '_blank'); });
       }
       if (profileLinkSupport) {
-        profileLinkSupport.href = 'https://t.me/' + supportUsername;
-        profileLinkSupport.addEventListener('click', function(e) { e.preventDefault(); if (tg && tg.openTelegramLink) tg.openTelegramLink('https://t.me/' + supportUsername); else window.open('https://t.me/' + supportUsername, '_blank'); });
+        profileLinkSupport.href = 'https://t.me/' + TELEGRAM_SUPPORT;
+        profileLinkSupport.addEventListener('click', function(e) { e.preventDefault(); if (tg && tg.openTelegramLink) tg.openTelegramLink('https://t.me/' + TELEGRAM_SUPPORT); else window.open('https://t.me/' + TELEGRAM_SUPPORT, '_blank'); });
       }
     })();
   </script>

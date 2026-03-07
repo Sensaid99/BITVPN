@@ -160,7 +160,6 @@ BITVPN/
 ├── 🚫 .gitignore
 ├── 📦 requirements.txt         # Зависимости Python
 ├── 📖 README.md               # Документация
-├── 🔧 SETUP.md                # Инструкция по настройке
 └── 🚀 demo_bot.py             # Демонстрация
 ```
 
@@ -292,7 +291,7 @@ docker run -d --env-file .env vpn-bot
 
 - 📧 **Email**: support@vpnbot.example.com
 - 💬 **Telegram**: @vpn_support_bot
-- 📖 **Документация**: См. файл SETUP.md
+- 📖 **Документация**: См. README.md и ЗАПУСК.md
 - 🐛 **Баги**: GitHub Issues
 
 ## 📄 Лицензия

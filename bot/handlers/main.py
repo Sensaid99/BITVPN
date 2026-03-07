@@ -100,16 +100,20 @@ db_manager.create_tables()
 
 
 def get_webapp_url():
-    """URL мини-апп без параметров — так ссылка короче и стабильнее открывается в Telegram (не уходит в «Загрузки»). API и bot берутся в приложении из дефолта и referrer."""
-    base = (Config.WEBAPP_URL or "").strip()
+    """URL мини-апп: без слеша в конце и без параметров — так стабильнее открывается в Telegram (внутри приложения, а не в браузере)."""
+    base = (Config.WEBAPP_URL or "").strip().rstrip("/")
     return base if base else None
 
 
-def get_persistent_keyboard():
-    """Постоянная клавиатура внизу: одна кнопка «Открыть приложение» (заменяет старые Купить VPN, Мой профиль, Серверы и т.д.)"""
+def get_persistent_keyboard(telegram_id=None):
+    """Постоянная клавиатура внизу: кнопка «Открыть VPN» с отображением ID пользователя."""
     url = get_webapp_url()
     if url:
-        btn = KeyboardButton("📱 Открыть приложение", web_app=WebAppInfo(url=url))
+        if telegram_id is not None:
+            label = f"📱 Открыть VPN · ID {telegram_id}"
+        else:
+            label = "📱 Открыть VPN"
+        btn = KeyboardButton(label, web_app=WebAppInfo(url=url))
         return ReplyKeyboardMarkup([[btn]], resize_keyboard=True)
     return ReplyKeyboardRemove()
 
@@ -170,8 +174,6 @@ async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
                 referrer.total_referrals += 1
                 session.commit()
                 logger.info(f"User {user.telegram_id} referred by {referrer.telegram_id}")
-                
-                # Send notification to referrer
                 try:
                     await context.bot.send_message(
                         chat_id=referrer.telegram_id,
@@ -179,8 +181,10 @@ async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
                     )
                 except Exception as e:
                     logger.warning(f"Failed to notify referrer: {e}")
-finally:
-        session.close()
+        except Exception:
+            raise
+        finally:
+            session.close()
     
     # Переход из Mini App: оплата с выбором устройств и срока (pay_6month_3)
     if context.args and len(context.args[0]) > 4 and context.args[0].startswith('pay_'):
@@ -246,11 +250,11 @@ finally:
         parse_mode='HTML'
     )
     
-    # Постоянная клавиатура внизу: только «Открыть приложение» (убирает старые кнопки Купить VPN, Серверы и т.д.)
+    # Убираем нижнюю клавиатуру; открывать приложение — кнопкой выше (в сообщении) или из меню бота.
     await context.bot.send_message(
         chat_id=update.effective_chat.id,
-        text="👇 Откройте приложение кнопкой ниже" if Config.WEBAPP_URL else "Меню обновлено.",
-        reply_markup=get_persistent_keyboard()
+        text="👆 Откройте приложение кнопкой выше",
+        reply_markup=ReplyKeyboardRemove()
     )
 
 

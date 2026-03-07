@@ -352,8 +352,9 @@
     .main-card .card-title svg { width: 20px; height: 20px; fill: var(--accent); }
     .status-badge { font-size: 0.7rem; padding: 3px 8px; border-radius: 12px; background: rgba(255,255,255,0.1); color: var(--text); }
     .status-badge.active { background: rgba(0, 255, 136, 0.2); color: var(--accent); }
-    .stats-row { display: flex; justify-content: space-between; gap: 6px; margin: 8px 0; padding: 8px 0; border-top: 1px solid var(--border); border-bottom: 1px solid var(--border); }
-    .stat-item { display: flex; align-items: center; gap: 5px; font-size: 0.8rem; color: var(--text); flex: 1; justify-content: center; }
+    .stats-row { display: flex; justify-content: space-between; align-items: stretch; gap: 8px; margin: 8px 0; padding: 8px 0; border-top: 1px solid var(--border); border-bottom: 1px solid var(--border); }
+    .stat-item { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; font-size: 0.8rem; color: var(--text); flex: 1; min-width: 0; text-align: center; }
+    .stat-item span { white-space: nowrap; }
     .stat-item svg { width: 16px; height: 16px; fill: var(--text-muted); flex-shrink: 0; }
     .main-card .btn-primary { margin-top: 10px; margin-bottom: 6px; padding: 10px 14px; font-size: 0.9rem; }
     .btn-row { display: flex; gap: 8px; margin-top: 6px; }
@@ -1254,12 +1255,14 @@
           if (match) botUsername = match[1];
         }
       } catch (e) {}
-      window.MINIAPP_API_DEFAULT = 'https://bitvpn-eo9w.vercel.app';
+      window.MINIAPP_API_DEFAULT = ''; /* не задаём — используем тот же домен, с которого открыто приложение */
       window.MINIAPP_BOT_DEFAULT = 'Bitvpnproxy_bot';
       if (!botUsername && window.MINIAPP_BOT_DEFAULT) botUsername = window.MINIAPP_BOT_DEFAULT;
-      var apiBase = (function() { var m = /[?&]api=([^&]+)/.exec(location.search); if (m) return decodeURIComponent(m[1]).replace(/\/+$/, ''); return ''; })();
+      var apiBase = (function() { var m = /[?&]api=([^&]+)/.exec(location.search); if (m) return decodeURIComponent(m[1]).replace(/\/+$/, ''); return (window.location && window.location.origin) ? window.location.origin : ''; })();
       var API_PLANS = null;
       var API_ME = null;
+      var initDataFromHash = (function() { try { var h = (window.location && window.location.hash) ? window.location.hash.slice(1) : ''; if (!h) return ''; var p = new URLSearchParams(h); return p.get('tgWebAppData') || ''; } catch (e) { return ''; } })();
+      function getInitData() { return (tg && tg.initData) ? tg.initData : (initDataFromHash || ''); }
       function attachSwipeToClose(sheet, overlay, hiddenClass, closeCallback) {
         if (!sheet || !overlay) return;
         var startY = 0, startT = 0;
@@ -1305,7 +1308,7 @@
       }
       var apiLoadPromise = null;
       function loadMeFromApi(cb) {
-        var initData = (tg && tg.initData) ? tg.initData : '';
+        var initData = getInitData();
         if (!apiBase || !initData) { if (cb) cb(); return Promise.resolve(); }
         return fetch(apiBase + '/api/miniapp/me', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ initData: initData }) })
           .then(function(r) { return r.ok ? r.json() : null; }).catch(function() { return null; })
@@ -1322,7 +1325,7 @@
       function loadFromApi(cb) {
         if (!apiBase) { if (cb) cb(); return; }
         if (!apiLoadPromise) {
-          var initData = (tg && tg.initData) ? tg.initData : '';
+          var initData = getInitData();
           apiLoadPromise = Promise.all([
             fetch(apiBase + '/api/miniapp/plans').then(function(r) { return r.ok ? r.json() : null; }).catch(function() { return null; }),
             initData ? fetch(apiBase + '/api/miniapp/me', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ initData: initData }) }).then(function(r) { return r.ok ? r.json() : null; }).catch(function() { return null; }) : Promise.resolve(null)
@@ -1347,14 +1350,17 @@
         apiLoadPromise.then(function(out) {
           if (cb) cb();
           if (out && !out.hadInitData && apiBase && tg) {
-            setTimeout(function() {
-              var id = (tg && tg.initData) ? tg.initData : '';
-              if (id) loadMeFromApi(function() { if (typeof renderSubsAndPayFromApi === 'function') renderSubsAndPayFromApi(); if (typeof updateProfileUI === 'function') updateProfileUI(); });
-            }, 400);
-            setTimeout(function() {
-              var id = (tg && tg.initData) ? tg.initData : '';
-              if (id) loadMeFromApi(function() { if (typeof renderSubsAndPayFromApi === 'function') renderSubsAndPayFromApi(); if (typeof updateProfileUI === 'function') updateProfileUI(); });
-            }, 1000);
+            var attempts = 0, maxAttempts = 25;
+            function tryLoadMe() {
+              attempts++;
+              var id = getInitData();
+              if (id) {
+                loadMeFromApi(function() { if (typeof renderSubsAndPayFromApi === 'function') renderSubsAndPayFromApi(); if (typeof updateProfileUI === 'function') updateProfileUI(); });
+                return;
+              }
+              if (attempts < maxAttempts) setTimeout(tryLoadMe, 200);
+            }
+            setTimeout(tryLoadMe, 200);
           }
         }).catch(function() { if (cb) cb(); });
       }
@@ -1367,7 +1373,7 @@
         });
       }
       if (tg && tg.ready) tg.ready();
-      setTimeout(startAppLoad, 150);
+      setTimeout(startAppLoad, 350);
 
       var TAB_IDS = ['main', 'subs', 'ref', 'profile'];
       var currentTabIndex = 0;
@@ -1385,8 +1391,12 @@
         });
         var hb = document.getElementById('help-block');
         if (hb) hb.style.display = 'none';
-        if (id === 'profile') document.body.classList.add('profile-active');
-        else document.body.classList.remove('profile-active');
+        if (id === 'profile') {
+          document.body.classList.add('profile-active');
+          if (getInitData() && apiBase && (!API_ME || !API_ME.user)) {
+            loadMeFromApi(function() { if (typeof updateProfileUI === 'function') updateProfileUI(); });
+          }
+        } else document.body.classList.remove('profile-active');
       }
 
       function renderSubsAndPayFromApi() {
@@ -1812,9 +1822,10 @@
       function getClientId() {
         if (tg && tg.initDataUnsafe && tg.initDataUnsafe.user && tg.initDataUnsafe.user.id != null)
           return String(tg.initDataUnsafe.user.id);
-        if (tg && tg.initData) {
+        var dataStr = (tg && tg.initData) ? tg.initData : initDataFromHash;
+        if (dataStr) {
           try {
-            var params = new URLSearchParams(tg.initData);
+            var params = new URLSearchParams(dataStr);
             var userStr = params.get('user');
             if (userStr) {
               var user = JSON.parse(decodeURIComponent(userStr));
@@ -1957,36 +1968,27 @@
       var profileName = document.getElementById('profile-name');
       var profileAvatar = document.getElementById('profile-avatar');
       function getDisplayId() {
+        if (typeof API_ME !== 'undefined' && API_ME && API_ME.user && API_ME.user.telegram_id != null) return String(API_ME.user.telegram_id);
         var id = getClientId();
         if (tg && tg.initDataUnsafe && tg.initDataUnsafe.user && tg.initDataUnsafe.user.id != null) id = String(tg.initDataUnsafe.user.id);
         return id || '—';
       }
       function setProfileDisplayName(el) {
         if (!el) return;
-        var u = tg && tg.initDataUnsafe && tg.initDataUnsafe.user;
+        var u = (typeof API_ME !== 'undefined' && API_ME && API_ME.user) ? API_ME.user : (tg && tg.initDataUnsafe && tg.initDataUnsafe.user);
         if (u) {
           var name = (u.first_name || '') + (u.last_name ? ' ' + u.last_name : '').trim();
           if (name) { el.textContent = name; return; }
           if (u.username) { el.textContent = '@' + u.username; return; }
         }
-        if (API_ME && API_ME.user) {
-          var n = (API_ME.user.first_name || '') + (API_ME.user.last_name ? ' ' + API_ME.user.last_name : '').trim();
-          if (n) { el.textContent = n; return; }
-          if (API_ME.user.username) { el.textContent = '@' + API_ME.user.username; return; }
-        }
         el.textContent = 'Пользователь';
       }
       function setProfileAvatar(el) {
         if (!el) return;
-        var u = tg && tg.initDataUnsafe && tg.initDataUnsafe.user;
+        var u = (typeof API_ME !== 'undefined' && API_ME && API_ME.user) ? API_ME.user : (tg && tg.initDataUnsafe && tg.initDataUnsafe.user);
         var photo = u && u.photo_url;
         if (photo) {
           el.innerHTML = '<img src="' + photo.replace(/&/g, '&amp;') + '" alt="">';
-          return;
-        }
-        u = API_ME && API_ME.user ? API_ME.user : u;
-        if (u && u.photo_url) {
-          el.innerHTML = '<img src="' + u.photo_url.replace(/&/g, '&amp;') + '" alt="">';
           return;
         }
         var letter = 'B';
@@ -1995,19 +1997,11 @@
         el.appendChild(document.createTextNode(letter));
       }
       function updateProfileUI() {
-        var u = tg && tg.initDataUnsafe && tg.initDataUnsafe.user;
-        if (profileUserId) profileUserId.textContent = 'id: ' + (u && u.id != null ? String(u.id) : (getClientId() || '—'));
-        setProfileDisplayName(profileName);
-        setProfileAvatar(profileAvatar);
-      }
-      if (tg && tg.initDataUnsafe && tg.initDataUnsafe.user) {
-        var u = tg.initDataUnsafe.user;
-        if (profileUserId) profileUserId.textContent = 'id: ' + (u.id != null ? String(u.id) : '—');
-        setProfileDisplayName(profileName);
-        setProfileAvatar(profileAvatar);
-      } else {
-        var cid = getClientId();
-        if (profileUserId) profileUserId.textContent = cid ? 'id: ' + cid : 'id: —';
+        var idStr = '—';
+        if (typeof API_ME !== 'undefined' && API_ME && API_ME.user && API_ME.user.telegram_id != null) idStr = String(API_ME.user.telegram_id);
+        else if (tg && tg.initDataUnsafe && tg.initDataUnsafe.user && tg.initDataUnsafe.user.id != null) idStr = String(tg.initDataUnsafe.user.id);
+        else { var cid = getClientId(); if (cid) idStr = cid; }
+        if (profileUserId) profileUserId.textContent = 'id: ' + idStr;
         setProfileDisplayName(profileName);
         setProfileAvatar(profileAvatar);
       }

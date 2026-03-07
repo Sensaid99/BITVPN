@@ -19,8 +19,11 @@ import requests
 # Корень проекта
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
-from dotenv import load_dotenv
-load_dotenv()
+try:
+    from dotenv import load_dotenv
+    load_dotenv()
+except Exception:
+    pass
 
 from fastapi import FastAPI, HTTPException, Header, Request
 from fastapi.middleware.cors import CORSMiddleware
@@ -244,26 +247,31 @@ def config_for_miniapp():
 # Мини-приложение: на Vercel главная отдаётся из public/index.html (rewrite в vercel.json).
 # Если запрос всё же попал в функцию — отдаём HTML без FileResponse (чтобы не падать).
 def _read_webapp_html():
-    path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "webapp", "index.html")
-    try:
-        if os.path.isfile(path):
-            with open(path, "r", encoding="utf-8") as f:
-                return f.read()
-    except Exception as e:
-        logger.warning("serve_webapp read: %s", e)
+    base = os.path.dirname(os.path.abspath(__file__))
+    for rel in ("webapp", "public"):
+        path = os.path.join(base, rel, "index.html")
+        try:
+            if os.path.isfile(path):
+                with open(path, "r", encoding="utf-8") as f:
+                    return f.read()
+        except Exception as e:
+            logger.warning("serve_webapp read %s: %s", path, e)
     return None
 
 
-_MINIMAL_HTML = """<!DOCTYPE html><html lang="ru"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Bit VPN</title></head><body><p>Bit VPN</p><p>Загрузка… Проверьте настройки Vercel (BOT_TOKEN, DATABASE_URL) и наличие public/index.html.</p></body></html>"""
+_MINIMAL_HTML = """<!DOCTYPE html><html lang="ru"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Bit VPN</title></head><body><p>Bit VPN</p><p><a href="https://t.me/Bitvpnproxy_bot">Открыть в Telegram</a></p></body></html>"""
 
 
 @app.get("/")
 @app.get("/index.html")
 def serve_webapp():
-    """Отдаём HTML с Content-Type: text/html, чтобы Telegram открывал как Web App. Без FileResponse — не падаем на Vercel."""
-    html = _read_webapp_html()
-    if html:
-        return Response(content=html, media_type="text/html")
+    """Отдаём HTML с Content-Type: text/html. При любой ошибке — 200 и минимальная страница (без 500)."""
+    try:
+        html = _read_webapp_html()
+        if html:
+            return Response(content=html, media_type="text/html")
+    except Exception as e:
+        logger.warning("serve_webapp: %s", e)
     return Response(content=_MINIMAL_HTML, media_type="text/html")
 
 

@@ -8,7 +8,7 @@ import asyncio
 # Add parent directory to path for proper imports
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from telegram import BotCommand
+from telegram import BotCommand, MenuButtonWebApp, WebAppInfo
 from telegram.ext import (
     Application, 
     CommandHandler, 
@@ -172,6 +172,20 @@ async def post_init(application: Application) -> None:
     
     # Меню бота: одна команда — Запустить бота с ракетой
     await application.bot.set_my_commands([BotCommand("start", "🚀 Запустить бота")])
+    
+    # Кнопка меню бота «Открыть VPN». Ставим только если URL — наш продакшен (bitvpn.vercel.app),
+    # иначе не перезаписываем настройку из BotFather (иначе старый/пустой .env на сервере даёт 404).
+    webapp_url = (Config.WEBAPP_URL or "").strip().rstrip("/")
+    if webapp_url and "bitvpn.vercel.app" in webapp_url:
+        try:
+            await application.bot.set_chat_menu_button(
+                menu_button=MenuButtonWebApp(text="Открыть VPN", web_app=WebAppInfo(url=webapp_url))
+            )
+            logger.info("✅ Кнопка меню бота «Открыть VPN» установлена")
+        except Exception as e:
+            logger.warning(f"Не удалось установить кнопку меню бота: {e}")
+    elif webapp_url:
+        logger.warning(f"WEBAPP_URL не bitvpn.vercel.app — кнопку меню не меняем (остаётся из BotFather): {webapp_url[:50]}...")
     
     # Send startup message to admins
     startup_message = (

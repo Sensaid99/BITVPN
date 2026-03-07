@@ -1,3 +1,3 @@
 # -*- coding: utf-8 -*-
-# Точка входа FastAPI для Vercel (требуется для обнаружения приложения)
-from api_miniapp import app
+# Точка входа для Vercel — используем безопасный api.index (с fallback), а не api_miniapp напрямую
+from api.index import app, handler
