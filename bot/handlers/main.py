@@ -227,7 +227,7 @@ async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
     # Check if returning user
     is_returning = user.created_at < datetime.utcnow() - timedelta(hours=1)
     
-    # Только кнопки как на скриншоте: Купить VPN, Мой профиль, Помощь|Поддержка, Рефералы, Открыть приложение
+    # Кнопки: Купить VPN, Мой профиль, Помощь|Поддержка, Рефералы. Открыть приложение — только кнопкой внизу (меню бота).
     keyboard = [
         [InlineKeyboardButton(get_message('btn_buy_vpn'), callback_data='buy_vpn')],
         [InlineKeyboardButton(get_message('btn_my_profile'), callback_data='profile')],
@@ -237,12 +237,6 @@ async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
         ],
         [InlineKeyboardButton(get_message('btn_referral'), callback_data='referral')]
     ]
-    
-    # Кнопка Mini App (веб-приложение для клиентов)
-    webapp_url = get_webapp_url()
-    if webapp_url:
-        keyboard.append([InlineKeyboardButton("📱 Открыть приложение", web_app=WebAppInfo(url=webapp_url))])
-    
     reply_markup = InlineKeyboardMarkup(keyboard)
     
     if is_returning:
@@ -256,10 +250,10 @@ async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
         parse_mode='HTML'
     )
     
-    # Убираем нижнюю клавиатуру; открывать приложение — кнопкой выше (в сообщении) или из меню бота.
+    # Убираем лишнюю клавиатуру; открывать приложение — кнопкой «Открыть VPN» внизу.
     await context.bot.send_message(
         chat_id=update.effective_chat.id,
-        text="👆 Откройте приложение кнопкой выше",
+        text="👇 Откройте приложение кнопкой ниже",
         reply_markup=ReplyKeyboardRemove()
     )
 
@@ -986,7 +980,7 @@ async def main_menu(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     
     user = get_or_create_user(update.effective_user)
     
-    # Только кнопки как на скриншоте
+    # Кнопки без «Открыть приложение» — приложение открывается кнопкой «Открыть VPN» внизу
     keyboard = [
         [InlineKeyboardButton(get_message('btn_buy_vpn'), callback_data='buy_vpn')],
         [InlineKeyboardButton(get_message('btn_my_profile'), callback_data='profile')],
@@ -996,12 +990,6 @@ async def main_menu(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
         ],
         [InlineKeyboardButton(get_message('btn_referral'), callback_data='referral')]
     ]
-    
-    # Кнопка Mini App
-    webapp_url = get_webapp_url()
-    if webapp_url:
-        keyboard.append([InlineKeyboardButton("📱 Открыть приложение", web_app=WebAppInfo(url=webapp_url))])
-    
     reply_markup = InlineKeyboardMarkup(keyboard)
     
     message_text = get_message('welcome_back', name=user.first_name or 'друг')
