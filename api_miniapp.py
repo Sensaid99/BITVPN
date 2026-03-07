@@ -138,11 +138,12 @@ try:
     Config, SUBSCRIPTION_PLANS = _C, _P
     User, Payment = _U, _Pay
     format_date, get_server_flag, get_plan_duration_key = _fd, _gsf, _gpdk
-    _url = getattr(Config, "DATABASE_URL", None) or os.getenv("DATABASE_URL")
+    _url = getattr(_C, "DATABASE_URL", None) or os.getenv("DATABASE_URL")
     if _url:
         db_manager = DatabaseManager(_url)
 except Exception as e:
-    logger.warning("DB init failed (on Vercel set BOT_TOKEN + DATABASE_URL): %s", e)
+    import traceback
+    logger.warning("DB/Config init failed (on Vercel set BOT_TOKEN + DATABASE_URL): %s\n%s", e, traceback.format_exc())
 
 
 @app.on_event("startup")
@@ -180,15 +181,18 @@ def get_subscription_status(plan_type: str) -> str | None:
 
 def plan_type_to_name(plan_type: str) -> str:
     """Human-readable plan name (6_months_3 -> 6 месяцев)."""
-    key = get_plan_duration_key(plan_type)
-    return SUBSCRIPTION_PLANS.get(key, {}).get("name", plan_type.replace("_", " "))
+    if get_plan_duration_key:
+        key = get_plan_duration_key(plan_type)
+        return (SUBSCRIPTION_PLANS or {}).get(key, {}).get("name", plan_type.replace("_", " "))
+    return plan_type.replace("_", " ")
 
 
 def plans_for_miniapp():
     """Return subscription plans for Mini App (prices in rubles, keys)."""
+    plans = SUBSCRIPTION_PLANS or {}
     return [
         {"key": k, "name": v["name"], "price": v["price"], "months": v.get("months", 1)}
-        for k, v in SUBSCRIPTION_PLANS.items()
+        for k, v in plans.items()
     ]
 
 
@@ -313,10 +317,10 @@ async def miniapp_me(request: Request):
                 "plan_type": sub.plan_type,
                 "plan_name": plan_type_to_name(sub.plan_type),
                 "end_date": sub.end_date.isoformat() if sub.end_date else None,
-                "end_date_formatted": format_date(sub.end_date) if sub.end_date else None,
+                "end_date_formatted": format_date(sub.end_date) if format_date and sub.end_date else (sub.end_date.isoformat() if sub.end_date else None),
                 "days_remaining": sub.days_remaining,
                 "server_location": sub.server_location or "",
-                "server_flag": get_server_flag(sub.server_location or "") if sub.server_location else "🌍",
+                "server_flag": get_server_flag(sub.server_location or "") if get_server_flag and sub.server_location else "🌍",
             },
             "subscription_status": status,
             "subscriptions": subscriptions_list,

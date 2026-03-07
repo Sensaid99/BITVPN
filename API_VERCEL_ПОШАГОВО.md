@@ -109,4 +109,6 @@ BOT_USERNAME=Bitvpnproxy_bot
 - **В приложении нет данных:** проверьте, что в Vercel в Environment Variables заданы **BOT_TOKEN** и **DATABASE_URL**, и что бот на ПК использует тот же DATABASE_URL (если хотите общую базу).
 - **Реферальная ссылка не появляется:** в .env должен быть указан **BOT_USERNAME** (без @) и **MINIAPP_API_URL** на ваш API на Vercel.
 
+- **«This Serverless Function has crashed» / 500:** откройте в Vercel проект API → вкладка **Logs** (или **Runtime Logs**). Там будет текст ошибки (например, нет модуля, ошибка БД). Убедитесь, что в **Settings** → **Environment Variables** заданы **BOT_TOKEN** и **DATABASE_URL** (строка от Neon). Без них API может падать при первом запросе.
+
 - **«This Serverless Function has crashed» / 500:** в проекте Vercel откройте **Settings** → **Environment Variables** и убедитесь, что заданы **BOT_TOKEN** (токен бота от BotFather) и **DATABASE_URL** (строка подключения к Neon, из шага 1). Без них API падает при старте. После добавления переменных нажмите **Redeploy**.
