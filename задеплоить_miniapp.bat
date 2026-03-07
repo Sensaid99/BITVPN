@@ -12,6 +12,10 @@ if errorlevel 1 (
     exit /b 1
 )
 
+echo Если была ошибка "Git author ... must have access to the team":
+echo   В папке проекта выполните: git config user.email "ваш_email@example.com"
+echo   (подставьте тот же email, под которым вы вошли в Vercel)
+echo.
 echo Открываю окно, в котором запустится деплой.
 echo Окно НЕ закроется — вы сможете прочитать вывод и войти в Vercel.
 echo.

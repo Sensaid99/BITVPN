@@ -24,7 +24,6 @@ load_dotenv()
 
 from fastapi import FastAPI, HTTPException, Header, Request
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import FileResponse
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -178,16 +177,9 @@ def plans_for_miniapp():
     ]
 
 
-# Путь к мини-приложению (один URL для приложения и API)
-_WEBAPP_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "webapp")
-_INDEX_HTML = os.path.join(_WEBAPP_DIR, "index.html")
-
-
 @app.get("/")
 def root():
-    """Отдаём мини-приложение по корню — один URL для бота (WEBAPP_URL = MINIAPP_API_URL)."""
-    if os.path.isfile(_INDEX_HTML):
-        return FileResponse(_INDEX_HTML, media_type="text/html")
+    """API на Render; мини-приложение — на Vercel (WEBAPP_URL в .env)."""
     return {"service": "Bit VPN Mini App API", "status": "ok"}
 
 
