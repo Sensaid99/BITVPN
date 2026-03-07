@@ -173,19 +173,20 @@ async def post_init(application: Application) -> None:
     # Меню бота: одна команда — Запустить бота с ракетой
     await application.bot.set_my_commands([BotCommand("start", "🚀 Запустить бота")])
     
-    # Кнопка меню бота «Открыть VPN». Ставим только если URL — наш продакшен (bitvpn.vercel.app),
-    # иначе не перезаписываем настройку из BotFather (иначе старый/пустой .env на сервере даёт 404).
+    # Кнопка меню «Открыть VPN» — всегда ставим https://bitvpn.vercel.app, чтобы мини-приложение открывалось даже при пустом/старом .env на сервере
+    MINI_APP_URL = "https://bitvpn.vercel.app"
     webapp_url = (Config.WEBAPP_URL or "").strip().rstrip("/")
     if webapp_url and "bitvpn.vercel.app" in webapp_url:
-        try:
-            await application.bot.set_chat_menu_button(
-                menu_button=MenuButtonWebApp(text="Открыть VPN", web_app=WebAppInfo(url=webapp_url))
-            )
-            logger.info("✅ Кнопка меню бота «Открыть VPN» установлена")
-        except Exception as e:
-            logger.warning(f"Не удалось установить кнопку меню бота: {e}")
-    elif webapp_url:
-        logger.warning(f"WEBAPP_URL не bitvpn.vercel.app — кнопку меню не меняем (остаётся из BotFather): {webapp_url[:50]}...")
+        pass  # используем из .env
+    else:
+        webapp_url = MINI_APP_URL
+    try:
+        await application.bot.set_chat_menu_button(
+            menu_button=MenuButtonWebApp(text="Открыть VPN", web_app=WebAppInfo(url=webapp_url))
+        )
+        logger.info(f"✅ Кнопка меню бота «Открыть VPN» → {webapp_url}")
+    except Exception as e:
+        logger.warning(f"Не удалось установить кнопку меню бота: {e}")
     
     # Send startup message to admins
     startup_message = (
