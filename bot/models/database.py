@@ -235,9 +235,9 @@ class DatabaseManager:
         
     def create_tables(self):
         """Create all database tables. Если БД от старого бота (нет telegram_id) — пересоздаёт таблицы (только SQLite)."""
-        is_sqlite = self.engine.url.drivername == "sqlite"
+        # PRAGMA — только для SQLite; для PostgreSQL не выполняем
+        is_sqlite = self.engine.dialect.name == "sqlite"
         if is_sqlite and not self._schema_ok():
-            # Явно удаляем таблицы через raw SQL (надёжнее для SQLite при старой схеме)
             with self.engine.connect() as conn:
                 conn.execute(text("PRAGMA foreign_keys=OFF"))
                 for table in _TABLES_DROP_ORDER:

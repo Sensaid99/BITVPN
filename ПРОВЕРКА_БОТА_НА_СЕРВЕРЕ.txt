@@ -1,0 +1,44 @@
+═══════════════════════════════════════════════════════════════════
+  Чат и кнопки не работают — проверка бота на сервере
+═══════════════════════════════════════════════════════════════════
+
+Подключитесь к серверу:  ssh root@155.212.164.135
+
+■ Шаг 1. Бот запущен?
+  Команда:
+    ps aux | grep python
+  Должны быть строки с run.py и support_bot. Если их нет — бот не работает.
+
+■ Шаг 2. Есть ли ошибки в логах? (если бот как сервис)
+    journalctl -u vpn-bot -n 50 --no-pager
+  Или поиск сервиса:
+    systemctl list-units --type=service | grep -i bot
+    systemctl list-units --type=service | grep -i vpn
+  Если сервис есть (например vpn-bot.service), смотрите логи:
+    journalctl -u vpn-bot -n 100 --no-pager
+
+■ Шаг 3. Перезапуск вручную (если сервиса нет)
+  Остановить процессы бота:
+    pkill -f "run.py"
+    pkill -f "support_bot.run"
+  Запустить снова из папки бота:
+    cd /opt/vpn-bot
+    nohup /opt/vpn-bot/venv/bin/python run.py > /tmp/vpn-bot.log 2>&1 &
+  (support_bot при необходимости запускают отдельно)
+  Посмотреть последние строки лога:
+    tail -50 /tmp/vpn-bot.log
+
+■ Шаг 4. Проверить .env на сервере
+    cat /opt/vpn-bot/.env | findstr BOT_TOKEN
+    cat /opt/vpn-bot/.env | findstr DATABASE
+  BOT_TOKEN и DATABASE_URL должны быть заполнены (без кавычек в значении).
+
+■ Шаг 5. Запуск через systemd (если сервис есть)
+    sudo systemctl restart vpn-bot
+    sudo systemctl status vpn-bot
+  В status не должно быть "failed" или "inactive (dead)".
+
+═══════════════════════════════════════════════════════════════════
+  Кратко: чаще всего бот «молчит», если процесс упал или не запущен.
+  Запустите заново (шаг 3 или 5) и проверьте логи на ошибки.
+═══════════════════════════════════════════════════════════════════
