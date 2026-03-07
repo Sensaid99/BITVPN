@@ -24,6 +24,7 @@ load_dotenv()
 
 from fastapi import FastAPI, HTTPException, Header, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import FileResponse, Response
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -196,11 +197,20 @@ def plans_for_miniapp():
     ]
 
 
-# Путь к мини-приложению (один URL для приложения и API)
+# Мини-приложение раздаётся с того же домена, что и API — один URL для Telegram (не уходит в «Загрузки»)
+_WEBAPP_HTML_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "webapp", "index.html")
+
+
 @app.get("/")
-def root():
-    """API на Render/Vercel; мини-приложение — на Vercel (WEBAPP_URL в .env)."""
-    return {"service": "Bit VPN Mini App API", "status": "ok"}
+@app.get("/index.html")
+def serve_webapp():
+    """Отдаём HTML мини-приложения с Content-Type: text/html, чтобы Telegram открывал как Web App."""
+    if os.path.isfile(_WEBAPP_HTML_PATH):
+        return FileResponse(_WEBAPP_HTML_PATH, media_type="text/html")
+    return Response(
+        content='{"service":"Bit VPN Mini App API","status":"ok"}',
+        media_type="application/json",
+    )
 
 
 @app.get("/health")
