@@ -37,6 +37,59 @@ from locales.ru import get_message, format_price_per_month, format_savings
 
 logger = logging.getLogger(__name__)
 
+# План для безлимитной подписки админа (отображение в профиле)
+ADMIN_UNLIMITED_PLAN_TYPE = "12_months_1"
+ADMIN_SERVER_LOCATION = "Admin"
+
+
+def ensure_admin_unlimited_subscription(telegram_id: int) -> None:
+    """Создать безлимитную подписку администратору, если у него ещё нет активной."""
+    if telegram_id not in Config.ADMIN_IDS:
+        return
+    session = db_manager.get_session()
+    try:
+        user = session.query(User).filter_by(telegram_id=telegram_id).first()
+        if not user or not user.is_admin:
+            return
+        _ = list(user.subscriptions)
+        if user.active_subscription and user.active_subscription.end_date and user.active_subscription.end_date > datetime.utcnow():
+            return
+        # Деактивировать старые просроченные
+        for sub in user.subscriptions:
+            if sub.is_active:
+                sub.is_active = False
+        end_date = datetime.utcnow() + timedelta(days=365 * 100)
+        use_happ = bool(Config.HAPP_PROVIDER_CODE and Config.HAPP_AUTH_KEY and Config.HAPP_SUBSCRIPTION_URL)
+        vpn_config_content = None
+        if use_happ:
+            _, vpn_config_content = happ_client.create_happ_install_link(
+                Config.HAPP_API_URL,
+                Config.HAPP_PROVIDER_CODE,
+                Config.HAPP_AUTH_KEY,
+                10,
+                Config.HAPP_SUBSCRIPTION_URL,
+                note=f"adm{telegram_id}",
+            )
+        if not vpn_config_content:
+            vpn_config_content = generate_vpn_config(telegram_id, ADMIN_SERVER_LOCATION)
+        subscription = Subscription(
+            user_id=user.id,
+            plan_type=ADMIN_UNLIMITED_PLAN_TYPE,
+            end_date=end_date,
+            is_active=True,
+            vpn_config=vpn_config_content,
+            config_name="VPN Админ (безлимит)",
+            server_location=ADMIN_SERVER_LOCATION,
+        )
+        session.add(subscription)
+        session.commit()
+        logger.info("Created unlimited subscription for admin %s", telegram_id)
+    except Exception as e:
+        logger.warning("ensure_admin_unlimited_subscription: %s", e)
+        session.rollback()
+    finally:
+        session.close()
+
 # Conversation states
 SELECTING_PLAN, SELECTING_PAYMENT_METHOD, WAITING_PAYMENT = range(3)
 WAITING_PAYOUT_REQUISITES = 10
@@ -102,6 +155,9 @@ def get_or_create_user(telegram_user) -> User:
 async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """Handle /start command"""
     user = get_or_create_user(update.effective_user)
+    if user.is_admin:
+        ensure_admin_unlimited_subscription(user.telegram_id)
+        user = get_or_create_user(update.effective_user)
     
     # Deep link из Mini App «Настроить на этом устройстве» — сразу показать конфиг
     if context.args and context.args[0].lower() == 'config':
@@ -593,17 +649,23 @@ async def show_profile(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
     await query.answer()
     
     user = get_or_create_user(update.effective_user)
+    if user.is_admin and not user.has_active_subscription:
+        ensure_admin_unlimited_subscription(user.telegram_id)
+        user = get_or_create_user(update.effective_user)
     
     # Get subscription info
     if user.has_active_subscription:
         sub = user.active_subscription
-        plan = SUBSCRIPTION_PLANS.get(get_plan_duration_key(sub.plan_type), SUBSCRIPTION_PLANS.get('1_month'))
-        subscription_info = get_message('subscription_active',
-            plan_name=plan['name'],
-            end_date=format_date(sub.end_date),
-            time_remaining=sub.time_remaining_text,
-            server_location=f"{get_server_flag(sub.server_location)} {sub.server_location}"
-        )
+        if sub.server_location == ADMIN_SERVER_LOCATION:
+            subscription_info = f"♾️ <b>Безлимит</b> (администратор)\n🌍 Сервер: {get_server_flag(sub.server_location)} {sub.server_location}"
+        else:
+            plan = SUBSCRIPTION_PLANS.get(get_plan_duration_key(sub.plan_type), SUBSCRIPTION_PLANS.get('1_month'))
+            subscription_info = get_message('subscription_active',
+                plan_name=plan['name'],
+                end_date=format_date(sub.end_date),
+                time_remaining=sub.time_remaining_text,
+                server_location=f"{get_server_flag(sub.server_location)} {sub.server_location}"
+            )
     else:
         subscription_info = get_message('subscription_inactive')
     
@@ -636,7 +698,9 @@ async def show_my_config(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
         await query.answer()
     
     user = get_or_create_user(update.effective_user)
-    
+    if not user.has_active_subscription and user.is_admin:
+        ensure_admin_unlimited_subscription(user.telegram_id)
+        user = get_or_create_user(update.effective_user)
     if not user.has_active_subscription:
         msg = get_message('error_no_subscription')
         if query:
