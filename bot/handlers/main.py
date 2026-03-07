@@ -99,10 +99,16 @@ db_manager = DatabaseManager(Config.DATABASE_URL)
 db_manager.create_tables()
 
 
+# Единый URL мини-приложения: везде (меню, inline, reply) открывается этот адрес
+MINI_APP_URL = "https://bitvpn.vercel.app"
+
+
 def get_webapp_url():
-    """URL мини-апп: без слеша в конце и без параметров — так стабильнее открывается в Telegram (внутри приложения, а не в браузере)."""
+    """URL мини-апп для кнопок. Если в .env нет bitvpn.vercel.app — возвращаем фиксированный URL, чтобы кнопки всегда работали."""
     base = (Config.WEBAPP_URL or "").strip().rstrip("/")
-    return base if base else None
+    if base and "bitvpn.vercel.app" in base:
+        return base
+    return MINI_APP_URL
 
 
 def get_persistent_keyboard(telegram_id=None):
