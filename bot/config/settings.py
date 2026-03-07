@@ -36,6 +36,11 @@ class Config:
     # VPN Settings
     VPN_SERVER_URL = os.getenv('VPN_SERVER_URL')
     VPN_API_KEY = os.getenv('VPN_API_KEY')
+    # Happ (Happ-Proxy) — лимитированные ссылки для приложения Happ
+    HAPP_API_URL = (os.getenv('HAPP_API_URL') or 'https://happ-proxy.com').rstrip('/')
+    HAPP_PROVIDER_CODE = (os.getenv('HAPP_PROVIDER_CODE') or '').strip() or None
+    HAPP_AUTH_KEY = (os.getenv('HAPP_AUTH_KEY') or '').strip() or None
+    HAPP_SUBSCRIPTION_URL = (os.getenv('HAPP_SUBSCRIPTION_URL') or '').strip() or None
     
     # Bot Settings
     DEFAULT_LANGUAGE = os.getenv('DEFAULT_LANGUAGE', 'ru')

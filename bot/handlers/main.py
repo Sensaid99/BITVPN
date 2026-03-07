@@ -32,6 +32,7 @@ from bot.utils.helpers import (
     escape_html,
 )
 from bot.utils.payments import payment_manager, PaymentError
+from bot.utils import happ_client
 from locales.ru import get_message, format_price_per_month, format_savings
 
 logger = logging.getLogger(__name__)
@@ -46,14 +47,11 @@ db_manager.create_tables()
 
 
 def get_webapp_url():
-    """URL мини-апп с опциональными параметрами api и bot (username бота для кнопки «Оплатить»)."""
+    """URL мини-апп. Передаём только bot= — так ссылка короче и надёжнее открывается в Telegram. API берётся в приложении из дефолта (MINIAPP_API_DEFAULT)."""
     base = Config.WEBAPP_URL
     if not base:
         return None
     sep = "?" if "?" not in base else "&"
-    if Config.MINIAPP_API_URL:
-        base = base + sep + "api=" + quote(Config.MINIAPP_API_URL, safe="")
-        sep = "&"
     if Config.BOT_USERNAME:
         base = base + sep + "bot=" + quote(Config.BOT_USERNAME, safe="")
     return base
@@ -452,13 +450,32 @@ async def verify_payment(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
             for sub in old_subs:
                 sub.is_active = False
             
-            # Create VPN subscription
+            # Create VPN subscription (Happ или WireGuard)
             server_location = get_random_server_location()
+            use_happ = bool(Config.HAPP_PROVIDER_CODE and Config.HAPP_AUTH_KEY and Config.HAPP_SUBSCRIPTION_URL)
+            happ_link = None
+            if use_happ:
+                devices = happ_client.devices_from_plan_type(payment.plan_type)
+                _, happ_link = happ_client.create_happ_install_link(
+                    Config.HAPP_API_URL,
+                    Config.HAPP_PROVIDER_CODE,
+                    Config.HAPP_AUTH_KEY,
+                    devices,
+                    Config.HAPP_SUBSCRIPTION_URL,
+                    note=f"tg{user.telegram_id}",
+                )
+                if not happ_link:
+                    use_happ = False
+            vpn_config_content = (
+                happ_link
+                if use_happ
+                else generate_vpn_config(user.telegram_id, server_location)
+            )
             subscription = Subscription(
                 user_id=payment.user_id,
                 plan_type=payment.plan_type,
                 end_date=calculate_end_date(payment.plan_type),
-                vpn_config=generate_vpn_config(user.telegram_id, server_location),
+                vpn_config=vpn_config_content,
                 config_name=f"VPN_{SUBSCRIPTION_PLANS.get(get_plan_duration_key(payment.plan_type), {}).get('name', payment.plan_type)}",
                 server_location=server_location
             )
@@ -496,26 +513,40 @@ async def verify_payment(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
             
             await query.edit_message_text(success_message, parse_mode='HTML')
             
-            # Send VPN config as file
-            config_filename = generate_config_filename(user.telegram_id, payment.plan_type)
-            config_file = create_config_file(subscription.vpn_config, config_filename)
-            
-            await context.bot.send_document(
-                chat_id=update.effective_chat.id,
-                document=config_file,
-                filename=config_filename,
-                caption=get_message('vpn_config_info'),
-                parse_mode='HTML'
-            )
-            
-            # Generate and send QR code
-            qr_buffer = create_qr_code(subscription.vpn_config)
-            await context.bot.send_photo(
-                chat_id=update.effective_chat.id,
-                photo=qr_buffer,
-                caption=get_message('config_qr'),
-                parse_mode='HTML'
-            )
+            if use_happ and happ_link:
+                # Выдача ссылки Happ — отправляем ссылку и файл .txt
+                await context.bot.send_message(
+                    chat_id=update.effective_chat.id,
+                    text=get_message('happ_link_caption') + f"\n\n<code>{happ_link}</code>",
+                    parse_mode='HTML'
+                )
+                config_filename = f"happ_subscription_{user.telegram_id}.txt"
+                config_file = create_config_file(happ_link, config_filename)
+                await context.bot.send_document(
+                    chat_id=update.effective_chat.id,
+                    document=config_file,
+                    filename=config_filename,
+                    caption="Ссылку можно вставить в приложение Happ из этого файла.",
+                    parse_mode='HTML'
+                )
+            else:
+                # Выдача WireGuard конфига (файл + QR)
+                config_filename = generate_config_filename(user.telegram_id, payment.plan_type)
+                config_file = create_config_file(subscription.vpn_config, config_filename)
+                await context.bot.send_document(
+                    chat_id=update.effective_chat.id,
+                    document=config_file,
+                    filename=config_filename,
+                    caption=get_message('vpn_config_info'),
+                    parse_mode='HTML'
+                )
+                qr_buffer = create_qr_code(subscription.vpn_config)
+                await context.bot.send_photo(
+                    chat_id=update.effective_chat.id,
+                    photo=qr_buffer,
+                    caption=get_message('config_qr'),
+                    parse_mode='HTML'
+                )
             
             # Send main menu
             await main_menu(update, context)
@@ -615,15 +646,21 @@ async def show_my_config(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
         return
     
     subscription = user.active_subscription
-    config_info_text = get_message('vpn_config_info')
+    is_happ_link = subscription.vpn_config and subscription.vpn_config.strip().startswith("http")
+    
+    if is_happ_link:
+        config_info_text = get_message('happ_link_caption') + f"\n\n<code>{subscription.vpn_config}</code>"
+        config_filename = f"happ_subscription_{user.telegram_id}.txt"
+    else:
+        config_info_text = get_message('vpn_config_info')
+        config_filename = generate_config_filename(user.telegram_id, subscription.plan_type)
     
     if query:
         await query.edit_message_text(text=config_info_text, parse_mode='HTML')
     else:
         await context.bot.send_message(chat_id=chat_id, text=config_info_text, parse_mode='HTML')
     
-    # Send config file
-    config_filename = generate_config_filename(user.telegram_id, subscription.plan_type)
+    # Send config file (ссылка Happ — .txt, иначе WireGuard .conf)
     config_file = create_config_file(subscription.vpn_config, config_filename)
     
     await context.bot.send_document(

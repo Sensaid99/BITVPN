@@ -1254,7 +1254,8 @@
           if (match) botUsername = match[1];
         }
       } catch (e) {}
-      var apiBase = (function() { var m = /[?&]api=([^&]+)/.exec(location.search); return m ? decodeURIComponent(m[1]).replace(/\/+$/, '') : ''; })();
+      window.MINIAPP_API_DEFAULT = 'https://bitvpn-eo9w.vercel.app';
+      var apiBase = (function() { var m = /[?&]api=([^&]+)/.exec(location.search); if (m) return decodeURIComponent(m[1]).replace(/\/+$/, ''); return (window.MINIAPP_API_DEFAULT || ''); })();
       var API_PLANS = null;
       var API_ME = null;
       function attachSwipeToClose(sheet, overlay, hiddenClass, closeCallback) {
