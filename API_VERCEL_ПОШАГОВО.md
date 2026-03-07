@@ -101,6 +101,10 @@ BOT_USERNAME=Bitvpnproxy_bot
 
 ## Если что-то не работает
 
-- **Ошибка при деплое:** проверьте, что Root Directory пустой и в репозитории в корне есть `api/`, `api_miniapp.py`, `bot/`, `vercel.json`, `requirements.txt`.
+- **«No fastapi entrypoint found»:**  
+  1. В логе сборки посмотрите **Commit:** — если это старый коммит (не последний на main), то Vercel собрал старую версию без `app.py`. Не нажимайте просто **Redeploy** (он пересобирает тот же коммит). Сделайте новый push в `main` (например через **запушить_на_гитхаб_и_редиплой.bat**) — тогда запустится новый деплой с последним кодом.  
+  2. В проекте Vercel: **Settings** → **General** → **Root Directory** должно быть **пустым**. Если там указана папка (например `webapp`) — очистите и сохраните, затем задеплойте заново.
+
+- **Ошибка при деплое:** проверьте, что Root Directory пустой и в репозитории в корне есть `app.py`, `index.py`, `api_miniapp.py`, `api/`, `bot/`, `vercel.json`, `pyproject.toml`, `requirements.txt`.
 - **В приложении нет данных:** проверьте, что в Vercel в Environment Variables заданы **BOT_TOKEN** и **DATABASE_URL**, и что бот на ПК использует тот же DATABASE_URL (если хотите общую базу).
 - **Реферальная ссылка не появляется:** в .env должен быть указан **BOT_USERNAME** (без @) и **MINIAPP_API_URL** на ваш API на Vercel.
