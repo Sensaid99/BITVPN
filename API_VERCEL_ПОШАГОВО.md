@@ -41,7 +41,7 @@ DATABASE_URL=postgresql://...от Neon...
 2. Нажмите **Add New** → **Project**.
 3. Импортируйте репозиторий **Sensaid99/BITVPN** (тот же, что и для приложения).
 4. **Важно:** в настройках проекта:
-   - **Root Directory** оставьте **пустым** (корень репозитория). Не указывайте папку `webapp` — для API нужен корень, где лежат `api/`, `api_miniapp.py`, `bot/`, `vercel.json`.
+   - **Root Directory** обязательно оставьте **пустым** (не указывайте `webapp` и никакую подпапку). Иначе Vercel не увидит `app.py`, `index.py`, `api_miniapp.py` и выдаст «No fastapi entrypoint found». Для API нужен корень репозитория, где лежат `app.py`, `index.py`, `api_miniapp.py`, `api/`, `bot/`, `vercel.json`.
    - **Framework Preset** можно оставить Other или не трогать.
    - **Build Command** — можно оставить пустым (Vercel сам подтянет зависимости для Python).
 5. В блоке **Environment Variables** добавьте переменные (обязательно до деплоя):
