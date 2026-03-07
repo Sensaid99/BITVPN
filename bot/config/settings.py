@@ -79,23 +79,39 @@ class Config:
         return True
 
 
-# Цена за месяц по количеству устройств (руб)
+# Цена за месяц по количеству устройств (руб) — для расчёта при 2+ устройствах
 DEVICE_BASE_PRICE = {1: 100, 3: 150, 5: 250, 10: 450}
+
+# Соответствие сроков и переменных из .env (единый источник с мини-апп)
+_MONTHS_TO_PLAN_PRICE = {
+    1: Config.PLAN_1_MONTH_PRICE,
+    3: Config.PLAN_3_MONTH_PRICE,
+    6: Config.PLAN_6_MONTH_PRICE,
+    9: Config.PLAN_9_MONTH_PRICE,
+    12: Config.PLAN_12_MONTH_PRICE,
+}
+
+
+def get_plan_price_1_device(months: int) -> int:
+    """Цена для 1 устройства на N месяцев — из .env (PLAN_*_PRICE), как в мини-апп."""
+    return _MONTHS_TO_PLAN_PRICE.get(months, Config.PLAN_1_MONTH_PRICE)
 
 
 def calc_subscription_price(devices: int, months: int) -> int:
-    """Стоимость подписки: база по устройствам, скидка 5% за каждые 3 месяца."""
+    """Стоимость подписки: для 1 устройства — из .env; для 2+ — база по устройствам, скидка 5% за каждые 3 месяца (как в мини-апп)."""
+    if devices == 1:
+        return get_plan_price_1_device(months)
     base = DEVICE_BASE_PRICE.get(devices, 100)
     full = base * months
     discount_pct = (months // 3) * 5
     return int(round(full * (1 - discount_pct / 100)))
 
 
-# Subscription plans configuration (1 device)
+# Subscription plans configuration (1 device) — цены из того же источника, что и в мини-апп
 SUBSCRIPTION_PLANS = {
     '1_month': {
         'name': '1 месяц',
-        'price': Config.PLAN_1_MONTH_PRICE,
+        'price': get_plan_price_1_device(1),
         'duration_days': 30,
         'months': 1,
         'description': '🚀 Базовый план на 1 месяц',
@@ -104,7 +120,7 @@ SUBSCRIPTION_PLANS = {
     },
     '3_months': {
         'name': '3 месяца',
-        'price': Config.PLAN_3_MONTH_PRICE,
+        'price': get_plan_price_1_device(3),
         'duration_days': 90,
         'months': 3,
         'description': '🔥 Популярный план на 3 месяца',
@@ -113,7 +129,7 @@ SUBSCRIPTION_PLANS = {
     },
     '6_months': {
         'name': '6 месяцев',
-        'price': Config.PLAN_6_MONTH_PRICE,
+        'price': get_plan_price_1_device(6),
         'duration_days': 180,
         'months': 6,
         'description': '💎 Выгодный план на полгода',
@@ -122,7 +138,7 @@ SUBSCRIPTION_PLANS = {
     },
     '9_months': {
         'name': '9 месяцев',
-        'price': Config.PLAN_9_MONTH_PRICE,
+        'price': get_plan_price_1_device(9),
         'duration_days': 270,
         'months': 9,
         'description': '🎯 План на 9 месяцев',
@@ -131,7 +147,7 @@ SUBSCRIPTION_PLANS = {
     },
     '12_months': {
         'name': '1 год',
-        'price': Config.PLAN_12_MONTH_PRICE,
+        'price': get_plan_price_1_device(12),
         'duration_days': 365,
         'months': 12,
         'description': '👑 Максимальная выгода на целый год',

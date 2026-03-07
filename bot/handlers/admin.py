@@ -795,10 +795,11 @@ async def admin_settings(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
     settings_text += f"   • Уровень логов: {Config.LOG_LEVEL}\n"
     settings_text += f"   • Язык по умолчанию: {Config.DEFAULT_LANGUAGE}\n\n"
     
-    settings_text += f"💰 <b>Тарифы:</b>\n"
+    settings_text += f"💰 <b>Тарифы (1 устройство):</b>\n"
     settings_text += f"   • 1 месяц: {Config.PLAN_1_MONTH_PRICE} ₽\n"
     settings_text += f"   • 3 месяца: {Config.PLAN_3_MONTH_PRICE} ₽\n"
     settings_text += f"   • 6 месяцев: {Config.PLAN_6_MONTH_PRICE} ₽\n"
+    settings_text += f"   • 9 месяцев: {Config.PLAN_9_MONTH_PRICE} ₽\n"
     settings_text += f"   • 12 месяцев: {Config.PLAN_12_MONTH_PRICE} ₽\n\n"
     
     settings_text += f"🎁 <b>Реферальная программа:</b>\n"

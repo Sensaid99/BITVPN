@@ -22,6 +22,8 @@ from bot.config.settings import Config
 from bot.handlers.main import (
     start_command,
     show_plans,
+    select_duration,
+    select_devices,
     select_payment_method,
     process_payment,
     verify_payment,
@@ -36,6 +38,7 @@ from bot.handlers.main import (
     main_menu,
     cancel_conversation,
     SELECTING_PLAN,
+    SELECTING_DEVICES,
     SELECTING_PAYMENT_METHOD,
     WAITING_PAYMENT,
     WAITING_PAYOUT_REQUISITES,
@@ -67,8 +70,12 @@ def create_application() -> Application:
         entry_points=[CallbackQueryHandler(show_plans, pattern='^buy_vpn$')],
         states={
             SELECTING_PLAN: [
-                CallbackQueryHandler(select_payment_method, pattern='^plan_'),
+                CallbackQueryHandler(select_duration, pattern='^plan_'),
                 CallbackQueryHandler(main_menu, pattern='^main_menu$')
+            ],
+            SELECTING_DEVICES: [
+                CallbackQueryHandler(select_devices, pattern='^devices_'),
+                CallbackQueryHandler(show_plans, pattern='^buy_vpn$')
             ],
             SELECTING_PAYMENT_METHOD: [
                 CallbackQueryHandler(process_payment, pattern='^pay_'),
@@ -110,8 +117,9 @@ def create_application() -> Application:
     application.add_handler(CallbackQueryHandler(show_support, pattern='^support$'), group=-1)
     application.add_handler(CallbackQueryHandler(main_menu, pattern='^main_menu$'), group=-1)
     
-    # Покупка (цепочка: тариф → оплата → проверка)
+    # Покупка (цепочка: тариф → устройства → оплата; или из мини-апп — сразу оплата)
     application.add_handler(purchase_conversation)
+    application.add_handler(CallbackQueryHandler(process_payment, pattern='^pay_'))  # deep link из мини-апп
     application.add_handler(payout_conversation)
     
     # Admin handlers

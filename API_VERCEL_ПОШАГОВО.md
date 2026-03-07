@@ -51,6 +51,8 @@ DATABASE_URL=postgresql://...от Neon...
    | `BOT_TOKEN`    | Токен вашего VPN-бота от BotFather |
    | `DATABASE_URL` | Строка подключения от Neon (из шага 1) |
 
+   Чтобы **тарифы и цены в мини-апп совпадали с ботом**, добавьте те же значения, что и в .env на ПК: `PLAN_1_MONTH_PRICE`, `PLAN_3_MONTH_PRICE`, `PLAN_6_MONTH_PRICE`, `PLAN_9_MONTH_PRICE`, `PLAN_12_MONTH_PRICE`, `SUPPORT_USERNAME`, `REFERRAL_BONUS_PERCENT`, `REFERRAL_MIN_PAYOUT`. Подробно — в **СИНХРОНИЗАЦИЯ_БОТ_МИНИАПП.md**.
+
 6. Нажмите **Deploy**.
 
 ---

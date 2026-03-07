@@ -91,7 +91,7 @@ def ensure_admin_unlimited_subscription(telegram_id: int) -> None:
         session.close()
 
 # Conversation states
-SELECTING_PLAN, SELECTING_PAYMENT_METHOD, WAITING_PAYMENT = range(3)
+SELECTING_PLAN, SELECTING_DEVICES, SELECTING_PAYMENT_METHOD, WAITING_PAYMENT = range(4)
 WAITING_PAYOUT_REQUISITES = 10
 
 # Initialize database
@@ -283,7 +283,7 @@ async def show_plans(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     
     message_text += get_message('choose_plan')
     
-    # Dynamic buttons with pricing
+    # Кнопки тарифов (как в мини-апп: срок)
     keyboard = [
         [InlineKeyboardButton(
             get_message('btn_plan_1_month', price=SUBSCRIPTION_PLANS['1_month']['price']),
@@ -317,6 +317,87 @@ async def show_plans(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     )
     
     return SELECTING_PLAN
+
+
+async def select_duration(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+    """После выбора срока — выбор количества устройств (1, 3, 5, 10), как в мини-апп."""
+    query = update.callback_query
+    await query.answer()
+    
+    plan_type = query.data.replace('plan_', '')
+    plan = SUBSCRIPTION_PLANS.get(plan_type)
+    if not plan:
+        await query.edit_message_text("❌ Неверный план")
+        return ConversationHandler.END
+    
+    context.user_data['duration_key'] = plan_type
+    context.user_data['months'] = plan.get('months', 1)
+    
+    # Цены для каждого варианта устройств (та же формула, что в мини-апп)
+    devices_prices = []
+    for dev in (1, 3, 5, 10):
+        price = calc_subscription_price(dev, plan['months'])
+        label = f"{dev} устройств(а) — {price} ₽"
+        devices_prices.append([InlineKeyboardButton(label, callback_data=f'devices_{dev}')])
+    devices_prices.append([InlineKeyboardButton(get_message('btn_back'), callback_data='buy_vpn')])
+    
+    await query.edit_message_text(
+        text=f"📱 <b>{plan['name']}</b>\n\nВыберите количество устройств (как в мини-апп):",
+        reply_markup=InlineKeyboardMarkup(devices_prices),
+        parse_mode='HTML'
+    )
+    return SELECTING_DEVICES
+
+
+async def select_devices(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+    """Выбрано число устройств — переходим к выбору способа оплаты."""
+    query = update.callback_query
+    await query.answer()
+    
+    devices = int(query.data.replace('devices_', ''))
+    duration_key = context.user_data.get('duration_key', '1_month')
+    months = context.user_data.get('months', 1)
+    
+    if devices not in (1, 3, 5, 10):
+        await query.edit_message_text("❌ Неверное количество устройств")
+        return ConversationHandler.END
+    
+    context.user_data['selected_plan'] = f'{duration_key}_{devices}'
+    plan = SUBSCRIPTION_PLANS.get(duration_key)
+    if not plan:
+        await query.edit_message_text("❌ Ошибка плана")
+        return ConversationHandler.END
+    
+    amount_rub = calc_subscription_price(devices, months)
+    month_label = '1 год' if months == 12 else f'{months} мес.'
+    
+    available_methods = payment_manager.get_available_methods()
+    if not available_methods:
+        await query.edit_message_text(
+            "⚠️ Сейчас приём оплаты не настроен. Обратитесь в поддержку.",
+            parse_mode='HTML'
+        )
+        return ConversationHandler.END
+    
+    keyboard = []
+    for method in available_methods:
+        method_info = PAYMENT_METHODS[method]
+        keyboard.append([InlineKeyboardButton(
+            f"{method_info['emoji']} {method_info['name']}",
+            callback_data=f'pay_{method}'
+        )])
+    keyboard.append([InlineKeyboardButton(get_message('btn_back'), callback_data='buy_vpn')])
+    
+    await query.edit_message_text(
+        text=get_message('payment_methods',
+            plan_name=plan['name'],
+            amount=amount_rub,
+            duration=plan['duration_days']
+        ) + f"\n\n📱 Устройств: <b>{devices}</b>",
+        reply_markup=InlineKeyboardMarkup(keyboard),
+        parse_mode='HTML'
+    )
+    return SELECTING_PAYMENT_METHOD
 
 
 async def select_payment_method(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
@@ -387,7 +468,8 @@ async def process_payment(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
         await query.edit_message_text("❌ Неверный план")
         return ConversationHandler.END
     
-    amount_rub = custom_amount if custom_amount is not None else plan['price']
+    devices = happ_client.devices_from_plan_type(plan_type)
+    amount_rub = custom_amount if custom_amount is not None else calc_subscription_price(devices, plan['months'])
     user = get_or_create_user(update.effective_user)
     
     # Create payment record

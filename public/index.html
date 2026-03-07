@@ -1327,7 +1327,10 @@
             fetch(apiBase + '/api/miniapp/plans').then(function(r) { return r.ok ? r.json() : null; }).catch(function() { return null; }),
             initData ? fetch(apiBase + '/api/miniapp/me', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ initData: initData }) }).then(function(r) { return r.ok ? r.json() : null; }).catch(function() { return null; }) : Promise.resolve(null)
           ]).then(function(res) {
-            if (res[0] && res[0].plans) API_PLANS = res[0].plans;
+            if (res[0]) {
+              if (res[0].plans) API_PLANS = res[0].plans;
+              if (res[0].pricing) window.API_PRICING = res[0].pricing;
+            }
             if (res[1]) API_ME = res[1];
             var refEl = document.getElementById('ref-sheet-link');
             if (refEl) {
@@ -1423,7 +1426,7 @@
         if (historyListPaid && historyEmptyPaid) {
           if (paid.length) {
             historyListPaid.innerHTML = paid.slice(0, 15).map(function(p) {
-              return '<div class="pay-item"><div class="pay-item-head"><div class="pay-item-title"><svg viewBox="0 0 24 24"><path d="M20 4H4c-1.11 0-1.99.89-1.99 2L2 18c0 1.11.89 2 2 2h16c1.11 0 2-.89 2-2V6c0-1.11-.89-2-2-2zm0 14H4v-6h16v6zm0-10H4V6h16v2z"/></svg>Подписка Bit VPN</div><span class="pay-item-badge">Оплачено</span></div><div class="pay-item-meta">' + (p.plan_type || '') + '</div><div class="pay-item-row"><span>Сумма: ' + (p.amount_rubles || 0) + ' ₽</span></div><div class="pay-item-row"><span>Дата: ' + (p.completed_at ? p.completed_at.slice(0, 10) : '—') + '</span></div></div>';
+              return '<div class="pay-item"><div class="pay-item-head"><div class="pay-item-title"><svg viewBox="0 0 24 24"><path d="M20 4H4c-1.11 0-1.99.89-1.99 2L2 18c0 1.11.89 2 2 2h16c1.11 0 2-.89 2-2V6c0-1.11-.89-2-2-2zm0 14H4v-6h16v6zm0-10H4V6h16v2z"/></svg>Подписка Bit VPN</div><span class="pay-item-badge">Оплачено</span></div><div class="pay-item-meta">' + (p.plan_name || p.plan_type || '') + '</div><div class="pay-item-row"><span>Сумма: ' + (p.amount_rubles || 0) + ' ₽</span></div><div class="pay-item-row"><span>Дата: ' + (p.completed_at ? p.completed_at.slice(0, 10) : '—') + '</span></div></div>';
             }).join('');
             historyEmptyPaid.style.display = 'none';
           } else { historyListPaid.innerHTML = ''; historyEmptyPaid.style.display = 'block'; }
@@ -1431,7 +1434,7 @@
         var historyListPending = document.getElementById('history-list-pending');
         if (historyListPending) {
           historyListPending.innerHTML = pending.length ? pending.slice(0, 10).map(function(p) {
-            return '<div class="pay-item"><div class="pay-item-head"><div class="pay-item-title"><svg viewBox="0 0 24 24"><path d="M20 4H4c-1.11 0-1.99.89-1.99 2L2 18c0 1.11.89 2 2 2h16c1.11 0 2-.89 2-2V6c0-1.11-.89-2-2-2zm0 14H4v-6h16v6zm0-10H4V6h16v2z"/></svg>Подписка Bit VPN</div><span class="pay-item-badge pending">В обработке</span></div><div class="pay-item-meta">' + (p.plan_type || '') + '</div><div class="pay-item-row"><span>Сумма: ' + (p.amount_rubles || 0) + ' ₽</span></div></div>';
+            return '<div class="pay-item"><div class="pay-item-head"><div class="pay-item-title"><svg viewBox="0 0 24 24"><path d="M20 4H4c-1.11 0-1.99.89-1.99 2L2 18c0 1.11.89 2 2 2h16c1.11 0 2-.89 2-2V6c0-1.11-.89-2-2-2zm0 14H4v-6h16v6zm0-10H4V6h16v2z"/></svg>Подписка Bit VPN</div><span class="pay-item-badge pending">В обработке</span></div><div class="pay-item-meta">' + (p.plan_name || p.plan_type || '') + '</div><div class="pay-item-row"><span>Сумма: ' + (p.amount_rubles || 0) + ' ₽</span></div></div>';
           }).join('') : '';
         }
         var refStatInvited = document.getElementById('ref-stat-invited');
@@ -1580,26 +1583,54 @@
       }
       var subscribeSelectedMonths = 1;
       var subscribeSelectedDevices = 1;
-      var DEVICE_BASE_PRICE = { 1: 100, 3: 150, 5: 250, 10: 450 };
-      var DURATION_OPTIONS = [
+      var DEVICE_BASE_PRICE_DEFAULT = { 1: 100, 3: 150, 5: 250, 10: 450 };
+      var DURATION_OPTIONS_DEFAULT = [
         { months: 1, name: '1 мес' },
         { months: 3, name: '3 мес' },
         { months: 6, name: '6 мес' },
         { months: 9, name: '9 мес' },
         { months: 12, name: '1 год' }
       ];
-      var DURATION_SLIDER_MONTHS = [1, 3, 6, 9, 12];
+      function getDeviceBasePrice() {
+        var p = window.API_PRICING && window.API_PRICING.device_base_price;
+        return (p && typeof p === 'object') ? p : DEVICE_BASE_PRICE_DEFAULT;
+      }
+      function getDiscountPer3Months() {
+        var p = window.API_PRICING;
+        return (p && typeof p.discount_per_3_months === 'number') ? p.discount_per_3_months : 5;
+      }
+      function getDurationSliderMonths() {
+        if (API_PLANS && API_PLANS.length) {
+          return API_PLANS.map(function(p) { return p.months != null ? p.months : 1; }).filter(function(m, i, a) { return a.indexOf(m) === i; }).sort(function(a, b) { return a - b; });
+        }
+        return [1, 3, 6, 9, 12];
+      }
+      function getDaysByMonths() {
+        var out = {};
+        if (API_PLANS && API_PLANS.length) {
+          API_PLANS.forEach(function(p) {
+            var m = p.months != null ? p.months : 1;
+            out[m] = p.duration_days != null ? p.duration_days : m * 30;
+          });
+        }
+        if (Object.keys(out).length) return out;
+        return { 1: 30, 3: 90, 6: 180, 9: 270, 12: 365 };
+      }
       function monthsToSliderIndex(m) {
-        var i = DURATION_SLIDER_MONTHS.indexOf(m);
+        var arr = getDurationSliderMonths();
+        var i = arr.indexOf(m);
         return i >= 0 ? i : 0;
       }
-      function sliderIndexToMonths(i) { return DURATION_SLIDER_MONTHS[i] || 1; }
-      var DAYS_BY_MONTHS = { 1: 30, 3: 90, 6: 180, 9: 270, 12: 365 };
+      function sliderIndexToMonths(i) {
+        var arr = getDurationSliderMonths();
+        return arr[i] || 1;
+      }
       function calcSubscribePrice(devices, months) {
-        var base = DEVICE_BASE_PRICE[devices] != null ? DEVICE_BASE_PRICE[devices] : 100;
+        var basePrice = getDeviceBasePrice();
+        var base = basePrice[devices] != null ? basePrice[devices] : 100;
         var raw = base * months;
         var trimesters = Math.floor(months / 3);
-        var discountPct = trimesters * 5;
+        var discountPct = trimesters * getDiscountPer3Months();
         return Math.round(raw * (1 - discountPct / 100));
       }
       function getSubscribePlans() {
@@ -1609,9 +1640,13 @@
             return { months: m, name: p.name || (m === 12 ? '1 год' : m + ' мес') };
           });
         }
-        return DURATION_OPTIONS;
+        return DURATION_OPTIONS_DEFAULT;
       }
       function getDurationName(months) {
+        if (API_PLANS && API_PLANS.length) {
+          var p = API_PLANS.filter(function(x) { return (x.months || 1) === months; })[0];
+          if (p && p.name) return p.name;
+        }
         return months === 12 ? '1 год' : months + ' мес';
       }
       function formatSubscribeDate(d) {
@@ -1623,12 +1658,14 @@
         var months = subscribeSelectedMonths;
         var devices = subscribeSelectedDevices;
         var price = calcSubscribePrice(devices, months);
-        var days = DAYS_BY_MONTHS[months] != null ? DAYS_BY_MONTHS[months] : months * 30;
+        var daysByMonths = getDaysByMonths();
+        var days = daysByMonths[months] != null ? daysByMonths[months] : months * 30;
         var name = getDurationName(months);
-        var base = DEVICE_BASE_PRICE[devices] != null ? DEVICE_BASE_PRICE[devices] : 100;
+        var basePrice = getDeviceBasePrice();
+        var base = basePrice[devices] != null ? basePrice[devices] : 100;
         var raw = base * months;
         var trimesters = Math.floor(months / 3);
-        var discountPct = trimesters * 5;
+        var discountPct = trimesters * getDiscountPer3Months();
         var perMonth = Math.round(price / months);
         var endDate = new Date(Date.now() + days * 24 * 60 * 60 * 1000);
         var el;
@@ -1650,12 +1687,21 @@
       }
       function openSubscribeSheet() {
         var plans = getSubscribePlans();
-        var validMonths = DURATION_SLIDER_MONTHS;
+        var validMonths = getDurationSliderMonths();
         if (validMonths.indexOf(subscribeSelectedMonths) < 0)
           subscribeSelectedMonths = (plans[0] && (plans[0].months != null || plans[0].duration_months != null)) ? (plans[0].months || plans[0].duration_months) : 1;
         if (validMonths.indexOf(subscribeSelectedMonths) < 0) subscribeSelectedMonths = 1;
         var slider = document.getElementById('subscribe-duration-slider');
+        var labelsWrap = document.getElementById('subscribe-slider-labels');
+        if (labelsWrap) {
+          var arr = getDurationSliderMonths();
+          labelsWrap.innerHTML = arr.map(function(m, i) {
+            return '<span data-idx="' + i + '">' + getDurationName(m) + '</span>';
+          }).join('');
+        }
         if (slider) {
+          var arr = getDurationSliderMonths();
+          slider.max = Math.max(0, arr.length - 1);
           slider.value = monthsToSliderIndex(subscribeSelectedMonths);
           updateSubscribeSliderLabels();
         }

@@ -189,13 +189,56 @@ def plan_type_to_name(plan_type: str, ctx=None) -> str:
 
 
 def plans_for_miniapp(ctx=None):
-    """Return subscription plans for Mini App (prices in rubles, keys)."""
+    """Тарифы для мини-апп — те же, что в боте (имя, цена, описание, emoji, popular, duration_days)."""
     ctx = ctx or _get_db()
     plans = ctx.get("SUBSCRIPTION_PLANS", {}) if isinstance(ctx, dict) else {}
     return [
-        {"key": k, "name": v["name"], "price": v["price"], "months": v.get("months", 1)}
+        {
+            "key": k,
+            "name": v["name"],
+            "price": v["price"],
+            "months": v.get("months", 1),
+            "duration_days": v.get("duration_days", v.get("months", 1) * 30),
+            "description": v.get("description", ""),
+            "emoji": v.get("emoji", "📦"),
+            "popular": bool(v.get("popular")),
+        }
         for k, v in (plans or {}).items()
     ]
+
+
+def pricing_for_miniapp():
+    """Ценообразование (база по устройствам, скидка) — как в боте, для единой формулы в мини-апп."""
+    try:
+        from bot.config.settings import DEVICE_BASE_PRICE
+        return {
+            "device_base_price": DEVICE_BASE_PRICE,
+            "discount_per_3_months": 5,
+            "device_options": list(DEVICE_BASE_PRICE.keys()) if isinstance(DEVICE_BASE_PRICE, dict) else [1, 3, 5, 10],
+        }
+    except Exception:
+        return {
+            "device_base_price": {1: 100, 3: 150, 5: 250, 10: 450},
+            "discount_per_3_months": 5,
+            "device_options": [1, 3, 5, 10],
+        }
+
+
+def config_for_miniapp():
+    """Общие настройки для мини-апп (поддержка, рефералы) — из того же .env, что и бот."""
+    try:
+        from bot.config.settings import Config
+        return {
+            "support_username": (getattr(Config, "SUPPORT_USERNAME", None) or os.getenv("SUPPORT_USERNAME") or "").strip() or None,
+            "referral_bonus_percent": int(getattr(Config, "REFERRAL_BONUS_PERCENT", None) or os.getenv("REFERRAL_BONUS_PERCENT", "10") or "10"),
+            "referral_min_payout": int(getattr(Config, "REFERRAL_MIN_PAYOUT", None) or os.getenv("REFERRAL_MIN_PAYOUT", "100") or "100"),
+        }
+    except Exception:
+        return {
+            "support_username": (os.getenv("SUPPORT_USERNAME") or "").strip() or None,
+            "referral_bonus_percent": 10,
+            "referral_min_payout": 100,
+        }
 
 
 # Мини-приложение: на Vercel главная отдаётся из public/index.html (rewrite в vercel.json).
@@ -269,6 +312,8 @@ async def miniapp_me(request: Request):
                 "last_name": u.last_name,
                 "username": u.username,
                 "referral_code": getattr(u, "referral_code", None) or "",
+                "total_referrals": getattr(u, "total_referrals", 0) or 0,
+                "referral_balance": float(getattr(u, "referral_balance", 0) or 0),
             }
             photo = fetch_telegram_photo_url(u.telegram_id)
             if photo:
@@ -299,6 +344,9 @@ async def miniapp_me(request: Request):
                     "user": init_user_row(),
                     "subscription": None,
                     "subscription_status": None,
+                    "referral_invited_count": 0,
+                    "referral_balance": 0,
+                    "referral_bonus_days": 0,
                 }
 
             _ = list(user.subscriptions)
@@ -321,6 +369,7 @@ async def miniapp_me(request: Request):
                     "id": pay.id,
                     "amount_rubles": pay.amount_rubles,
                     "plan_type": pay.plan_type or "",
+                    "plan_name": plan_type_to_name(pay.plan_type or "", ctx),
                     "status": pay.status or "",
                     "completed_at": pay.completed_at.isoformat() if pay.completed_at else None,
                 }
@@ -334,12 +383,18 @@ async def miniapp_me(request: Request):
                     "subscription_status": None,
                     "subscriptions": subscriptions_list,
                     "payments": payments_list,
+                    "referral_invited_count": getattr(user, "total_referrals", 0) or 0,
+                    "referral_balance": float(getattr(user, "referral_balance", 0) or 0),
+                    "referral_bonus_days": 0,
                 }
 
             status = get_subscription_status(sub.plan_type)
             return {
                 "ok": True,
                 "user": user_row(user),
+                "referral_invited_count": getattr(user, "total_referrals", 0) or 0,
+                "referral_balance": float(getattr(user, "referral_balance", 0) or 0),
+                "referral_bonus_days": 0,
                 "subscription": {
                     "plan_type": sub.plan_type,
                     "plan_name": plan_type_to_name(sub.plan_type, ctx),
@@ -365,12 +420,17 @@ async def miniapp_me(request: Request):
 
 @app.get("/api/miniapp/plans")
 async def miniapp_plans():
-    """Return subscription plans (prices) for Mini App — single source of truth."""
+    """Тарифы, цены и настройки для мини-апп — единый источник с ботом (тарифы, цены, поддержка, рефералы)."""
     try:
         ctx = _get_db()
         if not ctx.get("SUBSCRIPTION_PLANS"):
             raise HTTPException(status_code=503, detail="Config not loaded. Set BOT_TOKEN and DATABASE_URL in Vercel.")
-        return {"ok": True, "plans": plans_for_miniapp(ctx)}
+        return {
+            "ok": True,
+            "plans": plans_for_miniapp(ctx),
+            "pricing": pricing_for_miniapp(),
+            "config": config_for_miniapp(),
+        }
     except HTTPException:
         raise
     except Exception as e:
