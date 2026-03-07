@@ -19,7 +19,7 @@ if not exist ".git" (
     git init
     echo.
     echo Теперь один раз привяжите репозиторий GitHub (адрес БЕЗ /tree/main/...^):
-    echo   git remote add origin https://github.com/Sensaid99/BITVPN...git
+    echo   git remote add origin https://github.com/Sensaid99/BITVPN.git
     echo.
     echo Затем снова запустите этот файл.
     pause
@@ -30,7 +30,7 @@ git remote get-url origin >nul 2>&1
 if errorlevel 1 (
     echo Удалённый репозиторий не задан. Выполните в этой папке ОДИН РАЗ:
     echo.
-    echo   git remote add origin https://github.com/Sensaid99/BITVPN...git
+    echo   git remote add origin https://github.com/Sensaid99/BITVPN.git
     echo.
     echo Важно: используйте адрес репозитория с окончанием .git, НЕ ссылку на папку /tree/main/...
     echo.
@@ -78,7 +78,7 @@ if errorlevel 1 (
 
 echo.
 echo Готово. Код отправлен на GitHub (ветка main).
-echo Проверка: https://github.com/Sensaid99/BITVPN../tree/main — в корне должен быть render.yaml.
+echo Проверка: https://github.com/Sensaid99/BITVPN/tree/main — в корне должен быть render.yaml.
 echo Если Render подключён к репозиторию — редиплой запустится автоматически.
 echo.
 pause

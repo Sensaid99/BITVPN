@@ -93,7 +93,7 @@ def show_project_structure():
     structure = """
 📁 СТРУКТУРА ПРОЕКТА:
 
-TgBot_vpn/
+BITVPN/
 ├── 🤖 bot/                     # Основной код бота
 │   ├── __init__.py
 │   ├── main.py                 # Точка входа
@@ -177,8 +177,8 @@ def show_installation_guide():
 🚀 БЫСТРАЯ УСТАНОВКА:
 
 1️⃣ КЛОНИРОВАНИЕ:
-   git clone https://github.com/your-repo/TgBot_vpn.git
-   cd TgBot_vpn
+   git clone https://github.com/Sensaid99/BITVPN.git
+   cd BITVPN
 
 2️⃣ ВИРТУАЛЬНОЕ ОКРУЖЕНИЕ:
    python -m venv venv

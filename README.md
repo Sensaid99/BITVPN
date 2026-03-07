@@ -54,8 +54,8 @@
 
 ```bash
 # Клонируем репозиторий
-git clone https://github.com/your-repo/TgBot_vpn.git
-cd TgBot_vpn
+git clone https://github.com/Sensaid99/BITVPN.git
+cd BITVPN
 
 # Создаем виртуальное окружение
 python -m venv venv
@@ -133,7 +133,7 @@ python demo_bot.py
 ## 📁 Структура проекта
 
 ```
-TgBot_vpn/
+BITVPN/
 ├── 🤖 bot/                     # Основной код бота
 │   ├── __init__.py
 │   ├── main.py                 # Точка входа

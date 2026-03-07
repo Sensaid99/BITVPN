@@ -19,8 +19,8 @@
 ### 2. Clone and Install
 
 ```bash
-git clone https://github.com/Vlasik2010/TgBot_vpn.git
-cd TgBot_vpn
+git clone https://github.com/Sensaid99/BITVPN.git
+cd BITVPN
 python -m venv venv
 source venv/bin/activate  # Linux/Mac
 pip install -r requirements.txt
@@ -197,9 +197,9 @@ After=network.target
 [Service]
 Type=simple
 User=vpnbot
-WorkingDirectory=/path/to/TgBot_vpn
-Environment=PATH=/path/to/TgBot_vpn/venv/bin
-ExecStart=/path/to/TgBot_vpn/venv/bin/python bot/main.py
+WorkingDirectory=/path/to/BITVPN
+Environment=PATH=/path/to/BITVPN/venv/bin
+ExecStart=/path/to/BITVPN/venv/bin/python bot/main.py
 Restart=always
 
 [Install]
