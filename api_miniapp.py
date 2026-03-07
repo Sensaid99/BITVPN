@@ -177,9 +177,10 @@ def plans_for_miniapp():
     ]
 
 
+# Путь к мини-приложению (один URL для приложения и API)
 @app.get("/")
 def root():
-    """API на Render; мини-приложение — на Vercel (WEBAPP_URL в .env)."""
+    """API на Render/Vercel; мини-приложение — на Vercel (WEBAPP_URL в .env)."""
     return {"service": "Bit VPN Mini App API", "status": "ok"}
 
 

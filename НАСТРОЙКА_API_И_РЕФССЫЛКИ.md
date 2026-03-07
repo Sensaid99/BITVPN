@@ -20,7 +20,7 @@
 | Что | Где | Зачем |
 |-----|-----|--------|
 | **WEBAPP_URL** | .env | Адрес **мини-приложения** (frontend). Деплой папки `webapp` на **Vercel** через `задеплоить_miniapp.bat` → URL вида `https://bitvpn-xxx.vercel.app`. |
-| **MINIAPP_API_URL** | .env | Адрес **API** (backend). Сервис на **Render** (bitvpn-api) → URL вида `https://bitvpn-api.onrender.com`. Приложение с Vercel обращается к этому API за подпиской и рефссылкой. |
+| **MINIAPP_API_URL** | .env | Адрес **API** (backend). Сервис на **Render** или **Vercel** → URL вида `https://bitvpn-api.onrender.com` или `https://xxx.vercel.app`. Приложение с Vercel обращается к этому API за подпиской и рефссылкой. |
 | **BOT_USERNAME** | .env | Username бота без `@` (например `Bitvpnproxy_bot`). Нужен, чтобы рефссылка имела вид `https://t.me/Bitvpnproxy_bot?start=...` |
 
 Без **MINIAPP_API_URL** приложение не знает, куда слать запросы — поэтому рефссылка не подгружается.
