@@ -124,17 +124,32 @@ def fetch_telegram_photo_url(telegram_id: int) -> str | None:
         return None
 
 
-# Импорт БД после добавления пути
-from bot.config.settings import Config, SUBSCRIPTION_PLANS
-from bot.models.database import DatabaseManager, User, Payment
-from bot.utils.helpers import format_date, get_server_flag, get_plan_duration_key
+# Импорт БД (при ошибке или отсутствии DATABASE_URL на Vercel — GET / и /health всё равно работают)
+db_manager = None
+Config = None
+SUBSCRIPTION_PLANS = {}
+User = Payment = None
+format_date = get_server_flag = get_plan_duration_key = None
 
-db_manager = DatabaseManager(Config.DATABASE_URL)
+try:
+    from bot.config.settings import Config as _C, SUBSCRIPTION_PLANS as _P
+    from bot.models.database import DatabaseManager, User as _U, Payment as _Pay
+    from bot.utils.helpers import format_date as _fd, get_server_flag as _gsf, get_plan_duration_key as _gpdk
+    Config, SUBSCRIPTION_PLANS = _C, _P
+    User, Payment = _U, _Pay
+    format_date, get_server_flag, get_plan_duration_key = _fd, _gsf, _gpdk
+    _url = getattr(Config, "DATABASE_URL", None) or os.getenv("DATABASE_URL")
+    if _url:
+        db_manager = DatabaseManager(_url)
+except Exception as e:
+    logger.warning("DB init failed (on Vercel set BOT_TOKEN + DATABASE_URL): %s", e)
 
 
 @app.on_event("startup")
 def on_startup():
-    """Создать таблицы в БД при старте (важно для Render с новой PostgreSQL)."""
+    """Создать таблицы в БД при старте."""
+    if not db_manager:
+        return
     try:
         db_manager.create_tables()
         logger.info("Database tables ensured")
@@ -196,6 +211,8 @@ async def miniapp_me(request: Request):
     Accept Telegram initData (JSON body: {"initData": "..."} or header X-Telegram-Init-Data),
     validate and return user + subscription for Mini App.
     """
+    if not db_manager or not User:
+        raise HTTPException(status_code=503, detail="Database not configured. Set BOT_TOKEN and DATABASE_URL in Vercel.")
     body = {}
     try:
         body = await request.json()
@@ -312,4 +329,6 @@ async def miniapp_me(request: Request):
 @app.get("/api/miniapp/plans")
 async def miniapp_plans():
     """Return subscription plans (prices) for Mini App — single source of truth."""
+    if not SUBSCRIPTION_PLANS:
+        raise HTTPException(status_code=503, detail="Config not loaded. Set BOT_TOKEN and DATABASE_URL in Vercel.")
     return {"ok": True, "plans": plans_for_miniapp()}

@@ -108,3 +108,5 @@ BOT_USERNAME=Bitvpnproxy_bot
 - **Ошибка при деплое:** проверьте, что Root Directory пустой и в репозитории в корне есть `app.py`, `index.py`, `api_miniapp.py`, `api/`, `bot/`, `vercel.json`, `pyproject.toml`, `requirements.txt`.
 - **В приложении нет данных:** проверьте, что в Vercel в Environment Variables заданы **BOT_TOKEN** и **DATABASE_URL**, и что бот на ПК использует тот же DATABASE_URL (если хотите общую базу).
 - **Реферальная ссылка не появляется:** в .env должен быть указан **BOT_USERNAME** (без @) и **MINIAPP_API_URL** на ваш API на Vercel.
+
+- **«This Serverless Function has crashed» / 500:** в проекте Vercel откройте **Settings** → **Environment Variables** и убедитесь, что заданы **BOT_TOKEN** (токен бота от BotFather) и **DATABASE_URL** (строка подключения к Neon, из шага 1). Без них API падает при старте. После добавления переменных нажмите **Redeploy**.
