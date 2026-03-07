@@ -94,8 +94,8 @@ BOT_USERNAME=Bitvpnproxy_bot
 
 ## Проверка
 
-1. В браузере откройте `https://ваш-api.vercel.app/` — должен вернуться JSON: `{"service":"Bit VPN Mini App API","status":"ok"}`.
-2. В Telegram откройте бота → **Открыть приложение** → раздел **Рефералы** → реферальная ссылка должна подгрузиться.
+1. В браузере откройте `https://ваш-api.vercel.app/` — должна открыться **страница мини-приложения** (HTML). Если видите JSON — в репозитории должна быть папка **public** с файлом **public/index.html** (копия из webapp); задеплойте заново.
+2. В Telegram откройте бота → **Открыть приложение** → должно открыться приложение (не «Загрузки»). Если правки были в webapp — запустите **sync_webapp_to_public.bat**, затем push и redeploy.
 
 ---
 
@@ -111,4 +111,9 @@ BOT_USERNAME=Bitvpnproxy_bot
 
 - **«This Serverless Function has crashed» / 500:** откройте в Vercel проект API → вкладка **Logs** (или **Runtime Logs**). Там будет текст ошибки (например, нет модуля, ошибка БД). Убедитесь, что в **Settings** → **Environment Variables** заданы **BOT_TOKEN** и **DATABASE_URL** (строка от Neon). Без них API может падать при первом запросе.
 
-- **«This Serverless Function has crashed» / 500:** в проекте Vercel откройте **Settings** → **Environment Variables** и убедитесь, что заданы **BOT_TOKEN** (токен бота от BotFather) и **DATABASE_URL** (строка подключения к Neon, из шага 1). Без них API падает при старте. После добавления переменных нажмите **Redeploy**.
+- **«This Serverless Function has crashed» / 500:**  
+  1. В Vercel откройте проект API → **Deployments** → выберите последний деплой → **Functions** → откройте функцию и посмотрите **Logs** (Runtime Logs). Там будет причина падения.  
+  2. В **Settings** → **Environment Variables** обязательно заданы **BOT_TOKEN** (токен бота от BotFather) и **DATABASE_URL** (строка от Neon). Без них загрузка БД не удаётся.  
+  3. Сделайте **новый push в main** и дождитесь деплоя (не только Redeploy старого коммита). В коде API включена ленивая загрузка БД — маршруты GET / и GET /health не требуют БД и не должны падать.
+
+- **В Telegram открываются «Загрузки» вместо приложения:** мини-приложение должно раздаваться как статический HTML. В репозитории должна быть папка **public** с файлом **public/index.html**. Убедитесь, что при push в репозитории есть эта папка и файл, затем сделайте новый деплой на Vercel (не Redeploy старого коммита — именно push + деплой). В .env у бота **WEBAPP_URL** должен быть `https://ваш-api.vercel.app` (без слеша в конце).

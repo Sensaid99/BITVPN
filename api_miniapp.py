@@ -125,38 +125,35 @@ def fetch_telegram_photo_url(telegram_id: int) -> str | None:
         return None
 
 
-# Импорт БД (при ошибке или отсутствии DATABASE_URL на Vercel — GET / и /health всё равно работают)
-db_manager = None
-Config = None
-SUBSCRIPTION_PLANS = {}
-User = Payment = None
-format_date = get_server_flag = get_plan_duration_key = None
-
-try:
-    from bot.config.settings import Config as _C, SUBSCRIPTION_PLANS as _P
-    from bot.models.database import DatabaseManager, User as _U, Payment as _Pay
-    from bot.utils.helpers import format_date as _fd, get_server_flag as _gsf, get_plan_duration_key as _gpdk
-    Config, SUBSCRIPTION_PLANS = _C, _P
-    User, Payment = _U, _Pay
-    format_date, get_server_flag, get_plan_duration_key = _fd, _gsf, _gpdk
-    _url = getattr(_C, "DATABASE_URL", None) or os.getenv("DATABASE_URL")
-    if _url:
-        db_manager = DatabaseManager(_url)
-except Exception as e:
-    import traceback
-    logger.warning("DB/Config init failed (on Vercel set BOT_TOKEN + DATABASE_URL): %s\n%s", e, traceback.format_exc())
+# Ленивая загрузка БД/конфига — не импортируем bot при старте, чтобы GET / и /health не падали на Vercel
+_db_cache = None
 
 
-@app.on_event("startup")
-def on_startup():
-    """Создать таблицы в БД при старте."""
-    if not db_manager:
-        return
+def _get_db():
+    """Один раз загрузить bot/БД; при ошибке вернуть None и логировать."""
+    global _db_cache
+    if _db_cache is not None:
+        return _db_cache
     try:
-        db_manager.create_tables()
-        logger.info("Database tables ensured")
+        from bot.config.settings import Config as _C, SUBSCRIPTION_PLANS as _P
+        from bot.models.database import DatabaseManager, User as _U, Payment as _Pay
+        from bot.utils.helpers import format_date as _fd, get_server_flag as _gsf, get_plan_duration_key as _gpdk
+        _url = getattr(_C, "DATABASE_URL", None) or os.getenv("DATABASE_URL")
+        if not _url:
+            _db_cache = {"db_manager": None, "Config": _C, "SUBSCRIPTION_PLANS": _P, "User": _U, "Payment": _Pay,
+                         "format_date": _fd, "get_server_flag": _gsf, "get_plan_duration_key": _gpdk}
+            return _db_cache
+        dm = DatabaseManager(_url)
+        dm.create_tables()
+        _db_cache = {"db_manager": dm, "Config": _C, "SUBSCRIPTION_PLANS": _P, "User": _U, "Payment": _Pay,
+                     "format_date": _fd, "get_server_flag": _gsf, "get_plan_duration_key": _gpdk}
+        logger.info("DB/Config loaded for API")
+        return _db_cache
     except Exception as e:
-        logger.warning("create_tables: %s", e)
+        import traceback
+        logger.warning("DB/Config init failed (set BOT_TOKEN + DATABASE_URL in Vercel): %s\n%s", e, traceback.format_exc())
+        _db_cache = {}
+        return _db_cache
 
 
 # Базовый = только 1 месяц на 1 устройство. Премиум = остальные тарифы (3+ устройств или 3+ мес).
@@ -180,20 +177,24 @@ def get_subscription_status(plan_type: str) -> str | None:
     return "premium"  # 1 month, 5 or 10 devices etc.
 
 
-def plan_type_to_name(plan_type: str) -> str:
+def plan_type_to_name(plan_type: str, ctx=None) -> str:
     """Human-readable plan name (6_months_3 -> 6 месяцев)."""
-    if get_plan_duration_key:
-        key = get_plan_duration_key(plan_type)
-        return (SUBSCRIPTION_PLANS or {}).get(key, {}).get("name", plan_type.replace("_", " "))
+    ctx = ctx or _get_db()
+    get_pdk = ctx.get("get_plan_duration_key") if isinstance(ctx, dict) else None
+    plans = ctx.get("SUBSCRIPTION_PLANS", {}) if isinstance(ctx, dict) else {}
+    if get_pdk:
+        key = get_pdk(plan_type)
+        return (plans or {}).get(key, {}).get("name", plan_type.replace("_", " "))
     return plan_type.replace("_", " ")
 
 
-def plans_for_miniapp():
+def plans_for_miniapp(ctx=None):
     """Return subscription plans for Mini App (prices in rubles, keys)."""
-    plans = SUBSCRIPTION_PLANS or {}
+    ctx = ctx or _get_db()
+    plans = ctx.get("SUBSCRIPTION_PLANS", {}) if isinstance(ctx, dict) else {}
     return [
         {"key": k, "name": v["name"], "price": v["price"], "months": v.get("months", 1)}
-        for k, v in plans.items()
+        for k, v in (plans or {}).items()
     ]
 
 
@@ -205,8 +206,11 @@ _WEBAPP_HTML_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "we
 @app.get("/index.html")
 def serve_webapp():
     """Отдаём HTML мини-приложения с Content-Type: text/html, чтобы Telegram открывал как Web App."""
-    if os.path.isfile(_WEBAPP_HTML_PATH):
-        return FileResponse(_WEBAPP_HTML_PATH, media_type="text/html")
+    try:
+        if os.path.isfile(_WEBAPP_HTML_PATH):
+            return FileResponse(_WEBAPP_HTML_PATH, media_type="text/html")
+    except Exception as e:
+        logger.warning("serve_webapp FileResponse: %s", e)
     return Response(
         content='{"service":"Bit VPN Mini App API","status":"ok"}',
         media_type="application/json",
@@ -225,124 +229,143 @@ async def miniapp_me(request: Request):
     Accept Telegram initData (JSON body: {"initData": "..."} or header X-Telegram-Init-Data),
     validate and return user + subscription for Mini App.
     """
-    if not db_manager or not User:
-        raise HTTPException(status_code=503, detail="Database not configured. Set BOT_TOKEN and DATABASE_URL in Vercel.")
-    body = {}
     try:
-        body = await request.json()
-    except Exception:
-        pass
-    init_data = (body.get("initData") or request.headers.get("X-Telegram-Init-Data") or "").strip()
-    if not init_data:
-        raise HTTPException(status_code=400, detail="initData required")
+        ctx = _get_db()
+        db_manager = ctx.get("db_manager") if isinstance(ctx, dict) else None
+        User = ctx.get("User") if isinstance(ctx, dict) else None
+        Payment = ctx.get("Payment") if isinstance(ctx, dict) else None
+        format_date = ctx.get("format_date") if isinstance(ctx, dict) else None
+        get_server_flag = ctx.get("get_server_flag") if isinstance(ctx, dict) else None
+        if not db_manager or not User:
+            raise HTTPException(status_code=503, detail="Database not configured. Set BOT_TOKEN and DATABASE_URL in Vercel.")
+        body = {}
+        try:
+            body = await request.json()
+        except Exception:
+            pass
+        init_data = (body.get("initData") or request.headers.get("X-Telegram-Init-Data") or "").strip()
+        if not init_data:
+            raise HTTPException(status_code=400, detail="initData required")
 
-    parsed = validate_init_data(init_data)
-    if not parsed:
-        raise HTTPException(status_code=401, detail="Invalid initData")
+        parsed = validate_init_data(init_data)
+        if not parsed:
+            raise HTTPException(status_code=401, detail="Invalid initData")
 
-    telegram_id, init_user = get_telegram_user_from_init(parsed)
-    if not telegram_id:
-        raise HTTPException(status_code=400, detail="user not in initData")
+        telegram_id, init_user = get_telegram_user_from_init(parsed)
+        if not telegram_id:
+            raise HTTPException(status_code=400, detail="user not in initData")
 
-    def user_row(u):
-        out = {
-            "telegram_id": u.telegram_id,
-            "first_name": u.first_name,
-            "last_name": u.last_name,
-            "username": u.username,
-            "referral_code": getattr(u, "referral_code", None) or "",
-        }
-        photo = fetch_telegram_photo_url(u.telegram_id)
-        if photo:
-            out["photo_url"] = photo
-        return out
-
-    def init_user_row():
-        row = {
-            "telegram_id": telegram_id,
-            "first_name": (init_user or {}).get("first_name"),
-            "last_name": (init_user or {}).get("last_name"),
-            "username": (init_user or {}).get("username"),
-        }
-        if init_user and "photo_url" in init_user:
-            row["photo_url"] = init_user.get("photo_url")
-        else:
-            photo = fetch_telegram_photo_url(telegram_id)
+        def user_row(u):
+            out = {
+                "telegram_id": u.telegram_id,
+                "first_name": u.first_name,
+                "last_name": u.last_name,
+                "username": u.username,
+                "referral_code": getattr(u, "referral_code", None) or "",
+            }
+            photo = fetch_telegram_photo_url(u.telegram_id)
             if photo:
-                row["photo_url"] = photo
-        return row
+                out["photo_url"] = photo
+            return out
 
-    session = db_manager.get_session()
-    try:
-        from bot.models.database import User
-        user = session.query(User).filter_by(telegram_id=telegram_id).first()
-        if not user:
-            return {
-                "ok": True,
-                "user": init_user_row(),
-                "subscription": None,
-                "subscription_status": None,
+        def init_user_row():
+            row = {
+                "telegram_id": telegram_id,
+                "first_name": (init_user or {}).get("first_name"),
+                "last_name": (init_user or {}).get("last_name"),
+                "username": (init_user or {}).get("username"),
             }
+            if init_user and "photo_url" in init_user:
+                row["photo_url"] = init_user.get("photo_url")
+            else:
+                photo = fetch_telegram_photo_url(telegram_id)
+                if photo:
+                    row["photo_url"] = photo
+            return row
 
-        _ = list(user.subscriptions)  # load relationship
-        sub = user.active_subscription
-        subscriptions_list = [
-            {
-                "plan_type": s.plan_type,
-                "plan_name": plan_type_to_name(s.plan_type),
-                "end_date": s.end_date.isoformat() if s.end_date else None,
-                "end_date_formatted": format_date(s.end_date) if s.end_date else None,
-                "days_remaining": getattr(s, "days_remaining", None),
-                "is_active": s.is_active and (s.end_date and s.end_date > datetime.utcnow()),
-                "server_location": s.server_location or "",
-            }
-            for s in user.subscriptions
-        ]
-        payments_rows = session.query(Payment).filter_by(user_id=user.id).order_by(Payment.completed_at.desc()).limit(20).all()
-        payments_list = [
-            {
-                "id": pay.id,
-                "amount_rubles": pay.amount_rubles,
-                "plan_type": pay.plan_type or "",
-                "status": pay.status or "",
-                "completed_at": pay.completed_at.isoformat() if pay.completed_at else None,
-            }
-            for pay in payments_rows
-        ]
-        if not sub:
+        session = db_manager.get_session()
+        try:
+            user = session.query(User).filter_by(telegram_id=telegram_id).first()
+            if not user:
+                return {
+                    "ok": True,
+                    "user": init_user_row(),
+                    "subscription": None,
+                    "subscription_status": None,
+                }
+
+            _ = list(user.subscriptions)
+            sub = user.active_subscription
+            subscriptions_list = [
+                {
+                    "plan_type": s.plan_type,
+                    "plan_name": plan_type_to_name(s.plan_type, ctx),
+                    "end_date": s.end_date.isoformat() if s.end_date else None,
+                    "end_date_formatted": format_date(s.end_date) if format_date and s.end_date else None,
+                    "days_remaining": getattr(s, "days_remaining", None),
+                    "is_active": s.is_active and (s.end_date and s.end_date > datetime.utcnow()),
+                    "server_location": s.server_location or "",
+                }
+                for s in user.subscriptions
+            ]
+            payments_rows = session.query(Payment).filter_by(user_id=user.id).order_by(Payment.completed_at.desc()).limit(20).all()
+            payments_list = [
+                {
+                    "id": pay.id,
+                    "amount_rubles": pay.amount_rubles,
+                    "plan_type": pay.plan_type or "",
+                    "status": pay.status or "",
+                    "completed_at": pay.completed_at.isoformat() if pay.completed_at else None,
+                }
+                for pay in payments_rows
+            ]
+            if not sub:
+                return {
+                    "ok": True,
+                    "user": user_row(user),
+                    "subscription": None,
+                    "subscription_status": None,
+                    "subscriptions": subscriptions_list,
+                    "payments": payments_list,
+                }
+
+            status = get_subscription_status(sub.plan_type)
             return {
                 "ok": True,
                 "user": user_row(user),
-                "subscription": None,
-                "subscription_status": None,
+                "subscription": {
+                    "plan_type": sub.plan_type,
+                    "plan_name": plan_type_to_name(sub.plan_type, ctx),
+                    "end_date": sub.end_date.isoformat() if sub.end_date else None,
+                    "end_date_formatted": format_date(sub.end_date) if format_date and sub.end_date else (sub.end_date.isoformat() if sub.end_date else None),
+                    "days_remaining": sub.days_remaining,
+                    "server_location": sub.server_location or "",
+                    "server_flag": get_server_flag(sub.server_location or "") if get_server_flag and sub.server_location else "🌍",
+                },
+                "subscription_status": status,
                 "subscriptions": subscriptions_list,
                 "payments": payments_list,
             }
-
-        status = get_subscription_status(sub.plan_type)
-        return {
-            "ok": True,
-            "user": user_row(user),
-            "subscription": {
-                "plan_type": sub.plan_type,
-                "plan_name": plan_type_to_name(sub.plan_type),
-                "end_date": sub.end_date.isoformat() if sub.end_date else None,
-                "end_date_formatted": format_date(sub.end_date) if format_date and sub.end_date else (sub.end_date.isoformat() if sub.end_date else None),
-                "days_remaining": sub.days_remaining,
-                "server_location": sub.server_location or "",
-                "server_flag": get_server_flag(sub.server_location or "") if get_server_flag and sub.server_location else "🌍",
-            },
-            "subscription_status": status,
-            "subscriptions": subscriptions_list,
-            "payments": payments_list,
-        }
-    finally:
-        session.close()
+        finally:
+            session.close()
+    except HTTPException:
+        raise
+    except Exception as e:
+        import traceback
+        logger.exception("miniapp_me failed: %s", e)
+        raise HTTPException(status_code=500, detail="Internal error. Check Vercel logs.")
 
 
 @app.get("/api/miniapp/plans")
 async def miniapp_plans():
     """Return subscription plans (prices) for Mini App — single source of truth."""
-    if not SUBSCRIPTION_PLANS:
-        raise HTTPException(status_code=503, detail="Config not loaded. Set BOT_TOKEN and DATABASE_URL in Vercel.")
-    return {"ok": True, "plans": plans_for_miniapp()}
+    try:
+        ctx = _get_db()
+        if not ctx.get("SUBSCRIPTION_PLANS"):
+            raise HTTPException(status_code=503, detail="Config not loaded. Set BOT_TOKEN and DATABASE_URL in Vercel.")
+        return {"ok": True, "plans": plans_for_miniapp(ctx)}
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.exception("miniapp_plans failed: %s", e)
+        raise HTTPException(status_code=500, detail="Internal error. Check Vercel logs.")

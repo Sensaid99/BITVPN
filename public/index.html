@@ -1,0 +1,2130 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <title>VPN — Быстро и безопасно</title>
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Unbounded:wght@400;500;600;700&family=Onest:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg: #000000;
+      --bg-card: #0d0d0d;
+      --bg-nav: #0d0d0d;
+      --border: rgba(255, 255, 255, 0.08);
+      --text: #ffffff;
+      --text-muted: rgba(255, 255, 255, 0.6);
+      --accent: #00ff88;
+      --accent-dim: rgba(0, 255, 136, 0.2);
+      --radius: 12px;
+      --safe-bottom: env(safe-area-inset-bottom, 0);
+      --nav-h: 56px;
+    }
+    html { height: 100%; }
+    body {
+      font-family: 'Onest', -apple-system, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      margin: 0;
+      padding: 0;
+      min-height: 100vh;
+      position: relative;
+      overflow-x: hidden;
+      overflow-y: auto;
+      z-index: 0;
+    }
+    /* Фон: бинарная анимация — всегда ЗА всем контентом */
+    .binary-bg {
+      position: fixed;
+      inset: 0;
+      z-index: 0;
+      overflow: hidden;
+      background: #000;
+      pointer-events: none;
+    }
+    .binary-bg canvas {
+      display: block;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      pointer-events: none;
+    }
+    /* Затемнение фона на экране «Профиль» для лучшей читаемости */
+    .profile-bg-dimmer {
+      position: fixed;
+      inset: 0;
+      z-index: 0.5;
+      background: rgba(0, 0, 0, 0.35);
+      pointer-events: none;
+      opacity: 0;
+      visibility: hidden;
+      transition: opacity 0.3s ease, visibility 0.3s ease;
+    }
+    body.profile-active .profile-bg-dimmer {
+      opacity: 1;
+      visibility: visible;
+    }
+    .page-content {
+      position: relative;
+      z-index: 1;
+      isolation: isolate;
+      display: flex;
+      flex-direction: column;
+      padding: 24px 12px 8px;
+      padding-top: 28px;
+      padding-bottom: calc(var(--nav-h) + var(--safe-bottom) + 16px);
+    }
+    .screen {
+      flex: 1;
+      min-height: 0;
+      overflow-y: auto;
+      overflow-x: hidden;
+      -webkit-overflow-scrolling: touch;
+      padding-bottom: calc(var(--nav-h) + var(--safe-bottom) + 12px);
+      word-break: break-word;
+    }
+    .header {
+      text-align: center;
+      margin-bottom: 38px;
+      flex-shrink: 0;
+      position: relative;
+      z-index: 1;
+    }
+    .header h1 {
+      font-family: 'Unbounded', sans-serif;
+      font-size: 1.35rem;
+      font-weight: 600;
+      background: linear-gradient(135deg, #00ff88, #00cc6a);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    .header p {
+      color: rgba(255, 255, 255, 0.95);
+      font-size: 0.85rem;
+      font-weight: 600;
+      margin-top: 2px;
+      text-shadow: 0 0 12px rgba(0, 0, 0, 0.9), 0 1px 3px rgba(0, 0, 0, 0.7);
+    }
+    .card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 16px 18px;
+      margin-bottom: 12px;
+      position: relative;
+      z-index: 1;
+      min-width: 0;
+      overflow-wrap: break-word;
+    }
+    .card h2 {
+      font-size: 1.15rem;
+      margin-bottom: 10px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      color: var(--text);
+    }
+    .card ul {
+      list-style: none;
+      font-size: 0.9rem;
+      color: var(--text);
+    }
+    .card li { padding: 4px 0; padding-left: 1em; position: relative; }
+    .card li::before { content: "•"; color: var(--text-muted); position: absolute; left: 0; }
+    .plans .plan {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 12px 0;
+      border-bottom: 1px solid var(--border);
+    }
+    .plans .plan:last-child { border-bottom: none; }
+    .plan-name { font-weight: 500; }
+    .plan-price { color: var(--text); font-weight: 600; }
+    .btn {
+      display: block;
+      width: 100%;
+      padding: 12px 16px;
+      border: none;
+      border-radius: var(--radius);
+      font-family: inherit;
+      font-size: 0.95rem;
+      font-weight: 600;
+      cursor: pointer;
+      text-align: center;
+      text-decoration: none;
+      transition: transform 0.1s, opacity 0.2s, background 0.2s, border-color 0.2s;
+    }
+    .btn:active { transform: scale(0.98); opacity: 0.9; }
+    .btn-primary {
+      background: linear-gradient(135deg, #00ff88, #00cc6a);
+      color: #000;
+      margin-top: 20px;
+      margin-bottom: 12px;
+    }
+    .btn-secondary {
+      background: var(--accent-dim);
+      color: var(--accent);
+      margin-bottom: 8px;
+    }
+    .btn, .footer {
+      position: relative;
+      z-index: 1;
+    }
+    /* Главная: непрозрачная карточка и кнопки (белый/чёрный/зелёный/серый, без прозрачности) */
+    .main-card-glass {
+      background: #0f0f0f;
+      border: 1px solid #2a2a2a;
+      border-radius: 16px;
+      padding: 18px 16px;
+      margin-bottom: 12px;
+    }
+    .main-card-glass .card-head { margin-bottom: 14px; }
+    .main-card-glass .card-title { color: #fff; font-size: 1.08rem; }
+    .main-card-glass .card-title svg { fill: var(--accent); }
+    .main-card-glass .status-badge {
+      background: #252525;
+      color: #b0b0b0;
+      padding: 4px 10px;
+      border-radius: 12px;
+      font-size: 0.72rem;
+      font-weight: 600;
+    }
+    .main-card-glass .status-badge.active {
+      background: #0a2e1a;
+      color: #00ff88;
+    }
+    .main-card-glass .stats-row {
+      border-color: #2a2a2a;
+      margin: 12px 0;
+      padding: 12px 0;
+    }
+    .main-card-glass .stat-item { color: #e8e8e8; }
+    .main-card-glass .stat-item svg { fill: #707070; }
+    .main-cta {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      width: 100%;
+      padding: 14px 20px;
+      margin-top: 16px;
+      margin-bottom: 14px;
+      border-radius: 12px;
+      background: #00cc6a;
+      color: #000;
+      font-weight: 700;
+      font-size: 0.95rem;
+      border: none;
+      cursor: pointer;
+      text-decoration: none;
+      transition: transform 0.2s, background 0.2s;
+    }
+    .main-cta:active { transform: scale(0.98); background: #00b85c; }
+    .main-cta svg { width: 20px; height: 20px; fill: currentColor; flex-shrink: 0; }
+    .main-actions {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 12px;
+    }
+    .main-action-btn {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      padding: 14px 12px;
+      min-height: 52px;
+      border-radius: 12px;
+      background: #1a1a1a;
+      border: 1px solid #333;
+      color: #fff;
+      font-size: 0.88rem;
+      font-weight: 600;
+      cursor: pointer;
+      text-align: center;
+      transition: background 0.2s, border-color 0.2s;
+    }
+    .main-action-btn:active { background: #252525; }
+    .main-action-btn .main-action-icon {
+      width: 24px;
+      height: 24px;
+      flex-shrink: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .main-action-btn .main-action-icon svg { width: 22px; height: 22px; fill: #b0b0b0; }
+    .main-action-btn .main-action-label { line-height: 1.2; }
+    .main-install-wrap { margin-top: 4px; }
+    .main-install-btn {
+      width: 100%;
+      padding: 12px 16px;
+      border-radius: 12px;
+      background: #252525;
+      border: 1px solid #333;
+      color: #c8c8c8;
+      font-size: 0.88rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+    .main-install-btn:active { background: #2e2e2e; }
+    .main-card-glass .tariffs-inline {
+      border-color: #2a2a2a;
+      margin-top: 14px;
+      padding-top: 12px;
+    }
+    .main-card-glass .tariffs-inline h3 { color: #fff; }
+    .main-card-glass .tariffs-inline p { color: #888; }
+    .footer {
+      text-align: center;
+      margin-top: 8px;
+      font-size: 0.72rem;
+      color: var(--text-muted);
+      background: var(--bg-nav);
+      margin-left: -12px;
+      margin-right: -12px;
+      padding: 8px 12px;
+      border-radius: var(--radius);
+      flex-shrink: 0;
+    }
+    /* Компактнее на маленьких экранах — весь контент влезает и не уходит за край */
+    @media (max-height: 600px) {
+      .profile-user-card { padding: 12px 14px; margin-bottom: 10px; }
+      .profile-actions { margin-bottom: 8px; }
+      .profile-action-btn { min-height: 48px; padding: 8px 4px; font-size: 0.68rem; }
+      .profile-section { margin-bottom: 8px; }
+      .profile-section-title { margin-bottom: 8px; }
+      .profile-row { padding: 10px 12px; margin-bottom: 6px; }
+      .profile-about-row { padding: 10px 12px; margin-top: 6px; font-size: 0.72rem; }
+    }
+    .footer a { color: var(--text); text-decoration: underline; text-underline-offset: 2px; }
+
+    /* Нижняя панель — всегда зафиксирована внизу экрана */
+    .bottom-nav {
+      position: fixed;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      z-index: 100;
+      height: calc(var(--nav-h) + var(--safe-bottom));
+      padding-bottom: var(--safe-bottom);
+      background: var(--bg-nav);
+      border-top: 1px solid var(--border);
+      display: flex;
+      justify-content: space-around;
+      align-items: center;
+      flex-shrink: 0;
+    }
+    .bottom-nav a {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 4px;
+      color: var(--text-muted);
+      text-decoration: none;
+      font-size: 0.75rem;
+    }
+    .bottom-nav a:hover { color: var(--text); }
+    .bottom-nav a.active { color: var(--accent); background: rgba(0,255,136,0.15); }
+    .bottom-nav .nav-item { padding: 6px 12px; border-radius: 20px; transition: background 0.25s ease, color 0.25s ease; }
+    .bottom-nav .nav-icon { width: 24px; height: 24px; display: flex; align-items: center; justify-content: center; }
+    .bottom-nav .nav-icon svg { width: 20px; height: 20px; fill: currentColor; }
+    .screens-viewport { flex: 1; min-height: 55vh; overflow: hidden; touch-action: pan-y pinch-zoom; position: relative; }
+    .screens-track { display: flex; width: 400%; min-height: 100%; transition: transform 0.38s cubic-bezier(0.32, 0.72, 0.2, 1); will-change: transform; }
+    .screens-track.dragging { transition: none; }
+    .screens-track .screen { flex: 0 0 25%; width: 25%; min-height: 100%; display: flex; flex-direction: column; box-sizing: border-box; overflow: hidden; position: relative; z-index: 1; padding-left: 0.7cm; padding-right: 0.7cm; }
+    .screens-track .screen:first-child { padding-left: 0.5cm; }
+    .screens-track .screen:last-child { padding-right: 0.5cm; }
+    .screen { min-height: 0; }
+    #screen-main { overflow: hidden; flex: 1; min-height: 0; }
+    .icon-inline { width: 1.1em; height: 1.1em; vertical-align: -0.15em; fill: var(--text-muted); }
+
+    .main-card { padding: 12px 14px; margin-bottom: 8px; }
+    .main-card .card-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 6px; margin-bottom: 10px; flex-wrap: wrap; }
+    .main-card .card-title { font-size: 1.05rem; font-weight: 600; display: flex; align-items: center; gap: 6px; }
+    .main-card .card-title { color: var(--text); }
+    .main-card .card-title svg { width: 20px; height: 20px; fill: var(--accent); }
+    .status-badge { font-size: 0.7rem; padding: 3px 8px; border-radius: 12px; background: rgba(255,255,255,0.1); color: var(--text); }
+    .status-badge.active { background: rgba(0, 255, 136, 0.2); color: var(--accent); }
+    .stats-row { display: flex; justify-content: space-between; gap: 6px; margin: 8px 0; padding: 8px 0; border-top: 1px solid var(--border); border-bottom: 1px solid var(--border); }
+    .stat-item { display: flex; align-items: center; gap: 5px; font-size: 0.8rem; color: var(--text); flex: 1; justify-content: center; }
+    .stat-item svg { width: 16px; height: 16px; fill: var(--text-muted); flex-shrink: 0; }
+    .main-card .btn-primary { margin-top: 10px; margin-bottom: 6px; padding: 10px 14px; font-size: 0.9rem; }
+    .btn-row { display: flex; gap: 8px; margin-top: 6px; }
+    .btn-row .btn { flex: 1; margin: 0; padding: 10px 12px; font-size: 0.88rem; }
+    .main-card .btn-tertiary { margin-top: 6px; padding: 9px 12px; font-size: 0.85rem; }
+    .main-card .tariffs-inline { margin-top: 12px; padding-top: 10px; border-top: 1px solid var(--border); }
+    .main-card .tariffs-inline h3 { font-size: 0.95rem; margin-bottom: 8px; color: var(--text); }
+    .main-card .tariffs-inline .plan { padding: 6px 0; }
+
+    .pay-tabs { display: flex; gap: 8px; margin-bottom: 12px; }
+    .pay-tabs button { flex: 1; padding: 10px 12px; border: 1px solid var(--border); border-radius: 10px; background: transparent; color: var(--text); font-size: 0.85rem; cursor: pointer; }
+    .pay-tabs button.active { background: rgba(0, 255, 136, 0.15); color: var(--accent); border-color: var(--accent); }
+    .pay-list { margin-top: 10px; }
+    .pay-item { background: rgba(255,255,255,0.04); border: 1px solid var(--border); border-radius: 10px; padding: 12px 14px; margin-bottom: 10px; }
+    .pay-item-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 8px; flex-wrap: wrap; }
+    .pay-item-title { font-weight: 600; font-size: 0.9rem; display: flex; align-items: center; gap: 8px; }
+    .pay-item-title svg { width: 18px; height: 18px; fill: var(--accent); }
+    .pay-item-badge { font-size: 0.7rem; padding: 3px 8px; border-radius: 10px; background: rgba(0, 255, 136, 0.2); color: var(--accent); }
+    .pay-item-badge.pending { background: rgba(255,193,7,0.2); color: #ffc107; }
+    .pay-item-meta { font-size: 0.8rem; color: var(--text); margin-bottom: 8px; }
+    .pay-item-row { display: flex; align-items: center; gap: 8px; font-size: 0.85rem; color: var(--text); margin: 4px 0; }
+    .pay-item-row svg { width: 16px; height: 16px; fill: var(--text-muted); flex-shrink: 0; }
+    .pay-empty { text-align: center; padding: 20px 14px; color: var(--text-muted); font-size: 0.9rem; }
+    .pay-item-sample { opacity: 0.85; }
+    .ref-card-head { margin-bottom: 4px; }
+    .ref-title-wrap { display: flex; align-items: center; gap: 8px; }
+    .ref-title-icon { font-size: 1.2rem; color: var(--accent); }
+    .ref-subtitle { font-size: 0.85rem; color: var(--text-muted); margin-bottom: 14px; line-height: 1.35; }
+    .ref-stats-row { display: flex; gap: 10px; margin-bottom: 16px; }
+    .ref-stat-card { flex: 1; background: rgba(255,255,255,0.04); border: 1px solid var(--border); border-radius: 12px; padding: 14px; text-align: center; }
+    .ref-stat-num { display: block; font-size: 1.5rem; font-weight: 700; color: var(--text); }
+    .ref-stat-label { font-size: 0.78rem; color: var(--text-muted); }
+    .ref-how-card { background: rgba(255,255,255,0.04); border: 1px solid var(--border); border-radius: 12px; padding: 14px; margin-bottom: 14px; }
+    .ref-how-title { font-size: 0.9rem; font-weight: 600; color: var(--text); margin-bottom: 8px; display: flex; align-items: center; gap: 6px; }
+    .ref-how-icon { width: 20px; height: 20px; border-radius: 50%; background: var(--accent-dim); color: var(--accent); display: inline-flex; align-items: center; justify-content: center; font-size: 0.75rem; font-style: normal; }
+    .ref-how-text { font-size: 0.82rem; color: var(--text-muted); margin-bottom: 10px; line-height: 1.4; }
+    .ref-how-list { margin: 0; padding-left: 1.2rem; font-size: 0.82rem; color: var(--text); line-height: 1.6; }
+    .ref-actions-ref { margin-top: 8px; }
+    /* Subscribe sheet — фиксированное центрированное модальное окно, не дёргается при тапе */
+    #subscribe-sheet.subscribe-sheet-modern {
+      left: 50%;
+      top: 50%;
+      right: auto;
+      bottom: auto;
+      width: calc(100% - 24px);
+      max-width: 420px;
+      max-height: 90vh;
+      border-radius: 20px;
+      transform: translate(-50%, -50%) scale(0.94);
+      opacity: 0;
+      visibility: hidden;
+      transition: transform 0.3s cubic-bezier(0.32, 0.72, 0, 1), opacity 0.25s ease, visibility 0.25s;
+      box-shadow: 0 24px 48px rgba(0,0,0,0.5);
+      touch-action: none;
+      -webkit-overflow-scrolling: touch;
+    }
+    #subscribe-sheet.subscribe-sheet-modern.open {
+      transform: translate(-50%, -50%) scale(1);
+      opacity: 1;
+      visibility: visible;
+    }
+    .bottom-sheet-overlay.open { touch-action: none; }
+    .subscribe-sheet-modern .sheet-content { padding: 0 16px 20px; max-height: calc(90vh - 28px); overflow-y: auto; overflow-x: hidden; -webkit-overflow-scrolling: touch; word-break: break-word; }
+    .subscribe-sheet-desc { font-size: 0.85rem; color: var(--text-muted); margin: -4px 0 14px; line-height: 1.35; }
+    .subscribe-block { padding: 14px 16px; margin-bottom: 12px; border-radius: 18px; }
+    .subscribe-block-label { font-size: 0.9rem; font-weight: 600; color: var(--text); display: flex; align-items: center; gap: 8px; }
+    .subscribe-block-icon { width: 20px; height: 20px; fill: var(--accent); flex-shrink: 0; }
+    .subscribe-block-devices { margin-bottom: 10px; }
+    .subscribe-devices-btns { display: flex; gap: 10px; flex-wrap: wrap; }
+    .subscribe-dev-btn { padding: 10px 20px; min-width: 48px; border: 1px solid var(--border); border-radius: 14px; background: rgba(255,255,255,0.04); color: var(--text); font-weight: 600; font-size: 0.95rem; cursor: pointer; transition: border-color 0.2s, background 0.2s; }
+    .subscribe-dev-btn.selected { border-color: var(--accent); background: rgba(0,255,136,0.15); color: var(--accent); }
+    .subscribe-days-left { font-size: 0.82rem; color: var(--text-muted); margin-top: 10px; }
+    .subscribe-block-renew { margin-bottom: 12px; }
+    /* Ползунок срока подписки */
+    .subscribe-duration-slider-wrap { padding: 4px 0 4px; }
+    .subscribe-duration-slider {
+      -webkit-appearance: none; appearance: none;
+      width: 100%; height: 8px;
+      border-radius: 4px;
+      background: rgba(255,255,255,0.08);
+      outline: none;
+      margin: 0;
+    }
+    .subscribe-duration-slider::-webkit-slider-thumb {
+      -webkit-appearance: none; appearance: none;
+      width: 22px; height: 22px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, #00ff88, #00cc6a);
+      cursor: pointer;
+      box-shadow: 0 2px 10px rgba(0,255,136,0.45);
+      border: 2px solid rgba(0,0,0,0.2);
+      transition: transform 0.15s, box-shadow 0.15s;
+    }
+    .subscribe-duration-slider::-webkit-slider-thumb:hover { transform: scale(1.08); box-shadow: 0 2px 14px rgba(0,255,136,0.55); }
+    .subscribe-duration-slider::-moz-range-thumb {
+      width: 22px; height: 22px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, #00ff88, #00cc6a);
+      cursor: pointer;
+      box-shadow: 0 2px 10px rgba(0,255,136,0.45);
+      border: 2px solid rgba(0,0,0,0.2);
+      transition: transform 0.15s, box-shadow 0.15s;
+    }
+    .subscribe-duration-slider::-moz-range-thumb:hover { transform: scale(1.08); }
+    .subscribe-slider-labels {
+      display: flex; justify-content: space-between;
+      margin-top: 10px; padding: 0 2px;
+      font-size: 0.75rem; color: var(--text-muted);
+    }
+    .subscribe-slider-labels span { transition: color 0.2s; }
+    .subscribe-slider-labels span.active { color: var(--accent); font-weight: 600; }
+    .subscribe-price-block { padding: 12px 16px; }
+    .subscribe-price-main { font-size: 1rem; font-weight: 700; color: var(--text); margin-bottom: 4px; }
+    .subscribe-price-per-month { font-size: 0.88rem; color: var(--text-muted); }
+    .subscribe-price-hint { font-size: 0.75rem; color: var(--text-muted); margin-top: 6px; opacity: 0.9; }
+    .subscribe-summary { padding: 14px 16px; }
+    .subscribe-summary-row { display: flex; justify-content: space-between; align-items: center; font-size: 0.9rem; color: var(--text); margin-bottom: 8px; gap: 8px; min-width: 0; }
+    .subscribe-summary-row:last-child { margin-bottom: 0; }
+    .subscribe-summary-row span:first-child { min-width: 0; }
+    .subscribe-summary-row span:last-child { font-weight: 600; color: var(--accent); flex-shrink: 0; }
+    .subscribe-sheet-actions { display: flex; gap: 12px; margin-top: 16px; }
+    .btn-subscribe-back { flex: 1; padding: 14px 18px; border-radius: 14px; border: 1px solid var(--border); background: rgba(255,255,255,0.06); color: var(--text); font-weight: 600; font-size: 0.95rem; cursor: pointer; transition: background 0.2s; }
+    .btn-subscribe-pay { flex: 1; padding: 14px 18px; border-radius: 14px; border: none; background: linear-gradient(135deg, #00ff88, #00cc6a); color: #000; font-weight: 700; font-size: 0.95rem; cursor: pointer; transition: transform 0.2s, box-shadow 0.2s; }
+    .btn-subscribe-pay:active { transform: scale(0.98); }
+    .profile-user-card .avatar { overflow: hidden; }
+    .profile-user-card .avatar img { width: 100%; height: 100%; object-fit: cover; }
+
+    .btn-tertiary { background: rgba(255,255,255,0.12); color: var(--text); border: 1px solid var(--border); margin-top: 10px; }
+    /* Панель «Устройства» — карточный вид, кнопки в ряд, без растягивания */
+    .bottom-sheet-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 100; opacity: 0; visibility: hidden; pointer-events: none; transition: opacity 0.25s, visibility 0.25s; }
+    .bottom-sheet-overlay.open { opacity: 1; visibility: visible; pointer-events: auto; }
+    #ref-sheet-overlay.open { background: rgba(0,0,0,0.72); }
+    .bottom-sheet { position: fixed; left: 0; right: 0; bottom: 0; max-height: 56vh; background: var(--bg-card); border: 1px solid var(--border); border-bottom: none; border-radius: 20px 20px 0 0; z-index: 101; transform: translateY(100%); visibility: hidden; pointer-events: none; transition: transform 0.3s cubic-bezier(0.32, 0.72, 0, 1), visibility 0.2s; padding-bottom: env(safe-area-inset-bottom, 0); box-shadow: 0 -8px 32px rgba(0,0,0,0.4); overflow: hidden; display: flex; flex-direction: column; box-sizing: border-box; }
+    .bottom-sheet.open { transform: translateY(0); visibility: visible; pointer-events: auto; }
+    .devices-sheet-hidden { display: none !important; }
+    .profile-sheet-hidden { display: none !important; }
+    .bottom-sheet-handle { width: 40px; height: 4px; border-radius: 2px; background: rgba(255,255,255,0.25); margin: 10px auto 6px; flex-shrink: 0; }
+    .bottom-sheet .sheet-content { padding: 0 16px 16px; overflow-x: hidden; word-break: break-word; }
+    .bottom-sheet .sheet-title { font-size: 1rem; font-weight: 700; color: var(--text); text-align: center; margin-bottom: 12px; }
+    .bottom-sheet .sheet-client-id { display: flex; align-items: center; gap: 8px; padding: 8px 12px; margin-bottom: 12px; background: rgba(255,255,255,0.04); border-radius: 12px; border: 1px solid var(--border); }
+    .bottom-sheet .sheet-client-id .client-id-label { font-size: 0.8rem; color: var(--text-muted); }
+    .bottom-sheet .sheet-client-id .client-id-value { font-family: 'JetBrains Mono', monospace; font-size: 0.85rem; color: var(--accent); font-weight: 600; flex: 1; word-break: break-all; }
+    .bottom-sheet .sheet-client-id .btn-copy { width: 36px; height: 36px; padding: 0; border-radius: 10px; background: rgba(0,255,136,0.15); color: var(--accent); border: 1px solid rgba(0,255,136,0.4); cursor: pointer; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+    .bottom-sheet .sheet-client-id .btn-copy svg { width: 18px; height: 18px; fill: currentColor; }
+    .sheet-current-device { padding: 14px; margin-bottom: 12px; background: linear-gradient(135deg, rgba(0,255,136,0.06), rgba(0,255,136,0.02)); border: 1px solid rgba(0,255,136,0.2); border-radius: 14px; }
+    .sheet-current-device-top { display: flex; align-items: center; gap: 12px; margin-bottom: 12px; }
+    .sheet-current-device-icon { width: 44px; height: 44px; border-radius: 12px; background: rgba(0,255,136,0.12); display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+    .sheet-current-device-icon svg { width: 26px; height: 26px; fill: var(--accent); }
+    .sheet-current-device-head { flex: 1; min-width: 0; }
+    .sheet-current-device-title { font-size: 0.95rem; font-weight: 700; color: var(--text); margin-bottom: 2px; }
+    .sheet-current-device-desc { font-size: 0.78rem; color: var(--text-muted); line-height: 1.35; }
+    .sheet-current-device-btns { display: flex; gap: 10px; }
+    .sheet-current-device-btns .btn-setup-this { flex: 1; padding: 11px 14px; border-radius: 10px; background: linear-gradient(135deg, #00ff88, #00cc6a); color: #000; font-weight: 600; font-size: 0.85rem; border: none; cursor: pointer; text-align: center; }
+    .sheet-current-device-btns .btn-setup-other { flex: 1; padding: 11px 14px; border-radius: 10px; background: transparent; color: var(--accent); font-weight: 600; font-size: 0.85rem; border: 1px solid var(--accent); cursor: pointer; text-align: center; }
+    .bottom-sheet .sheet-devices { padding: 12px 0 0; border-top: 1px solid var(--border); }
+    .bottom-sheet .sheet-devices-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
+    .bottom-sheet .sheet-devices-title { font-size: 0.85rem; font-weight: 600; color: var(--text); }
+    .bottom-sheet .sheet-devices-count { font-size: 0.75rem; font-weight: 700; color: var(--accent); background: rgba(0,255,136,0.15); padding: 2px 8px; border-radius: 10px; }
+    .bottom-sheet .sheet-devices-list { font-size: 0.82rem; color: var(--text); min-height: 0; max-height: 80px; overflow-y: auto; margin-bottom: 10px; }
+    .bottom-sheet .sheet-devices-list .device-item { display: flex; align-items: center; gap: 8px; padding: 8px 10px; background: rgba(255,255,255,0.04); border-radius: 10px; margin-bottom: 6px; }
+    .bottom-sheet .sheet-devices-list .device-item:last-child { margin-bottom: 0; }
+    .bottom-sheet .sheet-devices-list .device-item svg { width: 18px; height: 18px; fill: var(--text-muted); flex-shrink: 0; }
+    .bottom-sheet .sheet-devices-empty { color: var(--text-muted); font-size: 0.8rem; padding: 8px 0; }
+    .bottom-sheet .sheet-add-device { display: inline-flex; align-items: center; justify-content: center; gap: 6px; padding: 10px 18px; border-radius: 10px; background: rgba(0,255,136,0.12); color: var(--accent); font-weight: 600; font-size: 0.85rem; border: 1px solid rgba(0,255,136,0.35); cursor: pointer; width: 100%; }
+    .bottom-sheet .sheet-tip { font-size: 0.72rem; color: var(--text-muted); text-align: center; margin-top: 10px; line-height: 1.4; }
+
+    /* Подписки */
+    .subs-tabs { display: flex; gap: 8px; margin-bottom: 12px; }
+    .subs-tabs button { flex: 1; padding: 10px 12px; border: 1px solid var(--border); border-radius: 10px; background: transparent; color: var(--text); font-size: 0.88rem; font-weight: 500; cursor: pointer; }
+    .subs-tabs button.active { background: rgba(0, 255, 136, 0.15); color: var(--accent); border-color: var(--accent); }
+    .sub-card { background: rgba(255,255,255,0.04); border: 1px solid var(--border); border-radius: 12px; padding: 12px 14px; margin-bottom: 10px; }
+    .sub-card-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 10px; }
+    .sub-card-title { font-weight: 600; font-size: 0.95rem; display: flex; align-items: center; gap: 8px; color: var(--text); }
+    .sub-card-title svg { width: 18px; height: 18px; fill: var(--accent); }
+    .sub-badge { font-size: 0.7rem; padding: 3px 10px; border-radius: 12px; }
+    .sub-badge.active { background: rgba(0, 255, 136, 0.2); color: var(--accent); }
+    .sub-badge.inactive { background: rgba(255,255,255,0.1); color: var(--text-muted); }
+    .sub-info-row { display: flex; justify-content: space-between; font-size: 0.88rem; margin: 5px 0; color: var(--text); }
+    .sub-info-row .val { color: var(--text); font-weight: 500; }
+    .subs-extend { margin-top: 14px; }
+    .subs-extend .btn { padding: 12px; font-size: 0.9rem; }
+    .subs-empty { text-align: center; padding: 20px 14px; color: var(--text-muted); font-size: 0.9rem; line-height: 1.4; }
+
+    /* Профиль — только чёрный, белый, серый + зелёный только на акцентах */
+    #screen-profile {
+      overflow-y: auto;
+      overflow-x: hidden;
+      padding: 0 14px;
+      padding-bottom: calc(var(--nav-h) + var(--safe-bottom) + 24px);
+      -webkit-overflow-scrolling: touch;
+    }
+    .profile-glass {
+      background: rgba(255,255,255,0.04);
+      -webkit-backdrop-filter: blur(12px);
+      backdrop-filter: blur(12px);
+      border: 1px solid rgba(255,255,255,0.1);
+      box-shadow: 0 0 20px rgba(0,0,0,0.2), inset 0 1px 0 rgba(255,255,255,0.06);
+      border-radius: 18px;
+      transition: border-color 0.2s, box-shadow 0.2s;
+    }
+    .profile-glass:active { background: rgba(255,255,255,0.08); border-color: rgba(255,255,255,0.18); box-shadow: 0 0 24px rgba(0,0,0,0.25), inset 0 1px 0 rgba(255,255,255,0.08); }
+    .profile-user-card { padding: 16px 14px; margin-bottom: 14px; flex-shrink: 0; }
+    .profile-user-card.profile-glass { border-color: rgba(255,255,255,0.12); }
+    .profile-user-inner { display: flex; align-items: center; gap: 14px; }
+    .profile-user-card .avatar { width: 52px; height: 52px; border-radius: 50%; background: linear-gradient(145deg, rgba(0,255,136,0.4), rgba(0,204,106,0.3)); border: 2px solid #00ff88; box-shadow: 0 0 14px rgba(0,255,136,0.2); display: flex; align-items: center; justify-content: center; font-size: 1.25rem; font-weight: 700; color: #00ff88; flex-shrink: 0; }
+    .profile-user-card .info { flex: 1; min-width: 0; }
+    .profile-user-card .name { font-size: 1rem; font-weight: 700; color: var(--text); }
+    .profile-user-card .user-id { font-size: 0.78rem; color: var(--text-muted); margin-top: 2px; font-family: 'JetBrains Mono', monospace; }
+    .profile-user-card .profile-level { font-size: 0.75rem; color: rgba(255,255,255,0.7); margin-top: 6px; font-weight: 500; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+    .profile-status-badge { display: inline-flex; align-items: center; gap: 4px; padding: 4px 10px; border-radius: 999px; font-size: 0.7rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; }
+    .profile-status-badge.basic { background: rgba(255,255,255,0.12); color: rgba(255,255,255,0.9); border: 1px solid rgba(255,255,255,0.2); }
+    .profile-status-badge.premium { background: linear-gradient(135deg, rgba(0,255,136,0.25), rgba(0,204,106,0.2)); color: #00ff88; border: 1px solid rgba(0,255,136,0.5); box-shadow: 0 0 12px rgba(0,255,136,0.15); }
+    .profile-status-badge.none { background: rgba(255,255,255,0.06); color: var(--text-muted); border: 1px solid var(--border); }
+    .profile-bonuses-inline { font-size: 0.72rem; color: var(--text-muted); }
+    .profile-user-card .btn-copy-id { width: 42px; height: 42px; border-radius: 14px; color: rgba(255,255,255,0.85); display: flex; align-items: center; justify-content: center; cursor: pointer; flex-shrink: 0; border: none; }
+    .profile-user-card .btn-copy-id svg { width: 20px; height: 20px; fill: currentColor; }
+    .profile-actions { display: flex; gap: 8px; margin-bottom: 12px; }
+    .profile-action-btn { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; padding: 10px 6px; min-height: 56px; border: none; cursor: pointer; color: var(--text); font-size: 0.72rem; font-weight: 600; text-align: center; border-radius: 14px; }
+    .profile-action-btn .action-icon { width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; }
+    .profile-action-btn .action-icon svg { width: 20px; height: 20px; fill: rgba(255,255,255,0.75); }
+    .profile-action-btn .action-label { line-height: 1.2; }
+    .profile-section { margin-bottom: 10px; }
+    .profile-section-title { font-size: 0.72rem; font-weight: 700; color: rgba(255,255,255,0.85); text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 10px; padding: 0 4px; }
+    .profile-section-title::after { content: ''; display: block; height: 1px; background: linear-gradient(90deg, rgba(255,255,255,0.15), transparent); margin-top: 8px; border-radius: 1px; }
+    .profile-row { display: flex; align-items: center; gap: 12px; padding: 12px 14px; margin-bottom: 8px; border-radius: 18px; cursor: pointer; transition: background 0.2s; text-decoration: none; color: inherit; box-sizing: border-box; }
+    .profile-row:last-child { margin-bottom: 0; }
+    .profile-row .row-icon { width: 42px; height: 42px; min-width: 42px; border-radius: 12px; background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.1); display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+    .profile-row .row-icon svg { width: 22px; height: 22px; fill: rgba(255,255,255,0.8); }
+    .profile-row .row-text { flex: 1; min-width: 0; }
+    .profile-row .row-title { font-size: 0.9rem; font-weight: 600; color: var(--text); }
+    .profile-row .row-sub { font-size: 0.72rem; color: var(--text-muted); margin-top: 2px; display: block; }
+    .profile-row .row-arrow { color: var(--text-muted); font-size: 0.9rem; flex-shrink: 0; }
+    .profile-about-row { padding: 12px 14px; margin-top: 8px; font-size: 0.75rem; color: var(--text-muted); line-height: 1.4; }
+    .profile-footer-inline { padding: 12px 14px; margin-top: 8px; font-size: 0.72rem; color: var(--text-muted); line-height: 1.5; }
+    .profile-footer-inline a { color: var(--text); text-decoration: underline; text-underline-offset: 2px; }
+    /* Sheet общие для профиля (аккаунт, почта) */
+    .profile-sheet .sheet-content { padding: 0 16px 16px; }
+    .profile-sheet .sheet-title { font-size: 1rem; font-weight: 700; color: var(--text); margin-bottom: 14px; }
+    .profile-sheet .sheet-id-block { display: flex; align-items: center; gap: 10px; padding: 12px; background: rgba(255,255,255,0.04); border-radius: 12px; margin-bottom: 12px; }
+    .profile-sheet .sheet-id-block .id-val { font-family: 'JetBrains Mono', monospace; font-size: 0.9rem; color: var(--accent); font-weight: 600; flex: 1; word-break: break-all; }
+    .profile-sheet .sheet-id-block .btn-copy { width: 40px; height: 40px; border-radius: 10px; background: rgba(0,255,136,0.15); border: 1px solid var(--accent); color: var(--accent); display: flex; align-items: center; justify-content: center; cursor: pointer; }
+    .profile-sheet .sheet-id-block .btn-copy svg { width: 18px; height: 18px; fill: currentColor; }
+    .profile-sheet .sheet-note { font-size: 0.8rem; color: var(--text-muted); line-height: 1.4; }
+    .profile-sheet .sheet-email-row { display: flex; gap: 8px; margin: 12px 0; flex-wrap: wrap; }
+    .profile-sheet .sheet-email-row input[type="email"] { flex: 1; min-width: 120px; padding: 10px 12px; border-radius: 10px; border: 1px solid var(--border); background: rgba(255,255,255,0.06); color: var(--text); font-size: 0.88rem; }
+    .profile-sheet #promo-sheet-input { flex: 1; min-width: 120px; padding: 10px 12px; border-radius: 10px; border: 1px solid var(--border); background: var(--bg-card); color: var(--text); font-size: 0.88rem; }
+    .profile-sheet #promo-sheet-input::placeholder { color: var(--text-muted); }
+    .profile-sheet .sheet-email-row .btn-save { padding: 10px 18px; border-radius: 10px; background: linear-gradient(135deg, #00ff88, #00cc6a); color: #000; font-weight: 600; font-size: 0.88rem; border: none; cursor: pointer; }
+    .profile-sheet .sheet-email-hint { font-size: 0.75rem; color: var(--text-muted); margin-top: 8px; line-height: 1.4; }
+    .ref-sheet-actions { display: flex; align-items: center; gap: 10px; }
+    .ref-sheet-copy-btn { flex: 1; padding: 10px 16px; border-radius: 12px; background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); color: var(--text); font-weight: 600; font-size: 0.88rem; cursor: pointer; }
+    .ref-sheet-send-btn { width: 36px; height: 36px; flex-shrink: 0; border: none; background: transparent; cursor: pointer; display: flex; align-items: center; justify-content: center; padding: 0; border-radius: 8px; color: rgba(255,255,255,0.85); transition: color 0.2s; }
+    .ref-sheet-send-btn:active { color: var(--accent); }
+    .ref-sheet-send-btn .ref-send-icon { width: 22px; height: 22px; fill: currentColor; transform: rotate(-45deg); margin-left: -2px; }
+  </style>
+</head>
+<body>
+  <div class="binary-bg" aria-hidden="true">
+    <canvas id="binary-canvas"></canvas>
+  </div>
+  <div class="profile-bg-dimmer" aria-hidden="true" id="profile-bg-dimmer"></div>
+  <div class="page-content">
+  <div class="header">
+    <h1 id="bit-vpn-title">Bit VPN</h1>
+    <p>Быстро и безопасно</p>
+  </div>
+
+  <div class="screens-viewport" id="screens-viewport">
+    <div class="screens-track" id="screens-track">
+  <div id="screen-main" class="screen">
+    <div class="card main-card main-card-glass">
+      <div class="card-head">
+        <div class="card-title">
+          <svg viewBox="0 0 24 24"><path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4zm-2 10.99h4V12h-4v-.01zm4 4V16h-4v.01h4zm-4-8V8h4v.01h-4z"/></svg>
+          Bit VPN
+        </div>
+        <span id="status-badge" class="status-badge">Подписка не оформлена</span>
+      </div>
+      <div class="stats-row">
+        <div class="stat-item">
+          <svg viewBox="0 0 24 24"><path d="M13 2.05v2.02c3.95.49 7 3.85 7 7.93 0 3.95-2.94 7.17-6.77 7.43L15 20.05v2.02c5.05-.5 9-4.76 9-9.95 0-5.18-3.95-9.45-9-9.95z"/></svg>
+          <span>100 Мбит/с</span>
+        </div>
+        <div class="stat-item">
+          <svg viewBox="0 0 24 24"><path d="M20 18c1.1 0 1.99-.9 1.99-2L22 6c0-1.1-.9-2-2-2H4c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2H0v2h24v-2h-4zM4 6h16v10H4V6z"/></svg>
+          <span>1 устройство</span>
+        </div>
+        <div class="stat-item">
+          <svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 17.93c-3.95-.49-7-3.85-7-7.93 0-.62.08-1.21.21-1.79L9 15v1c0 1.1.9 2 2 2v1.93zm6.9-2.54c-.26-.81-1-1.39-1.9-1.39h-1v-3c0-.55-.45-1-1-1H8v-2h2c.55 0 1-.45 1-1V7h2c1.1 0 2-.9 2-2v-.41c2.93 1.19 5 4.06 5 7.41 0 2.08-.8 3.97-2.1 5.39z"/></svg>
+          <span>50+ серверов</span>
+        </div>
+      </div>
+      <a id="btn-buy" class="main-cta" href="#">
+        <svg viewBox="0 0 24 24"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg>
+        Оформить подписку
+      </a>
+      <div class="main-actions">
+        <button type="button" id="btn-devices" class="main-action-btn">
+          <span class="main-action-icon"><svg viewBox="0 0 24 24"><path d="M4 6h18V4H4c-1.1 0-2 .9-2 2v11H0v3h14v-3H4V6zm19 2h-6c-.55 0-1 .45-1 1v10c0 .55.45 1 1 1h6c.55 0 1-.45 1-1V9c0-.55-.45-1-1-1zm-1 9h-4v-7h4v7z"/></svg></span>
+          <span class="main-action-label">Устройства</span>
+        </button>
+        <button type="button" id="btn-help" class="main-action-btn">
+          <span class="main-action-icon"><svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 17h-2v-2h2v2zm2.07-7.75l-.9.92C13.45 12.9 13 13.5 13 15h-2v-.5c0-1.1.45-2.1 1.17-2.83l1.24-1.26c.37-.36.59-.86.59-1.41 0-1.1-.9-2-2-2s-2 .9-2 2H8c0-2.21 1.79-4 4-4s4 1.79 4 4c0 .88-.36 1.68-.93 2.25z"/></svg></span>
+          <span class="main-action-label">Помощь</span>
+        </button>
+      </div>
+      <div class="main-install-wrap">
+        <button type="button" id="btn-install-sub" class="main-install-btn">Установить подписку на это устройство</button>
+      </div>
+      <div id="help-inline" class="tariffs-inline" style="display:none;">
+        <h3>Помощь</h3>
+        <p style="font-size: 0.85rem; color: var(--text-muted); margin: 0;">Скорость до 100 Мбит/с • AES-256 • 50+ стран • Поддержка 24/7. Оплата и выдача конфига — в боте. Поддержка: ссылка внизу.</p>
+      </div>
+    </div>
+  </div>
+
+  <div id="screen-subs" class="screen">
+    <div class="card main-card">
+      <div class="card-head">
+        <div class="card-title">
+          <svg viewBox="0 0 24 24" style="width:22px;height:22px;fill:var(--accent)"><path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4zm0 10.99h7c-.53 4.12-3.28 7.79-7 8.94V12H5V6.3l7-3.11v8.8z"/></svg>
+          Подписки
+        </div>
+      </div>
+      <div class="subs-tabs">
+        <button type="button" class="subs-tab active" data-subs-tab="active">Активные</button>
+        <button type="button" class="subs-tab" data-subs-tab="inactive">Неактивные</button>
+      </div>
+      <div id="subs-content-active" class="subs-content">
+        <div id="subs-list-active" class="subs-list">
+          <div class="sub-card">
+            <div class="sub-card-head">
+              <div class="sub-card-title">
+                <svg viewBox="0 0 24 24"><path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4z"/></svg>
+                Bit VPN
+              </div>
+              <span class="sub-badge active">Активна</span>
+            </div>
+            <div class="sub-info-row"><span>Устройств:</span><span class="val" id="subs-active-devices">1</span></div>
+            <div class="sub-info-row"><span>Осталось дней:</span><span class="val" id="subs-active-days">—</span></div>
+            <div class="sub-info-row"><span>Действует до:</span><span class="val" id="subs-active-end">—</span></div>
+          </div>
+        </div>
+        <div id="subs-empty-active" class="subs-empty" style="display:none;">Нет активных подписок. Оформите подписку на главном экране.</div>
+        <div class="subs-extend">
+          <a href="#" id="btn-subs-extend" class="btn btn-primary">Продлить подписку</a>
+        </div>
+      </div>
+      <div id="subs-content-inactive" class="subs-content" style="display:none;">
+        <div id="subs-list-inactive" class="subs-list">
+          <div class="sub-card">
+            <div class="sub-card-head">
+              <div class="sub-card-title">
+                <svg viewBox="0 0 24 24"><path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4z"/></svg>
+                Bit VPN
+              </div>
+              <span class="sub-badge inactive">Истекла</span>
+            </div>
+            <div class="sub-info-row"><span>Завершена:</span><span class="val" id="subs-inactive-end">—</span></div>
+          </div>
+        </div>
+        <div id="subs-empty-inactive" class="subs-empty" style="display:none;">Нет неактивных подписок.</div>
+        <div class="subs-extend" style="margin-top:16px;">
+          <a href="#" id="btn-subs-extend-inactive" class="btn btn-primary">Оформить подписку</a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="screen-ref" class="screen">
+    <div class="card main-card">
+      <div class="card-head ref-card-head">
+        <div class="card-title ref-title-wrap">
+          <span class="ref-title-icon">&#9829;</span>
+          <span>Реферальная программа</span>
+        </div>
+      </div>
+      <p class="ref-subtitle">Приглашайте друзей и получайте доступ к VPN бесплатно</p>
+      <div class="ref-stats-row">
+        <div class="ref-stat-card">
+          <span class="ref-stat-num" id="ref-stat-invited">0</span>
+          <span class="ref-stat-label">Приглашено</span>
+        </div>
+        <div class="ref-stat-card">
+          <span class="ref-stat-num" id="ref-stat-days">0</span>
+          <span class="ref-stat-label">Получено дней</span>
+        </div>
+      </div>
+      <div class="ref-how-card">
+        <div class="ref-how-title"><span class="ref-how-icon">i</span> Как это работает?</div>
+        <p class="ref-how-text">Делитесь ссылкой, приглашайте друзей — и получайте 50₽ бонусами после их первого платежа.</p>
+        <ul class="ref-how-list">
+          <li>Делитесь своей уникальной ссылкой</li>
+          <li>Друг регистрируется по вашей ссылке</li>
+          <li>После первой оплаты друга вы получаете 50₽</li>
+        </ul>
+      </div>
+      <div class="ref-actions-ref">
+        <button type="button" id="ref-screen-btn-invite" class="btn btn-primary">Пригласить друга</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="screen-profile" class="screen">
+    <div class="profile-user-card profile-glass">
+      <div class="profile-user-inner">
+        <div class="avatar" id="profile-avatar">B</div>
+        <div class="info">
+          <div class="name" id="profile-name">Пользователь</div>
+          <div class="user-id" id="profile-user-id">id: —</div>
+          <div class="profile-level" id="profile-level-bonuses">
+            <span id="profile-status-badge" class="profile-status-badge none">Без статуса</span>
+            <span class="profile-bonuses-inline"><span id="profile-bonuses-count">0</span> бонусов</span>
+          </div>
+        </div>
+        <button type="button" id="profile-copy-id" class="btn-copy-id profile-glass" title="Копировать ID"><svg viewBox="0 0 24 24"><path d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z"/></svg></button>
+      </div>
+    </div>
+    <div class="profile-actions">
+      <button type="button" id="profile-row-account" class="profile-action-btn profile-glass">
+        <span class="action-icon"><svg viewBox="0 0 24 24"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/></svg></span>
+        <span class="action-label">ID и конфиг</span>
+      </button>
+      <button type="button" id="profile-row-email" class="profile-action-btn profile-glass">
+        <span class="action-icon"><svg viewBox="0 0 24 24"><path d="M20 4H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.89 2 1.99 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 4l-8 5-8-5V6l8 5 8-5v2z"/></svg></span>
+        <span class="action-label">Эл. почта</span>
+      </button>
+      <button type="button" id="profile-row-promo" class="profile-action-btn profile-glass">
+        <span class="action-icon"><svg viewBox="0 0 24 24"><path d="M21.41 11.58l-9-9C12.05 2.22 11.55 2 11 2H4c-1.1 0-2 .9-2 2v7c0 .55.22 1.05.59 1.42l9 9c.36.36.86.58 1.41.58.55 0 1.05-.22 1.41-.59l7-7c.37-.36.59-.86.59-1.41 0-.55-.23-1.06-.59-1.42z"/></svg></span>
+        <span class="action-label">Промокод</span>
+      </button>
+    </div>
+    <a href="#" id="profile-link-history" class="profile-row profile-glass">
+      <span class="row-icon"><svg viewBox="0 0 24 24"><path d="M14 2H6c-1.1 0-1.99.9-1.99 2L4 20c0 1.1.89 2 1.99 2H18c1.1 0 2-.9 2-2V8l-6-6zm2 16H8v-2h8v2zm0-4H8v-2h8v2zm-3-5V3.5L18.5 9H13z"/></svg></span>
+      <span class="row-text"><span class="row-title">История операций</span><span class="row-sub">Оплаты и подписки</span></span>
+      <span class="row-arrow">→</span>
+    </a>
+    <div class="profile-section">
+      <div class="profile-section-title">Поддержка</div>
+      <a href="#" id="profile-link-support" class="profile-row profile-glass">
+        <span class="row-icon"><svg viewBox="0 0 24 24"><path d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm0 14H5.17L4 17.17V4h16v12z"/></svg></span>
+        <span class="row-text"><span class="row-title">Связаться с поддержкой</span><span class="row-sub">Решение вопросов онлайн</span></span>
+        <span class="row-arrow">→</span>
+      </a>
+      <a href="#" id="profile-link-channel" class="profile-row profile-glass">
+        <span class="row-icon"><svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 17.93c-3.95-.49-7-3.85-7-7.93 0-.62.08-1.21.21-1.79L9 15v1c0 1.1.9 2 2 2v1.93zm6.9-2.54c-.26-.81-1-1.39-1.9-1.39h-1v-3c0-.55-.45-1-1-1H8v-2h2c.55 0 1-.45 1-1V7h2c1.1 0 2-.9 2-2v-.41c2.93 1.19 5 4.06 5 7.41 0 2.08-.8 3.97-2.1 5.39z"/></svg></span>
+        <span class="row-text"><span class="row-title">Наш канал</span><span class="row-sub">Новости и инструкции</span></span>
+        <span class="row-arrow">→</span>
+      </a>
+    </div>
+    <div class="profile-footer-inline profile-glass">
+      Bit VPN — быстрый и безопасный доступ. Оплата и выдача конфигурации — в боте. <a id="link-support" href="#">Поддержка</a><span id="footer-bot-username"></span>
+    </div>
+  </div>
+    </div>
+  </div>
+  </div>
+
+  <nav class="bottom-nav">
+    <a href="#" class="nav-item active" data-nav="main"><span class="nav-icon"><svg viewBox="0 0 24 24"><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/></svg></span><span>Главная</span></a>
+    <a href="#" class="nav-item" data-nav="subs"><span class="nav-icon"><svg viewBox="0 0 24 24"><path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4zm0 10.99h7c-.53 4.12-3.28 7.79-7 8.94V12H5V6.3l7-3.11v8.8z"/></svg></span><span>Подписки</span></a>
+    <a href="#" class="nav-item" data-nav="ref"><span class="nav-icon"><svg viewBox="0 0 24 24"><path d="M18 16.08c-.76 0-1.44.3-1.96.77L8.91 12.7c.05-.23.09-.46.09-.7s-.04-.47-.09-.7l7.05-4.11c.54.5 1.08.8 1.92.8 1.66 0 2.88-1.35 2.88-3.06S19.56 4 17.9 4c-1.66 0-2.88 1.35-2.88 3.06 0 .24.04.47.09.7L8.04 11.81C7.5 11.31 6.96 11 6.12 11c-1.66 0-2.88 1.35-2.88 3.06s1.22 3.06 2.88 3.06c.76 0 1.44-.3 1.96-.77l7.12 4.16c-.05.22-.08.45-.08.69 0 1.71 1.22 3.06 2.88 3.06s2.88-1.35 2.88-3.06-1.22-3.06-2.88-3.06z"/></svg></span><span>Рефералы</span></a>
+    <a href="#" class="nav-item" data-nav="profile"><span class="nav-icon"><svg viewBox="0 0 24 24"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/></svg></span><span>Профиль</span></a>
+  </nav>
+
+  <div id="subscribe-sheet-overlay" class="bottom-sheet-overlay devices-sheet-hidden" aria-hidden="true"></div>
+  <div id="subscribe-sheet" class="bottom-sheet devices-sheet-hidden subscribe-sheet-modern" role="dialog" aria-label="Оформление подписки" style="max-height:85vh;">
+    <div class="bottom-sheet-handle"></div>
+    <div class="sheet-content subscribe-sheet-content">
+      <h2 class="sheet-title">Оформить подписку</h2>
+      <p class="subscribe-sheet-desc">Выберите период — оплата и выдача конфига в боте</p>
+      <div class="subscribe-block profile-glass">
+        <div class="subscribe-block-row subscribe-block-devices">
+          <span class="subscribe-block-label">
+            <svg class="subscribe-block-icon" viewBox="0 0 24 24"><path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4z"/></svg>
+            Bit VPN · Устройств: <span id="subscribe-devices-val">1</span>
+          </span>
+        </div>
+        <div class="subscribe-devices-btns">
+          <button type="button" class="subscribe-dev-btn" data-dev="1">1</button>
+          <button type="button" class="subscribe-dev-btn" data-dev="3">3</button>
+          <button type="button" class="subscribe-dev-btn" data-dev="5">5</button>
+          <button type="button" class="subscribe-dev-btn" data-dev="10">10</button>
+        </div>
+        <div class="subscribe-days-left">Осталось дней: <span id="subscribe-days-left-val">—</span></div>
+      </div>
+      <div class="subscribe-block profile-glass">
+        <div class="subscribe-block-label subscribe-block-renew">
+          <svg class="subscribe-block-icon" viewBox="0 0 24 24"><path d="M19 3h-1V1h-2v2H8V1H6v2H5c-1.11 0-1.99.9-1.99 2L3 19c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 16H5V8h14v11zM9 10H7v2h2v-2zm4 0h-2v2h2v-2zm4 0h-2v2h2v-2z"/></svg>
+          Продлить на
+        </div>
+        <div class="subscribe-duration-slider-wrap">
+          <input type="range" id="subscribe-duration-slider" class="subscribe-duration-slider" min="0" max="4" step="1" value="0" aria-label="Срок подписки" />
+          <div class="subscribe-slider-labels" id="subscribe-slider-labels">
+            <span data-idx="0">1 мес</span><span data-idx="1">3 мес</span><span data-idx="2">6 мес</span><span data-idx="3">9 мес</span><span data-idx="4">1 год</span>
+          </div>
+        </div>
+      </div>
+      <div class="subscribe-block profile-glass subscribe-price-block">
+        <div class="subscribe-price-main" id="subscribe-price-main">1 мес – 100 ₽</div>
+        <div class="subscribe-price-per-month" id="subscribe-price-per-month">В месяц: 100 ₽/мес</div>
+        <div class="subscribe-price-hint" id="subscribe-price-hint">Без скидки при помесячной оплате</div>
+      </div>
+      <div class="subscribe-summary profile-glass">
+        <div class="subscribe-summary-row"><span>Стоимость:</span><span id="subscribe-summary-cost">100 ₽</span></div>
+        <div class="subscribe-summary-row"><span>Добавится дней:</span><span id="subscribe-summary-days">30</span></div>
+        <div class="subscribe-summary-row"><span>Новая дата окончания:</span><span id="subscribe-summary-end">—</span></div>
+      </div>
+      <div class="subscribe-sheet-actions">
+        <button type="button" id="subscribe-sheet-btn-back" class="btn-subscribe-back">Назад</button>
+        <button type="button" id="subscribe-sheet-btn-pay" class="btn-subscribe-pay">Оплатить <span id="subscribe-pay-amount">100</span> ₽</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="history-sheet-overlay" class="bottom-sheet-overlay profile-sheet-hidden" aria-hidden="true"></div>
+  <div id="history-sheet" class="bottom-sheet profile-sheet profile-sheet-hidden" role="dialog" aria-label="История операций" style="max-height:70vh;">
+    <div class="bottom-sheet-handle"></div>
+    <div class="sheet-content">
+      <h2 class="sheet-title">История операций</h2>
+      <div class="pay-tabs" style="margin-bottom:10px;">
+        <button type="button" class="pay-tab active" data-history-tab="paid">Оплаченные (<span id="history-count-paid">0</span>)</button>
+        <button type="button" class="pay-tab" data-history-tab="pending">В обработке (<span id="history-count-pending">0</span>)</button>
+      </div>
+      <div id="history-content-paid" class="pay-content">
+        <div id="history-list-paid" class="pay-list"></div>
+        <div id="history-empty-paid" class="pay-empty" style="display:none;">После оплаты в боте здесь появится история.</div>
+      </div>
+      <div id="history-content-pending" class="pay-content" style="display:none;">
+        <div id="history-list-pending" class="pay-list"></div>
+        <div class="pay-empty">Платежей в обработке нет.</div>
+      </div>
+    </div>
+  </div>
+
+  <div id="devices-sheet-overlay" class="bottom-sheet-overlay" aria-hidden="true"></div>
+  <div id="devices-sheet" class="bottom-sheet" role="dialog" aria-label="Устройства">
+    <div class="bottom-sheet-handle"></div>
+    <div class="sheet-content">
+      <h2 class="sheet-title">Устройства</h2>
+      <div class="sheet-client-id">
+        <span class="client-id-label">ID клиента</span>
+        <span id="sheet-client-id-value" class="client-id-value">—</span>
+        <button type="button" id="sheet-copy-id" class="btn-copy" title="Копировать"><svg viewBox="0 0 24 24"><path d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z"/></svg></button>
+      </div>
+      <div id="sheet-current-device-block" class="sheet-current-device">
+        <div class="sheet-current-device-top">
+          <div class="sheet-current-device-icon" id="sheet-device-icon"></div>
+          <div class="sheet-current-device-head">
+            <div class="sheet-current-device-title" id="sheet-device-title">Настройка на устройстве</div>
+            <div class="sheet-current-device-desc" id="sheet-device-desc">VPN в 3 шага. Вы заходите с этого устройства.</div>
+          </div>
+        </div>
+        <div class="sheet-current-device-btns">
+          <button type="button" id="sheet-btn-setup-this" class="btn-setup-this">Настроить здесь</button>
+          <button type="button" id="sheet-btn-setup-other" class="btn-setup-other">Другое устройство</button>
+        </div>
+      </div>
+      <div class="sheet-devices">
+        <div class="sheet-devices-head">
+          <span class="sheet-devices-title">Подключено</span>
+          <span id="sheet-devices-count" class="sheet-devices-count">0</span>
+        </div>
+        <div id="sheet-devices-list" class="sheet-devices-list">
+          <div class="sheet-devices-empty">Нет устройств</div>
+        </div>
+        <button type="button" id="sheet-add-device" class="sheet-add-device">+ Добавить устройство</button>
+      </div>
+      <p class="sheet-tip">Конфиг и инструкция приходят в боте после оплаты</p>
+    </div>
+  </div>
+  </div>
+
+  <div id="account-sheet-overlay" class="bottom-sheet-overlay profile-sheet-hidden" aria-hidden="true"></div>
+  <div id="account-sheet" class="bottom-sheet profile-sheet profile-sheet-hidden" role="dialog" aria-label="Аккаунт">
+    <div class="bottom-sheet-handle"></div>
+    <div class="sheet-content">
+      <h2 class="sheet-title">Аккаунт</h2>
+      <div class="sheet-id-block">
+        <span class="id-val" id="account-sheet-id">—</span>
+        <button type="button" id="account-sheet-copy" class="btn-copy" title="Копировать"><svg viewBox="0 0 24 24"><path d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z"/></svg></button>
+      </div>
+      <p class="sheet-note">Конфиг и управление подпиской — в боте.</p>
+    </div>
+  </div>
+
+  <div id="email-sheet-overlay" class="bottom-sheet-overlay profile-sheet-hidden" aria-hidden="true"></div>
+  <div id="email-sheet" class="bottom-sheet profile-sheet profile-sheet-hidden" role="dialog" aria-label="Эл. почта">
+    <div class="bottom-sheet-handle"></div>
+    <div class="sheet-content">
+      <h2 class="sheet-title">Эл. почта</h2>
+      <div class="sheet-email-row">
+        <input type="email" id="email-sheet-input" placeholder="example@mail.ru">
+        <button type="button" id="email-sheet-save" class="btn-save">Привязать</button>
+      </div>
+      <p class="sheet-email-hint">Сохранённая почта для восстановления доступа. Подтверждение на почту не отправляется.</p>
+    </div>
+  </div>
+
+  <div id="promo-sheet-overlay" class="bottom-sheet-overlay profile-sheet-hidden" aria-hidden="true"></div>
+  <div id="promo-sheet" class="bottom-sheet profile-sheet profile-sheet-hidden" role="dialog" aria-label="Промокод">
+    <div class="bottom-sheet-handle"></div>
+    <div class="sheet-content">
+      <h2 class="sheet-title">Промокод</h2>
+      <div class="sheet-email-row">
+        <input type="text" id="promo-sheet-input" placeholder="Введите промокод" maxlength="20" autocomplete="off" style="text-transform:uppercase;">
+        <button type="button" id="promo-sheet-apply" class="btn-save">Применить</button>
+      </div>
+      <p class="sheet-email-hint">Использовано раз: <span id="promo-sheet-count">0</span>. Результат придёт в боте.</p>
+    </div>
+  </div>
+
+  <div id="ref-sheet-overlay" class="bottom-sheet-overlay profile-sheet-hidden" aria-hidden="true"></div>
+  <div id="ref-sheet" class="bottom-sheet profile-sheet profile-sheet-hidden" role="dialog" aria-label="Реферальная ссылка">
+    <div class="bottom-sheet-handle"></div>
+    <div class="sheet-content">
+      <h2 class="sheet-title">Реферальная программа</h2>
+      <div class="sheet-id-block" style="flex-direction:column; align-items:stretch; gap:10px;">
+        <span class="id-val" id="ref-sheet-link" style="font-size:0.8rem; word-break:break-all;">Загрузка…</span>
+        <div class="ref-sheet-actions">
+          <button type="button" id="ref-sheet-copy" class="btn-save ref-sheet-copy-btn">Копировать ссылку</button>
+          <button type="button" id="ref-sheet-send" class="ref-sheet-send-btn" title="Отправить другу в Telegram" aria-label="Отправить в Telegram">
+            <svg viewBox="0 0 24 24" class="ref-send-icon"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></svg>
+          </button>
+        </div>
+      </div>
+      <p class="sheet-email-hint">Пригласи друга — он получит 50 ₽, ты неделю VPN бесплатно.</p>
+    </div>
+  </div>
+
+  <script>
+    (function() {
+      var canvas = document.getElementById('binary-canvas');
+      if (!canvas) return;
+      var ctx = canvas.getContext('2d');
+      var w = 0, h = 0, lastTime = 0, time = 0;
+      var squares = [];
+      var inscriptions = [];
+      var bits = [];
+      var numRays = 28;
+      var dotsPerRay = 32;
+      var maxR = 0;
+      var centerX = 0;
+      var centerY = 0;
+      var inscriptionTexts = ['0', '1', '01', '10', '00', '11', '0x', '1x', '=', '+', '-', '&', '|', 'if', 'var', 'int', 'for', 'return', 'null', 'true', 'false', '0x1', '0xFF', '1e6', 'buf', 'len', 'str', 'num', 'id', 'key', 'val', 'get', 'set', 'api', 'vpn', 'bit', 'enc', 'dec'];
+
+      function updateVanishingPoint() {
+        var titleEl = document.getElementById('bit-vpn-title');
+        if (titleEl && w > 0 && h > 0) {
+          var r = titleEl.getBoundingClientRect();
+          centerX = r.left + r.width * 0.5;
+          centerY = r.top + r.height * 0.5;
+          var d1 = Math.hypot(centerX, centerY);
+          var d2 = Math.hypot(w - centerX, centerY);
+          var d3 = Math.hypot(centerX, h - centerY);
+          var d4 = Math.hypot(w - centerX, h - centerY);
+          maxR = Math.max(d1, d2, d3, d4) * 1.08;
+        } else {
+          centerX = w * 0.5;
+          centerY = h * 0.14;
+          maxR = Math.max(w, h) * 0.72;
+        }
+      }
+
+      function resize() {
+        w = canvas.width = canvas.offsetWidth;
+        h = canvas.height = canvas.offsetHeight;
+        updateVanishingPoint();
+        squares = [];
+        var n = Math.min(55, Math.floor((w * h) / 2800));
+        for (var i = 0; i < n; i++) {
+          squares.push({
+            angle: Math.random() * Math.PI * 2,
+            depth: 0.15 + Math.random() * 0.8,
+            size: 2 + Math.random() * 8,
+            phase: Math.random() * Math.PI * 2,
+            speed: 0.08 + Math.random() * 0.15
+          });
+        }
+        inscriptions = [];
+        var ni = Math.min(45, Math.floor((w * h) / 3200));
+        for (var j = 0; j < ni; j++) {
+          var angle = Math.random() * Math.PI * 2;
+          var depth = 0.2 + Math.random() * 0.75;
+          var txt = inscriptionTexts[Math.floor(Math.random() * inscriptionTexts.length)];
+          inscriptions.push({
+            angle: angle,
+            depth: depth,
+            text: txt,
+            size: 7 + Math.random() * 9,
+            phase: Math.random() * Math.PI * 2,
+            drift: 0.02 + Math.random() * 0.04
+          });
+        }
+        bits = [];
+        var nb = Math.min(22, Math.floor((w * h) / 4500));
+        for (var b = 0; b < nb; b++) {
+          bits.push({
+            angle: Math.random() * Math.PI * 2,
+            depth: 0.25 + Math.random() * 0.7,
+            char: Math.random() < 0.5 ? '0' : '1',
+            size: 9 + Math.random() * 7,
+            phase: Math.random() * Math.PI * 2,
+            drift: 0.015 + Math.random() * 0.03
+          });
+        }
+      }
+
+      function drawTunnel() {
+        var cx = centerX;
+        var cy = centerY;
+        var i, j, angle, t, x, y, r, alpha;
+        for (i = 0; i < numRays; i++) {
+          angle = (i / numRays) * Math.PI * 2 + time * 0.08;
+          for (j = 0; j < dotsPerRay; j++) {
+            t = (j + 0.5) / dotsPerRay;
+            t = Math.pow(t, 0.62);
+            x = cx + Math.cos(angle) * maxR * t;
+            y = cy + Math.sin(angle) * maxR * t;
+            r = 0.5 + 2.5 * t;
+            alpha = 0.45 + 0.5 * t;
+            if (r > 1.5) {
+              ctx.fillStyle = 'rgba(0,255,136,' + alpha * 0.2 + ')';
+              ctx.beginPath();
+              ctx.arc(x, y, r * 2.2, 0, Math.PI * 2);
+              ctx.fill();
+            }
+            ctx.fillStyle = 'rgba(0,255,136,' + alpha + ')';
+            ctx.beginPath();
+            ctx.arc(x, y, r, 0, Math.PI * 2);
+            ctx.fill();
+          }
+        }
+      }
+
+      function drawSquares() {
+        var cx = centerX;
+        var cy = centerY;
+        squares.forEach(function(s) {
+          var d = s.depth + Math.sin(time + s.phase) * 0.02;
+          if (d < 0.05) d = 0.05;
+          if (d > 0.98) d = 0.98;
+          s.depth -= s.speed * 0.016;
+          if (s.depth < 0.05) s.depth = 0.95;
+          var x = cx + Math.cos(s.angle) * maxR * d;
+          var y = cy + Math.sin(s.angle) * maxR * d;
+          var sz = s.size * (1.2 - d * 0.5);
+          if (sz < 1) return;
+          var a = 0.6 + 0.35 * d;
+          ctx.fillStyle = 'rgba(0,255,136,' + a + ')';
+          ctx.fillRect(x - sz / 2, y - sz / 2, sz, sz);
+        });
+      }
+
+      function drawBits() {
+        var cx = centerX;
+        var cy = centerY;
+        bits.forEach(function(b) {
+          b.depth -= b.drift * 0.02;
+          if (b.depth < 0.2) { b.depth = 0.88; b.angle = Math.random() * Math.PI * 2; b.char = Math.random() < 0.5 ? '0' : '1'; }
+          var x = cx + Math.cos(b.angle) * maxR * b.depth;
+          var y = cy + Math.sin(b.angle) * maxR * b.depth;
+          if (Math.hypot(x - cx, y - cy) < 28) return;
+          var alpha = 0.35 + 0.35 * b.depth;
+          var sz = Math.max(10, b.size * (1 - b.depth * 0.35));
+          ctx.save();
+          ctx.font = '600 ' + Math.round(sz) + 'px "JetBrains Mono", monospace';
+          ctx.textAlign = 'center';
+          ctx.textBaseline = 'middle';
+          ctx.fillStyle = 'rgba(0,255,136,' + alpha + ')';
+          ctx.fillText(b.char, x, y);
+          ctx.restore();
+        });
+      }
+
+      function drawInscriptions() {
+        var cx = centerX;
+        var cy = centerY;
+        inscriptions.forEach(function(ins) {
+          ins.depth -= ins.drift * 0.02;
+          if (ins.depth < 0.15) { ins.depth = 0.9; ins.angle = Math.random() * Math.PI * 2; ins.text = inscriptionTexts[Math.floor(Math.random() * inscriptionTexts.length)]; }
+          var x = cx + Math.cos(ins.angle) * maxR * ins.depth;
+          var y = cy + Math.sin(ins.angle) * maxR * ins.depth;
+          var dist = Math.hypot(x - cx, y - cy);
+          if (dist < 22) return;
+          var alpha = 0.25 + 0.4 * ins.depth;
+          var sz = Math.max(8, ins.size * (1.1 - ins.depth * 0.4));
+          ctx.save();
+          ctx.font = '500 ' + Math.round(sz) + 'px "JetBrains Mono", monospace';
+          ctx.textAlign = 'center';
+          ctx.textBaseline = 'middle';
+          ctx.fillStyle = 'rgba(0,255,136,' + alpha + ')';
+          ctx.fillText(ins.text, x, y);
+          ctx.restore();
+        });
+      }
+
+      function drawBinaryOverlay() {
+        var cx = centerX;
+        var cy = centerY;
+        var gridStep = 22;
+        var offsetX = time * 28;
+        var offsetY = time * 20;
+        var rx0 = Math.floor(-offsetX / gridStep);
+        var rx1 = Math.ceil((w - offsetX) / gridStep) + 1;
+        var ry0 = Math.floor(-offsetY / gridStep);
+        var ry1 = Math.ceil((h - offsetY) / gridStep) + 1;
+        ctx.font = '500 10px "JetBrains Mono", monospace';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        for (var ry = ry0; ry <= ry1; ry++) {
+          for (var rx = rx0; rx <= rx1; rx++) {
+            var px = rx * gridStep + offsetX;
+            var py = ry * gridStep + offsetY;
+            var dist = Math.hypot(px - cx, py - cy);
+            var t = dist / maxR;
+            if (t >= 1) continue;
+            var fade = 1 - t * t;
+            var alpha = (0.12 + 0.1 * (1 - t)) * fade;
+            if (alpha < 0.01) continue;
+            var ch = (rx + ry) % 2 ? '1' : '0';
+            ctx.fillStyle = 'rgba(0,255,136,' + alpha + ')';
+            ctx.fillText(ch, px, py);
+          }
+        }
+      }
+
+      function drawVortexSink() {
+        var cx = centerX;
+        var cy = centerY;
+        var R = 56 + Math.sin(time * 1.4) * 4;
+        var g = ctx.createRadialGradient(cx, cy, 0, cx, cy, R);
+        g.addColorStop(0, 'rgba(0,0,0,0.98)');
+        g.addColorStop(0.35, 'rgba(0,0,0,0.75)');
+        g.addColorStop(0.6, 'rgba(0,0,0,0.25)');
+        g.addColorStop(0.85, 'rgba(0,0,0,0.06)');
+        g.addColorStop(1, 'rgba(0,0,0,0)');
+        ctx.fillStyle = g;
+        ctx.fillRect(0, 0, w, h);
+      }
+
+      function drawScene() {
+        if (!ctx || w <= 0 || h <= 0) return;
+        updateVanishingPoint();
+        var now = typeof performance !== 'undefined' ? performance.now() : Date.now();
+        var delta = lastTime ? (now - lastTime) / 1000 : 1 / 60;
+        lastTime = now;
+        if (delta > 0.1) delta = 1 / 60;
+        time += delta;
+
+        ctx.fillStyle = '#000';
+        ctx.fillRect(0, 0, w, h);
+
+        drawSquares();
+        drawBits();
+        drawInscriptions();
+        drawBinaryOverlay();
+        drawVortexSink();
+
+        requestAnimationFrame(drawScene);
+      }
+      resize();
+      window.addEventListener('resize', resize);
+      drawScene();
+    })();
+    (function() {
+      var tg = window.Telegram && window.Telegram.WebApp;
+      if (tg) {
+        tg.ready();
+        tg.expand();
+        tg.setHeaderColor('#000000');
+        tg.setBackgroundColor('#000000');
+      }
+      var verticalSwipesEnableTimer = null;
+      function scheduleVerticalSwipesEnable() {
+        if (!tg || !tg.enableVerticalSwipes) return;
+        if (verticalSwipesEnableTimer) clearTimeout(verticalSwipesEnableTimer);
+        verticalSwipesEnableTimer = setTimeout(function() {
+          verticalSwipesEnableTimer = null;
+          try { tg.enableVerticalSwipes(); } catch (e) {}
+        }, 200);
+      }
+      function disableVerticalSwipesForThisGesture() {
+        if (!tg || !tg.disableVerticalSwipes) return;
+        if (verticalSwipesEnableTimer) clearTimeout(verticalSwipesEnableTimer);
+        verticalSwipesEnableTimer = null;
+        try { tg.disableVerticalSwipes(); } catch (e) {}
+      }
+
+      var botUsername = '';
+      try {
+        if (tg && tg.initDataUnsafe && tg.initDataUnsafe.user) {
+          var sp = (tg.initDataUnsafe.start_param || '').split('_')[0];
+          if (sp) botUsername = sp;
+        }
+        if (!botUsername) {
+          var match = /t\.me\/([a-zA-Z0-9_]+)/.exec(document.referrer || '');
+          if (match) botUsername = match[1];
+        }
+      } catch (e) {}
+      window.MINIAPP_API_DEFAULT = 'https://bitvpn-eo9w.vercel.app';
+      window.MINIAPP_BOT_DEFAULT = 'Bitvpnproxy_bot';
+      if (!botUsername && window.MINIAPP_BOT_DEFAULT) botUsername = window.MINIAPP_BOT_DEFAULT;
+      var apiBase = (function() { var m = /[?&]api=([^&]+)/.exec(location.search); if (m) return decodeURIComponent(m[1]).replace(/\/+$/, ''); return ''; })();
+      var API_PLANS = null;
+      var API_ME = null;
+      function attachSwipeToClose(sheet, overlay, hiddenClass, closeCallback) {
+        if (!sheet || !overlay) return;
+        var startY = 0, startT = 0;
+        function onStart(e) {
+          if (!e.touches || !e.touches.length) return;
+          startY = e.touches[0].clientY;
+          startT = Date.now();
+          sheet.style.transition = 'none';
+        }
+        function onMove(e) {
+          if (!e.touches || !e.touches.length) return;
+          var y = e.touches[0].clientY;
+          var delta = Math.max(0, y - startY);
+          sheet.style.transform = 'translateY(' + delta + 'px)';
+          if (delta > 10) e.preventDefault();
+        }
+        function onEnd(e) {
+          if (!e.changedTouches || !e.changedTouches.length) return;
+          var endY = e.changedTouches[0].clientY;
+          var deltaY = endY - startY;
+          var vel = (Date.now() - startT) > 0 ? Math.abs(deltaY) / (Date.now() - startT) : 0;
+          sheet.style.transition = 'transform 0.3s cubic-bezier(0.32, 0.72, 0, 1)';
+          if (deltaY > 80 || (deltaY > 35 && vel > 0.2)) {
+            sheet.style.transform = 'translateY(100%)';
+            overlay.classList.remove('open');
+            if (overlay.setAttribute) overlay.setAttribute('aria-hidden', 'true');
+            setTimeout(function() {
+              overlay.classList.add(hiddenClass);
+              sheet.classList.remove('open');
+              sheet.classList.add(hiddenClass);
+              sheet.style.transform = '';
+              sheet.style.transition = '';
+              if (closeCallback) closeCallback();
+            }, 320);
+          } else {
+            sheet.style.transform = 'translateY(0)';
+            setTimeout(function() { sheet.style.transform = ''; sheet.style.transition = ''; }, 320);
+          }
+        }
+        sheet.addEventListener('touchstart', onStart, { passive: true });
+        sheet.addEventListener('touchmove', onMove, { passive: false });
+        sheet.addEventListener('touchend', onEnd, { passive: true });
+      }
+      var apiLoadPromise = null;
+      function loadMeFromApi(cb) {
+        var initData = (tg && tg.initData) ? tg.initData : '';
+        if (!apiBase || !initData) { if (cb) cb(); return Promise.resolve(); }
+        return fetch(apiBase + '/api/miniapp/me', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ initData: initData }) })
+          .then(function(r) { return r.ok ? r.json() : null; }).catch(function() { return null; })
+          .then(function(data) {
+            if (data) API_ME = data;
+            var refEl = document.getElementById('ref-sheet-link');
+            if (refEl && API_ME && API_ME.user && API_ME.user.referral_code) {
+              var bot = botUsername || (function() { var m = /[?&]bot=([^&]+)/.exec(location.search); return m ? m[1] : ''; })();
+              refEl.textContent = bot ? 'https://t.me/' + bot + '?start=' + API_ME.user.referral_code : refEl.textContent;
+            }
+            if (cb) cb();
+          });
+      }
+      function loadFromApi(cb) {
+        if (!apiBase) { if (cb) cb(); return; }
+        if (!apiLoadPromise) {
+          var initData = (tg && tg.initData) ? tg.initData : '';
+          apiLoadPromise = Promise.all([
+            fetch(apiBase + '/api/miniapp/plans').then(function(r) { return r.ok ? r.json() : null; }).catch(function() { return null; }),
+            initData ? fetch(apiBase + '/api/miniapp/me', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ initData: initData }) }).then(function(r) { return r.ok ? r.json() : null; }).catch(function() { return null; }) : Promise.resolve(null)
+          ]).then(function(res) {
+            if (res[0] && res[0].plans) API_PLANS = res[0].plans;
+            if (res[1]) API_ME = res[1];
+            var refEl = document.getElementById('ref-sheet-link');
+            if (refEl) {
+              var link = '';
+              if (API_ME && API_ME.user && API_ME.user.referral_code) {
+                var bot = botUsername || (function() { var m = /[?&]bot=([^&]+)/.exec(location.search); return m ? m[1] : ''; })();
+                if (bot) link = 'https://t.me/' + bot + '?start=' + API_ME.user.referral_code;
+              }
+              refEl.textContent = link || (apiBase ? 'Не удалось загрузить ссылку.' : 'Откройте приложение из меню бота. В .env укажите MINIAPP_API_URL.');
+            }
+            return { hadInitData: !!initData, res: res };
+          }).catch(function() { return { hadInitData: false, res: null }; });
+        }
+        apiLoadPromise.then(function(out) {
+          if (cb) cb();
+          if (out && !out.hadInitData && apiBase && tg) {
+            setTimeout(function() {
+              var id = (tg && tg.initData) ? tg.initData : '';
+              if (id) loadMeFromApi(function() { if (typeof renderSubsAndPayFromApi === 'function') renderSubsAndPayFromApi(); if (typeof updateProfileUI === 'function') updateProfileUI(); });
+            }, 400);
+            setTimeout(function() {
+              var id = (tg && tg.initData) ? tg.initData : '';
+              if (id) loadMeFromApi(function() { if (typeof renderSubsAndPayFromApi === 'function') renderSubsAndPayFromApi(); if (typeof updateProfileUI === 'function') updateProfileUI(); });
+            }, 1000);
+          }
+        }).catch(function() { if (cb) cb(); });
+      }
+      window.MINIAPP_API_BASE = apiBase;
+      window.MINIAPP_LOAD_AND_REFRESH_REF = function(cb) { loadFromApi(cb); };
+      function startAppLoad() {
+        loadFromApi(function() {
+          if (typeof renderSubsAndPayFromApi === 'function') renderSubsAndPayFromApi();
+          if (typeof updateProfileUI === 'function') updateProfileUI();
+        });
+      }
+      if (tg && tg.ready) tg.ready();
+      setTimeout(startAppLoad, 150);
+
+      var TAB_IDS = ['main', 'subs', 'ref', 'profile'];
+      var currentTabIndex = 0;
+      function showScreen(id) {
+        var idx = TAB_IDS.indexOf(id);
+        if (idx === -1) return;
+        currentTabIndex = idx;
+        var track = document.getElementById('screens-track');
+        if (track) {
+          track.style.transition = 'transform 0.38s cubic-bezier(0.32, 0.72, 0.2, 1)';
+          track.style.transform = 'translateX(-' + (idx * 25) + '%)';
+        }
+        document.querySelectorAll('.nav-item').forEach(function(a) {
+          a.classList.toggle('active', a.getAttribute('data-nav') === id);
+        });
+        var hb = document.getElementById('help-block');
+        if (hb) hb.style.display = 'none';
+        if (id === 'profile') document.body.classList.add('profile-active');
+        else document.body.classList.remove('profile-active');
+      }
+
+      function renderSubsAndPayFromApi() {
+        if (!API_ME) return;
+        var subs = API_ME.subscriptions || [];
+        var payments = API_ME.payments || [];
+        var activeSubs = subs.filter(function(s) { return s.is_active; });
+        var inactiveSubs = subs.filter(function(s) { return !s.is_active; });
+        var listActive = document.getElementById('subs-list-active');
+        var listInactive = document.getElementById('subs-list-inactive');
+        var emptyActive = document.getElementById('subs-empty-active');
+        var emptyInactive = document.getElementById('subs-empty-inactive');
+        if (listActive && emptyActive) {
+          if (activeSubs.length) {
+            emptyActive.style.display = 'none';
+            listActive.innerHTML = activeSubs.map(function(s) {
+              return '<div class="sub-card"><div class="sub-card-head"><div class="sub-card-title"><svg viewBox="0 0 24 24"><path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4z"/></svg>' + (s.plan_name || 'Bit VPN') + '</div><span class="sub-badge active">Активна</span></div><div class="sub-info-row"><span>Осталось дней:</span><span class="val">' + (s.days_remaining != null ? s.days_remaining : '—') + '</span></div><div class="sub-info-row"><span>Действует до:</span><span class="val">' + (s.end_date_formatted || '—') + '</span></div></div>';
+            }).join('');
+          } else { listActive.innerHTML = ''; emptyActive.style.display = 'block'; }
+        }
+        if (listInactive && emptyInactive) {
+          if (inactiveSubs.length) {
+            emptyInactive.style.display = 'none';
+            listInactive.innerHTML = inactiveSubs.map(function(s) {
+              return '<div class="sub-card"><div class="sub-card-head"><div class="sub-card-title"><svg viewBox="0 0 24 24"><path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4z"/></svg>' + (s.plan_name || 'Bit VPN') + '</div><span class="sub-badge inactive">Истекла</span></div><div class="sub-info-row"><span>Завершена:</span><span class="val">' + (s.end_date_formatted || '—') + '</span></div></div>';
+            }).join('');
+          } else { listInactive.innerHTML = ''; emptyInactive.style.display = 'block'; }
+        }
+        var paid = payments.filter(function(p) { return p.status === 'completed'; });
+        var pending = payments.filter(function(p) { return p.status !== 'completed' && p.status !== 'failed'; });
+        var historyCountPaid = document.getElementById('history-count-paid');
+        var historyCountPending = document.getElementById('history-count-pending');
+        var historyListPaid = document.getElementById('history-list-paid');
+        var historyEmptyPaid = document.getElementById('history-empty-paid');
+        if (historyCountPaid) historyCountPaid.textContent = paid.length;
+        if (historyCountPending) historyCountPending.textContent = pending.length;
+        if (historyListPaid && historyEmptyPaid) {
+          if (paid.length) {
+            historyListPaid.innerHTML = paid.slice(0, 15).map(function(p) {
+              return '<div class="pay-item"><div class="pay-item-head"><div class="pay-item-title"><svg viewBox="0 0 24 24"><path d="M20 4H4c-1.11 0-1.99.89-1.99 2L2 18c0 1.11.89 2 2 2h16c1.11 0 2-.89 2-2V6c0-1.11-.89-2-2-2zm0 14H4v-6h16v6zm0-10H4V6h16v2z"/></svg>Подписка Bit VPN</div><span class="pay-item-badge">Оплачено</span></div><div class="pay-item-meta">' + (p.plan_type || '') + '</div><div class="pay-item-row"><span>Сумма: ' + (p.amount_rubles || 0) + ' ₽</span></div><div class="pay-item-row"><span>Дата: ' + (p.completed_at ? p.completed_at.slice(0, 10) : '—') + '</span></div></div>';
+            }).join('');
+            historyEmptyPaid.style.display = 'none';
+          } else { historyListPaid.innerHTML = ''; historyEmptyPaid.style.display = 'block'; }
+        }
+        var historyListPending = document.getElementById('history-list-pending');
+        if (historyListPending) {
+          historyListPending.innerHTML = pending.length ? pending.slice(0, 10).map(function(p) {
+            return '<div class="pay-item"><div class="pay-item-head"><div class="pay-item-title"><svg viewBox="0 0 24 24"><path d="M20 4H4c-1.11 0-1.99.89-1.99 2L2 18c0 1.11.89 2 2 2h16c1.11 0 2-.89 2-2V6c0-1.11-.89-2-2-2zm0 14H4v-6h16v6zm0-10H4V6h16v2z"/></svg>Подписка Bit VPN</div><span class="pay-item-badge pending">В обработке</span></div><div class="pay-item-meta">' + (p.plan_type || '') + '</div><div class="pay-item-row"><span>Сумма: ' + (p.amount_rubles || 0) + ' ₽</span></div></div>';
+          }).join('') : '';
+        }
+        var refStatInvited = document.getElementById('ref-stat-invited');
+        var refStatDays = document.getElementById('ref-stat-days');
+        if (refStatInvited) refStatInvited.textContent = (API_ME.referral_invited_count != null ? API_ME.referral_invited_count : 0);
+        if (refStatDays) refStatDays.textContent = (API_ME.referral_bonus_days != null ? API_ME.referral_bonus_days : 0);
+        var refLinkEl = document.getElementById('ref-sheet-link');
+        if (refLinkEl && API_ME.user && API_ME.user.referral_code) {
+          var refBot = botUsername || (function() { var m = /[?&]bot=([^&]+)/.exec(location.search); return m ? m[1] : ''; })();
+          refLinkEl.textContent = refBot ? 'https://t.me/' + refBot + '?start=' + API_ME.user.referral_code : refLinkEl.textContent;
+        }
+        var pName = document.getElementById('profile-name');
+        var pId = document.getElementById('profile-user-id');
+        if (API_ME.user && pName) setProfileDisplayName(pName);
+        if (API_ME.user && pId) pId.textContent = API_ME.user.telegram_id != null ? 'id: ' + String(API_ME.user.telegram_id) : (pId.textContent || 'id: —');
+        if (API_ME.user && profileAvatar) setProfileAvatar(profileAvatar);
+        var statusBadge = document.getElementById('profile-status-badge');
+        if (statusBadge) {
+          var st = API_ME.subscription_status;
+          statusBadge.className = 'profile-status-badge ' + (st === 'basic' ? 'basic' : st === 'premium' ? 'premium' : 'none');
+          statusBadge.textContent = st === 'basic' ? 'Базовый статус' : st === 'premium' ? 'Премиум статус' : 'Без статуса';
+        }
+      }
+      document.querySelectorAll('.nav-item').forEach(function(a) {
+        a.addEventListener('click', function(e) {
+          e.preventDefault();
+          document.querySelectorAll('.nav-item').forEach(function(x) { x.classList.remove('active'); });
+          this.classList.add('active');
+          var nav = this.getAttribute('data-nav');
+          showScreen(nav);
+          if (nav === 'subs' || nav === 'ref' || nav === 'profile') renderSubsAndPayFromApi();
+          if (nav === 'profile' && typeof setProfileDisplayName === 'function' && typeof setProfileAvatar === 'function') {
+            var pName = document.getElementById('profile-name');
+            var pAvatar = document.getElementById('profile-avatar');
+            if (pName) setProfileDisplayName(pName);
+            if (pAvatar) setProfileAvatar(pAvatar);
+          }
+          var o = document.getElementById('devices-sheet-overlay');
+          var s = document.getElementById('devices-sheet');
+          if (o) { o.classList.remove('open'); o.classList.add('devices-sheet-hidden'); }
+          if (s) { s.classList.remove('open'); s.classList.add('devices-sheet-hidden'); }
+          closeSubscribeSheet();
+        });
+      });
+      (function() {
+        var vp = document.getElementById('screens-viewport');
+        var track = document.getElementById('screens-track');
+        if (!vp || !track) return;
+        var startX = 0, startY = 0, totalDx = 0, totalDy = 0, isHorizontalDrag = false;
+        var lastX = 0, lastT = 0;
+        var SWIPE_THRESHOLD = 50;
+        var HORIZONTAL_BIAS = 2.2;
+        var MOVE_THRESHOLD = 6;
+        var MIN_DURATION = 0.32;
+        var MAX_DURATION = 0.5;
+
+        function pxToPercent(vpW, dxPx) {
+          return (dxPx / vpW) * 100;
+        }
+
+        var trackEasing = 'cubic-bezier(0.32, 0.72, 0.2, 1)';
+        var TRACK_DURATION_MS = 380;
+        function setTransitionDuration(ms) {
+          track.style.transition = 'transform ' + (ms / 1000) + 's ' + trackEasing;
+        }
+
+        vp.addEventListener('touchstart', function(e) {
+          if (e.touches.length !== 1) return;
+          startX = e.touches[0].clientX;
+          startY = e.touches[0].clientY;
+          lastX = startX;
+          lastT = Date.now();
+          totalDx = 0;
+          totalDy = 0;
+          isHorizontalDrag = false;
+          track.classList.add('dragging');
+        }, { passive: true });
+
+        vp.addEventListener('touchmove', function(e) {
+          if (e.touches.length !== 1) return;
+          var x = e.touches[0].clientX;
+          var y = e.touches[0].clientY;
+          totalDx = x - startX;
+          totalDy = y - startY;
+          if (!isHorizontalDrag && (Math.abs(totalDx) > MOVE_THRESHOLD || Math.abs(totalDy) > MOVE_THRESHOLD)) {
+            isHorizontalDrag = Math.abs(totalDx) * HORIZONTAL_BIAS > Math.abs(totalDy);
+          }
+          if (isHorizontalDrag) {
+            e.preventDefault();
+            disableVerticalSwipesForThisGesture();
+            lastX = x;
+            lastT = Date.now();
+            var vpW = vp.offsetWidth;
+            var basePercent = currentTabIndex * 25;
+            var offsetPercent = pxToPercent(vpW, -totalDx);
+            var maxDrag = 20;
+            offsetPercent = Math.max(-maxDrag, Math.min(maxDrag, offsetPercent));
+            var targetPercent = basePercent + offsetPercent;
+            if (targetPercent < 0) targetPercent = 0;
+            if (targetPercent > 75) targetPercent = 75;
+            track.style.transform = 'translateX(-' + targetPercent + '%)';
+          }
+        }, { passive: false });
+
+        vp.addEventListener('touchend', function(e) {
+          if (e.changedTouches.length !== 1) return;
+          track.classList.remove('dragging');
+          if (isHorizontalDrag) scheduleVerticalSwipesEnable();
+          var vpW = vp.offsetWidth;
+          if (isHorizontalDrag) {
+            var now = Date.now();
+            var dt = now - lastT;
+            var endX = e.changedTouches[0].clientX;
+            var velocity = dt > 5 ? Math.abs(endX - lastX) / dt : 0;
+            var durationMs = Math.max(MIN_DURATION * 1000, Math.min(MAX_DURATION * 1000, 920 - velocity * 90));
+            setTransitionDuration(durationMs);
+            if (totalDx > SWIPE_THRESHOLD && currentTabIndex > 0) showScreen(TAB_IDS[currentTabIndex - 1]);
+            else if (totalDx < -SWIPE_THRESHOLD && currentTabIndex < 3) showScreen(TAB_IDS[currentTabIndex + 1]);
+            else track.style.transform = 'translateX(-' + (currentTabIndex * 25) + '%)';
+          }
+        }, { passive: true });
+
+        vp.addEventListener('touchcancel', function() {
+          track.classList.remove('dragging');
+          if (isHorizontalDrag) scheduleVerticalSwipesEnable();
+          setTransitionDuration(TRACK_DURATION_MS);
+          track.style.transform = 'translateX(-' + (currentTabIndex * 25) + '%)';
+        }, { passive: true });
+      })();
+
+      function getBotForPay() {
+        return botUsername || (function() { var x = /[?&]bot=([^&]+)/.exec(location.search); return x ? x[1] : ''; })();
+      }
+      function openBotPay(months, devices) {
+        var m = months || 1;
+        var d = devices || 1;
+        var bot = getBotForPay();
+        if (bot) {
+          var start = 'pay_' + m + 'month_' + d;
+          var link = 'https://t.me/' + bot + '?start=' + start;
+          if (tg && tg.openTelegramLink) tg.openTelegramLink(link);
+          else window.open(link, '_blank');
+        } else if (tg && tg.showAlert) {
+          tg.showAlert('Откройте приложение из меню бота для оплаты.');
+        }
+      }
+      var subscribeSelectedMonths = 1;
+      var subscribeSelectedDevices = 1;
+      var DEVICE_BASE_PRICE = { 1: 100, 3: 150, 5: 250, 10: 450 };
+      var DURATION_OPTIONS = [
+        { months: 1, name: '1 мес' },
+        { months: 3, name: '3 мес' },
+        { months: 6, name: '6 мес' },
+        { months: 9, name: '9 мес' },
+        { months: 12, name: '1 год' }
+      ];
+      var DURATION_SLIDER_MONTHS = [1, 3, 6, 9, 12];
+      function monthsToSliderIndex(m) {
+        var i = DURATION_SLIDER_MONTHS.indexOf(m);
+        return i >= 0 ? i : 0;
+      }
+      function sliderIndexToMonths(i) { return DURATION_SLIDER_MONTHS[i] || 1; }
+      var DAYS_BY_MONTHS = { 1: 30, 3: 90, 6: 180, 9: 270, 12: 365 };
+      function calcSubscribePrice(devices, months) {
+        var base = DEVICE_BASE_PRICE[devices] != null ? DEVICE_BASE_PRICE[devices] : 100;
+        var raw = base * months;
+        var trimesters = Math.floor(months / 3);
+        var discountPct = trimesters * 5;
+        return Math.round(raw * (1 - discountPct / 100));
+      }
+      function getSubscribePlans() {
+        if (API_PLANS && API_PLANS.length) {
+          return API_PLANS.map(function(p) {
+            var m = p.months != null ? p.months : (p.duration_months != null ? p.duration_months : 1);
+            return { months: m, name: p.name || (m === 12 ? '1 год' : m + ' мес') };
+          });
+        }
+        return DURATION_OPTIONS;
+      }
+      function getDurationName(months) {
+        return months === 12 ? '1 год' : months + ' мес';
+      }
+      function formatSubscribeDate(d) {
+        var day = ('0' + d.getDate()).slice(-2);
+        var month = ('0' + (d.getMonth() + 1)).slice(-2);
+        return day + '.' + month + '.' + d.getFullYear();
+      }
+      function updateSubscribeSummary() {
+        var months = subscribeSelectedMonths;
+        var devices = subscribeSelectedDevices;
+        var price = calcSubscribePrice(devices, months);
+        var days = DAYS_BY_MONTHS[months] != null ? DAYS_BY_MONTHS[months] : months * 30;
+        var name = getDurationName(months);
+        var base = DEVICE_BASE_PRICE[devices] != null ? DEVICE_BASE_PRICE[devices] : 100;
+        var raw = base * months;
+        var trimesters = Math.floor(months / 3);
+        var discountPct = trimesters * 5;
+        var perMonth = Math.round(price / months);
+        var endDate = new Date(Date.now() + days * 24 * 60 * 60 * 1000);
+        var el;
+        el = document.getElementById('subscribe-devices-val'); if (el) el.textContent = devices;
+        el = document.getElementById('subscribe-price-main'); if (el) el.textContent = name + ' – ' + price + ' ₽';
+        el = document.getElementById('subscribe-price-per-month'); if (el) el.textContent = 'В месяц: ' + perMonth + ' ₽/мес';
+        el = document.getElementById('subscribe-summary-cost'); if (el) el.textContent = price + ' ₽';
+        el = document.getElementById('subscribe-summary-days'); if (el) el.textContent = days;
+        el = document.getElementById('subscribe-summary-end'); if (el) el.textContent = formatSubscribeDate(endDate);
+        el = document.getElementById('subscribe-pay-amount'); if (el) el.textContent = price;
+        el = document.getElementById('subscribe-price-hint');
+        if (el) el.textContent = discountPct > 0 ? 'Скидка ' + discountPct + '% за ' + trimesters + ' триместр(а)' : 'Без скидки при помесячной оплате';
+      }
+      function updateSubscribeSliderLabels() {
+        var wrap = document.getElementById('subscribe-slider-labels');
+        if (!wrap) return;
+        var idx = monthsToSliderIndex(subscribeSelectedMonths);
+        wrap.querySelectorAll('span').forEach(function(sp, i) { sp.classList.toggle('active', i === idx); });
+      }
+      function openSubscribeSheet() {
+        var plans = getSubscribePlans();
+        var validMonths = DURATION_SLIDER_MONTHS;
+        if (validMonths.indexOf(subscribeSelectedMonths) < 0)
+          subscribeSelectedMonths = (plans[0] && (plans[0].months != null || plans[0].duration_months != null)) ? (plans[0].months || plans[0].duration_months) : 1;
+        if (validMonths.indexOf(subscribeSelectedMonths) < 0) subscribeSelectedMonths = 1;
+        var slider = document.getElementById('subscribe-duration-slider');
+        if (slider) {
+          slider.value = monthsToSliderIndex(subscribeSelectedMonths);
+          updateSubscribeSliderLabels();
+        }
+        var daysLeftEl = document.getElementById('subscribe-days-left-val');
+        if (daysLeftEl && API_ME && API_ME.subscriptions) {
+          var active = API_ME.subscriptions.filter(function(s) { return s.is_active; })[0];
+          daysLeftEl.textContent = active && active.days_remaining != null ? active.days_remaining : '—';
+        } else if (daysLeftEl) daysLeftEl.textContent = '—';
+        document.querySelectorAll('.subscribe-dev-btn').forEach(function(btn) {
+          var dev = parseInt(btn.getAttribute('data-dev'), 10) || 1;
+          btn.classList.toggle('selected', dev === subscribeSelectedDevices);
+        });
+        updateSubscribeSummary();
+        var o = document.getElementById('subscribe-sheet-overlay');
+        var s = document.getElementById('subscribe-sheet');
+        if (o) { o.classList.remove('devices-sheet-hidden'); o.classList.add('open'); o.setAttribute('aria-hidden', 'false'); }
+        if (s) {
+          s.classList.remove('devices-sheet-hidden');
+          s.style.transform = '';
+          s.style.transition = '';
+          requestAnimationFrame(function() { requestAnimationFrame(function() { s.classList.add('open'); }); });
+        }
+      }
+      function closeSubscribeSheet() {
+        var o = document.getElementById('subscribe-sheet-overlay');
+        var s = document.getElementById('subscribe-sheet');
+        if (o) { o.classList.remove('open'); o.setAttribute('aria-hidden', 'true'); }
+        if (s) { s.style.transition = ''; s.style.transform = ''; s.classList.remove('open'); }
+        setTimeout(function() {
+          if (o) o.classList.add('devices-sheet-hidden');
+          if (s) s.classList.add('devices-sheet-hidden');
+        }, 320);
+      }
+      var subscribeSheetOverlay = document.getElementById('subscribe-sheet-overlay');
+      var subscribeSheet = document.getElementById('subscribe-sheet');
+      if (subscribeSheetOverlay) subscribeSheetOverlay.addEventListener('click', closeSubscribeSheet);
+      var subscribeSheetBtnBack = document.getElementById('subscribe-sheet-btn-back');
+      if (subscribeSheetBtnBack) subscribeSheetBtnBack.addEventListener('click', closeSubscribeSheet);
+      document.querySelectorAll('.subscribe-dev-btn').forEach(function(btn) {
+        btn.addEventListener('click', function() {
+          subscribeSelectedDevices = parseInt(this.getAttribute('data-dev'), 10) || 1;
+          document.querySelectorAll('.subscribe-dev-btn').forEach(function(b) { b.classList.remove('selected'); });
+          this.classList.add('selected');
+          updateSubscribeSummary();
+        });
+      });
+      var subscribeDurationSlider = document.getElementById('subscribe-duration-slider');
+      if (subscribeDurationSlider) {
+        subscribeDurationSlider.addEventListener('input', function() {
+          var idx = parseInt(this.value, 10) || 0;
+          subscribeSelectedMonths = sliderIndexToMonths(idx);
+          updateSubscribeSliderLabels();
+          updateSubscribeSummary();
+        });
+        subscribeDurationSlider.addEventListener('change', function() {
+          var idx = parseInt(this.value, 10) || 0;
+          subscribeSelectedMonths = sliderIndexToMonths(idx);
+          updateSubscribeSliderLabels();
+          updateSubscribeSummary();
+        });
+      }
+      var subscribeSheetBtnPay = document.getElementById('subscribe-sheet-btn-pay');
+      if (subscribeSheetBtnPay) subscribeSheetBtnPay.addEventListener('click', function() {
+        closeSubscribeSheet();
+        openBotPay(subscribeSelectedMonths, subscribeSelectedDevices);
+      });
+      if (subscribeSheet) subscribeSheet.addEventListener('click', function(e) { e.stopPropagation(); });
+      if (subscribeSheetOverlay) {
+        subscribeSheetOverlay.addEventListener('touchstart', function(e) { e.stopPropagation(); }, { passive: true });
+        subscribeSheetOverlay.addEventListener('touchmove', function(e) { e.stopPropagation(); }, { passive: true });
+      }
+      if (subscribeSheet) {
+        subscribeSheet.addEventListener('touchstart', function(e) { e.stopPropagation(); }, { passive: true });
+        subscribeSheet.addEventListener('touchmove', function(e) { e.stopPropagation(); }, { passive: true });
+      }
+      if (subscribeSheetOverlay) subscribeSheetOverlay.classList.add('devices-sheet-hidden');
+      if (subscribeSheet) subscribeSheet.classList.add('devices-sheet-hidden');
+
+      var buyBtn = document.getElementById('btn-buy');
+      var btnInstallSub = document.getElementById('btn-install-sub');
+      if (buyBtn) {
+        buyBtn.href = '#';
+        buyBtn.addEventListener('click', function(e) { e.preventDefault(); openSubscribeSheet(); });
+      }
+      if (btnInstallSub) {
+        btnInstallSub.addEventListener('click', function() { openBotPay(1, 1); });
+      }
+      loadFromApi(function() { renderSubsAndPayFromApi(); });
+
+      var helpBtn = document.getElementById('btn-help');
+      var SUPPORT_BOT = 'HelpBit_bot';
+      if (helpBtn) {
+        helpBtn.addEventListener('click', function() {
+          var url = 'https://t.me/' + SUPPORT_BOT;
+          if (tg && tg.openTelegramLink) tg.openTelegramLink(url);
+          else window.open(url, '_blank');
+        });
+      }
+
+      var devicesSheet = document.getElementById('devices-sheet');
+      var devicesOverlay = document.getElementById('devices-sheet-overlay');
+      var btnDevices = document.getElementById('btn-devices');
+      var sheetClientIdValue = document.getElementById('sheet-client-id-value');
+      var sheetCopyId = document.getElementById('sheet-copy-id');
+      var sheetDevicesList = document.getElementById('sheet-devices-list');
+      var sheetDevicesCount = document.getElementById('sheet-devices-count');
+      var sheetAddDevice = document.getElementById('sheet-add-device');
+      function getClientId() {
+        if (tg && tg.initDataUnsafe && tg.initDataUnsafe.user && tg.initDataUnsafe.user.id != null)
+          return String(tg.initDataUnsafe.user.id);
+        if (tg && tg.initData) {
+          try {
+            var params = new URLSearchParams(tg.initData);
+            var userStr = params.get('user');
+            if (userStr) {
+              var user = JSON.parse(decodeURIComponent(userStr));
+              if (user && user.id != null) return String(user.id);
+            }
+          } catch (e) {}
+        }
+        return '';
+      }
+      var clientId = getClientId();
+      function detectDevice() {
+        var platform = (tg && tg.platform) ? tg.platform : '';
+        var ua = navigator.userAgent || '';
+        var name = 'Устройство';
+        var icon = '<svg viewBox="0 0 24 24"><path d="M20 18c1.1 0 1.99-.9 1.99-2L22 6c0-1.1-.9-2-2-2H4c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2H0v2h24v-2h-4zM4 6h16v10H4V6z"/></svg>';
+        if (/android/i.test(ua) || platform === 'android') {
+          name = 'Android';
+          icon = '<svg viewBox="0 0 24 24"><path d="M17.6 9.48l1.84-3.18c.16-.31.04-.69-.26-.85-.29-.15-.65-.06-.83.22l-1.88 3.24C14.86 8.87 13.49 8.25 12 8.25s-2.86.62-3.77 1.66L6.35 6.67c-.18-.28-.54-.37-.83-.22-.3.16-.42.54-.26.85l1.84 3.18C4.18 10.72 3 12.62 3 14.75c0 2.86 2.24 5.25 5 5.25h8c2.76 0 5-2.39 5-5.25 0-2.13-1.18-4.03-3.4-5.27zM12 17.25c-.69 0-1.25-.56-1.25-1.25s.56-1.25 1.25-1.25 1.25.56 1.25 1.25-.56 1.25-1.25 1.25z"/></svg>';
+        } else if (/iPhone|iPad|iPod/i.test(ua) || platform === 'ios') {
+          name = 'iPhone';
+          icon = '<svg viewBox="0 0 24 24"><path d="M17 1.01L7 1c-1.1 0-2 .9-2 2v18c0 1.1.9 2 2 2h10c1.1 0 2-.9 2-2V3c0-1.1-.9-1.99-2-1.99zM17 19H7V5h10v14z"/></svg>';
+        } else if (/Windows|Win32|Win64/i.test(ua) || platform === 'tdesktop') {
+          name = 'Windows';
+          icon = '<svg viewBox="0 0 24 24"><path d="M20 18c1.1 0 1.99-.9 1.99-2L22 6c0-1.1-.9-2-2-2H4c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2H0v2h24v-2h-4zM4 6h16v10H4V6z"/></svg>';
+        } else if (/Mac OS X|Macintosh/i.test(ua)) {
+          name = 'macOS';
+          icon = '<svg viewBox="0 0 24 24"><path d="M20 18c1.1 0 1.99-.9 1.99-2L22 6c0-1.1-.9-2-2-2H4c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2H0v2h24v-2h-4zM4 6h16v10H4V6z"/></svg>';
+        } else if (/Linux/i.test(ua)) {
+          name = 'Linux';
+          icon = '<svg viewBox="0 0 24 24"><path d="M20 18c1.1 0 1.99-.9 1.99-2L22 6c0-1.1-.9-2-2-2H4c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2H0v2h24v-2h-4zM4 6h16v10H4V6z"/></svg>';
+        }
+        return { name: name, icon: icon };
+      }
+      function openDevicesSheet() {
+        clientId = getClientId();
+        if (sheetClientIdValue) sheetClientIdValue.textContent = clientId || '—';
+        var dev = detectDevice();
+        var titleEl = document.getElementById('sheet-device-title');
+        var descEl = document.getElementById('sheet-device-desc');
+        var iconEl = document.getElementById('sheet-device-icon');
+        if (titleEl) titleEl.textContent = 'Настройка на ' + dev.name;
+        if (descEl) descEl.textContent = 'VPN в 3 шага. Вы заходите с этого устройства.';
+        if (iconEl) iconEl.innerHTML = dev.icon;
+        if (devicesOverlay) { devicesOverlay.classList.remove('devices-sheet-hidden'); devicesOverlay.classList.add('open'); devicesOverlay.setAttribute('aria-hidden', 'false'); }
+        if (devicesSheet) { devicesSheet.style.transform = ''; devicesSheet.style.transition = ''; devicesSheet.classList.remove('devices-sheet-hidden'); devicesSheet.classList.add('open'); }
+      }
+      function closeDevicesSheet() {
+        if (devicesOverlay) { devicesOverlay.classList.remove('open'); devicesOverlay.setAttribute('aria-hidden', 'true'); }
+        if (devicesSheet) { devicesSheet.style.transition = ''; devicesSheet.style.transform = ''; devicesSheet.classList.remove('open'); }
+        setTimeout(function() {
+          if (devicesOverlay) devicesOverlay.classList.add('devices-sheet-hidden');
+          if (devicesSheet) devicesSheet.classList.add('devices-sheet-hidden');
+        }, 320);
+      }
+      if (devicesOverlay) devicesOverlay.classList.add('devices-sheet-hidden');
+      if (devicesSheet) devicesSheet.classList.add('devices-sheet-hidden');
+      if (btnDevices) btnDevices.addEventListener('click', openDevicesSheet);
+      if (devicesOverlay) devicesOverlay.addEventListener('click', closeDevicesSheet);
+      if (devicesSheet) devicesSheet.addEventListener('click', function(e) { e.stopPropagation(); });
+      attachSwipeToClose(devicesSheet, devicesOverlay, 'devices-sheet-hidden');
+      if (sheetCopyId) {
+        sheetCopyId.addEventListener('click', function() {
+          var id = getClientId() || clientId;
+          if (!id) {
+            if (tg && tg.showAlert) tg.showAlert('ID недоступен. Откройте приложение из меню бота в Telegram.');
+            return;
+          }
+          if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(id).then(function() {
+              if (tg && tg.showPopup) tg.showPopup({ title: '', message: 'ID скопирован' });
+              else if (tg && tg.showAlert) tg.showAlert('ID скопирован');
+              else sheetCopyId.textContent = 'Скопировано';
+            }).catch(function() {
+              if (tg && tg.showAlert) tg.showAlert('ID: ' + id);
+            });
+          } else {
+            if (tg && tg.showAlert) tg.showAlert('ID: ' + id);
+            else sheetCopyId.textContent = 'Скопировано';
+          }
+        });
+      }
+      var sheetBtnSetupThis = document.getElementById('sheet-btn-setup-this');
+      var sheetBtnSetupOther = document.getElementById('sheet-btn-setup-other');
+      if (sheetBtnSetupThis) {
+        sheetBtnSetupThis.addEventListener('click', function() {
+          var bot = botUsername || (function() { var m = /[?&]bot=([^&]+)/.exec(location.search); return m ? m[1] : ''; })();
+          if (bot) {
+            var link = 'https://t.me/' + bot + '?start=config';
+            if (tg && tg.openTelegramLink) tg.openTelegramLink(link);
+            else window.open(link, '_blank');
+          } else {
+            if (tg && tg.showAlert) tg.showAlert('Откройте бота из меню и нажмите «Мой конфиг» или «Скачать конфиг» для настройки на этом устройстве.');
+          }
+        });
+      }
+      if (sheetBtnSetupOther) {
+        sheetBtnSetupOther.addEventListener('click', function() {
+          if (tg && tg.showAlert) tg.showAlert('Откройте бота на том устройстве, где нужно подключить VPN, и нажмите «Мой конфиг» — конфигурация и QR придут туда.');
+          else alert('Откройте бота на другом устройстве и нажмите «Мой конфиг».');
+        });
+      }
+      if (sheetAddDevice) {
+        sheetAddDevice.addEventListener('click', function() {
+          closeDevicesSheet();
+          if (tg && tg.showAlert) tg.showAlert('Добавление устройства — в боте. Откройте бота на новом устройстве и нажмите «Мой конфиг».');
+        });
+      }
+
+      var supportLink = document.getElementById('link-support');
+      if (supportLink) {
+        supportLink.href = 'https://t.me/HelpBit_bot';
+        supportLink.addEventListener('click', function(e) {
+          e.preventDefault();
+          if (tg && tg.openTelegramLink) tg.openTelegramLink('https://t.me/HelpBit_bot');
+          else window.open('https://t.me/HelpBit_bot', '_blank');
+        });
+      }
+
+      if (botUsername) {
+        var footerBot = document.getElementById('footer-bot-username');
+        if (footerBot) footerBot.textContent = ' • @' + botUsername;
+      }
+
+
+      document.querySelectorAll('.subs-tab').forEach(function(btn) {
+        btn.addEventListener('click', function() {
+          var tab = this.getAttribute('data-subs-tab');
+          document.querySelectorAll('.subs-tab').forEach(function(b) { b.classList.remove('active'); });
+          this.classList.add('active');
+          document.getElementById('subs-content-active').style.display = tab === 'active' ? 'block' : 'none';
+          document.getElementById('subs-content-inactive').style.display = tab === 'inactive' ? 'block' : 'none';
+        });
+      });
+      var btnSubsExtend = document.getElementById('btn-subs-extend');
+      var btnSubsExtendInactive = document.getElementById('btn-subs-extend-inactive');
+      if (btnSubsExtend) { btnSubsExtend.href = '#'; btnSubsExtend.addEventListener('click', function(e) { e.preventDefault(); openSubscribeSheet(); }); }
+      if (btnSubsExtendInactive) { btnSubsExtendInactive.href = '#'; btnSubsExtendInactive.addEventListener('click', function(e) { e.preventDefault(); openSubscribeSheet(); }); }
+
+      var profileUserId = document.getElementById('profile-user-id');
+      var profileName = document.getElementById('profile-name');
+      var profileAvatar = document.getElementById('profile-avatar');
+      function getDisplayId() {
+        var id = getClientId();
+        if (tg && tg.initDataUnsafe && tg.initDataUnsafe.user && tg.initDataUnsafe.user.id != null) id = String(tg.initDataUnsafe.user.id);
+        return id || '—';
+      }
+      function setProfileDisplayName(el) {
+        if (!el) return;
+        var u = tg && tg.initDataUnsafe && tg.initDataUnsafe.user;
+        if (u) {
+          var name = (u.first_name || '') + (u.last_name ? ' ' + u.last_name : '').trim();
+          if (name) { el.textContent = name; return; }
+          if (u.username) { el.textContent = '@' + u.username; return; }
+        }
+        if (API_ME && API_ME.user) {
+          var n = (API_ME.user.first_name || '') + (API_ME.user.last_name ? ' ' + API_ME.user.last_name : '').trim();
+          if (n) { el.textContent = n; return; }
+          if (API_ME.user.username) { el.textContent = '@' + API_ME.user.username; return; }
+        }
+        el.textContent = 'Пользователь';
+      }
+      function setProfileAvatar(el) {
+        if (!el) return;
+        var u = tg && tg.initDataUnsafe && tg.initDataUnsafe.user;
+        var photo = u && u.photo_url;
+        if (photo) {
+          el.innerHTML = '<img src="' + photo.replace(/&/g, '&amp;') + '" alt="">';
+          return;
+        }
+        u = API_ME && API_ME.user ? API_ME.user : u;
+        if (u && u.photo_url) {
+          el.innerHTML = '<img src="' + u.photo_url.replace(/&/g, '&amp;') + '" alt="">';
+          return;
+        }
+        var letter = 'B';
+        if (u && u.first_name && u.first_name[0]) letter = u.first_name[0].toUpperCase();
+        el.innerHTML = '';
+        el.appendChild(document.createTextNode(letter));
+      }
+      function updateProfileUI() {
+        var u = tg && tg.initDataUnsafe && tg.initDataUnsafe.user;
+        if (profileUserId) profileUserId.textContent = 'id: ' + (u && u.id != null ? String(u.id) : (getClientId() || '—'));
+        setProfileDisplayName(profileName);
+        setProfileAvatar(profileAvatar);
+      }
+      if (tg && tg.initDataUnsafe && tg.initDataUnsafe.user) {
+        var u = tg.initDataUnsafe.user;
+        if (profileUserId) profileUserId.textContent = 'id: ' + (u.id != null ? String(u.id) : '—');
+        setProfileDisplayName(profileName);
+        setProfileAvatar(profileAvatar);
+      } else {
+        var cid = getClientId();
+        if (profileUserId) profileUserId.textContent = cid ? 'id: ' + cid : 'id: —';
+        setProfileDisplayName(profileName);
+        setProfileAvatar(profileAvatar);
+      }
+      updateProfileUI();
+      var profileCopyIdBtn = document.getElementById('profile-copy-id');
+      if (profileCopyIdBtn) {
+        profileCopyIdBtn.addEventListener('click', function() {
+          var id = getDisplayId();
+          if (!id || id === '—') { if (tg && tg.showAlert) tg.showAlert('ID недоступен'); return; }
+          if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(id).then(function() { if (tg && tg.showPopup) tg.showPopup({ title: '', message: 'ID скопирован' }); else if (tg && tg.showAlert) tg.showAlert('ID скопирован'); });
+          } else if (tg && tg.showAlert) tg.showAlert('ID: ' + id);
+        });
+      }
+      var refLink = '';
+      try { refLink = localStorage.getItem('profile_ref_link') || ''; } catch (e) {}
+      var refBot = botUsername || (function() { var m = /[?&]bot=([^&]+)/.exec(location.search); return m ? m[1] : ''; })();
+      function getRefLink() {
+        if (typeof API_ME !== 'undefined' && API_ME && API_ME.user && API_ME.user.referral_code && refBot)
+          return 'https://t.me/' + refBot + '?start=' + API_ME.user.referral_code;
+        return refLink || (refBot ? 'https://t.me/' + refBot + '?start=referral' : '');
+      }
+      function saveRefLink(link) { try { if (link) localStorage.setItem('profile_ref_link', link); } catch (e) {} }
+      var promoUsedCount = 0;
+      try { promoUsedCount = parseInt(localStorage.getItem('profile_promo_used') || '0', 10); } catch (e) {}
+      function openSheet(overlayId, sheetId) {
+        var o = document.getElementById(overlayId), s = document.getElementById(sheetId);
+        if (o) { o.classList.remove('profile-sheet-hidden'); o.classList.add('open'); }
+        if (s) { s.classList.remove('profile-sheet-hidden'); s.style.transform = ''; s.style.transition = ''; s.classList.add('open'); }
+      }
+      function closeSheet(overlayId, sheetId) {
+        var o = document.getElementById(overlayId), s = document.getElementById(sheetId);
+        if (o) o.classList.remove('open');
+        if (s) { s.style.transform = ''; s.style.transition = ''; s.classList.remove('open'); }
+        setTimeout(function() { if (o) o.classList.add('profile-sheet-hidden'); if (s) s.classList.add('profile-sheet-hidden'); }, 320);
+      }
+      var accountSheetId = document.getElementById('account-sheet-id');
+      var accountSheetCopy = document.getElementById('account-sheet-copy');
+      if (document.getElementById('profile-row-account')) {
+        document.getElementById('profile-row-account').addEventListener('click', function() {
+          if (accountSheetId) accountSheetId.textContent = getDisplayId();
+          openSheet('account-sheet-overlay', 'account-sheet');
+        });
+      }
+      document.getElementById('account-sheet-overlay').addEventListener('click', function() { closeSheet('account-sheet-overlay', 'account-sheet'); });
+      if (accountSheetCopy) accountSheetCopy.addEventListener('click', function() {
+        var id = getDisplayId();
+        if (id && id !== '—' && navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(id).then(function() { if (tg && tg.showPopup) tg.showPopup({ title: '', message: 'ID скопирован' }); });
+      });
+      var emailSheetInput = document.getElementById('email-sheet-input');
+      var emailSheetSave = document.getElementById('email-sheet-save');
+      try { if (emailSheetInput && localStorage.getItem('profile_email')) emailSheetInput.value = localStorage.getItem('profile_email'); } catch (e) {}
+      if (document.getElementById('profile-row-email')) {
+        document.getElementById('profile-row-email').addEventListener('click', function() {
+          try { if (emailSheetInput && localStorage.getItem('profile_email')) emailSheetInput.value = localStorage.getItem('profile_email'); } catch (e) {}
+          openSheet('email-sheet-overlay', 'email-sheet');
+        });
+      }
+      document.getElementById('email-sheet-overlay').addEventListener('click', function() { closeSheet('email-sheet-overlay', 'email-sheet'); });
+      if (emailSheetSave && emailSheetInput) {
+        emailSheetSave.addEventListener('click', function() {
+          var email = (emailSheetInput.value || '').trim();
+          if (!email) { if (tg && tg.showAlert) tg.showAlert('Введите адрес почты'); return; }
+          try { localStorage.setItem('profile_email', email); } catch (e) {}
+          if (tg && tg.showPopup) tg.showPopup({ title: '', message: 'Почта сохранена. Подтверждение на почту не отправляется.' });
+          else if (tg && tg.showAlert) tg.showAlert('Почта сохранена');
+          closeSheet('email-sheet-overlay', 'email-sheet');
+        });
+      }
+      var promoSheetInput = document.getElementById('promo-sheet-input');
+      var promoSheetApply = document.getElementById('promo-sheet-apply');
+      var promoSheetCount = document.getElementById('promo-sheet-count');
+      if (promoSheetCount) promoSheetCount.textContent = promoUsedCount;
+      if (document.getElementById('profile-row-promo')) {
+        document.getElementById('profile-row-promo').addEventListener('click', function() {
+          if (promoSheetCount) promoSheetCount.textContent = promoUsedCount;
+          openSheet('promo-sheet-overlay', 'promo-sheet');
+        });
+      }
+      document.getElementById('promo-sheet-overlay').addEventListener('click', function() { closeSheet('promo-sheet-overlay', 'promo-sheet'); });
+      if (promoSheetApply && promoSheetInput) {
+        promoSheetApply.addEventListener('click', function() {
+          var code = (promoSheetInput.value || '').trim().toUpperCase();
+          if (!code) { if (tg && tg.showAlert) tg.showAlert('Введите промокод'); return; }
+          promoUsedCount += 1;
+          try { localStorage.setItem('profile_promo_used', String(promoUsedCount)); } catch (e) {}
+          if (promoSheetCount) promoSheetCount.textContent = promoUsedCount;
+          if (tg && tg.showPopup) tg.showPopup({ title: '', message: 'Промокод отправлен. Результат придёт в боте.' }); else if (tg && tg.showAlert) tg.showAlert('Промокод отправлен в боте');
+        });
+      }
+      var refSheetLink = document.getElementById('ref-sheet-link');
+      var refSheetCopy = document.getElementById('ref-sheet-copy');
+      var profileBtnInvite = document.getElementById('profile-btn-invite');
+      function updateRefSheetLinkText() {
+        var link = getRefLink();
+        if (refSheetLink) {
+          refSheetLink.textContent = link || (window.MINIAPP_API_BASE ? 'Загрузка…' : 'Откройте приложение из меню бота. В .env бота укажите MINIAPP_API_URL (адрес API) — тогда здесь появится ваша реферальная ссылка.');
+        }
+      }
+      if (profileBtnInvite) {
+        profileBtnInvite.addEventListener('click', function() {
+          updateRefSheetLinkText();
+          if (window.MINIAPP_LOAD_AND_REFRESH_REF) window.MINIAPP_LOAD_AND_REFRESH_REF(updateRefSheetLinkText);
+          saveRefLink(getRefLink());
+          openSheet('ref-sheet-overlay', 'ref-sheet');
+        });
+      }
+      document.getElementById('ref-sheet-overlay').addEventListener('click', function() { closeSheet('ref-sheet-overlay', 'ref-sheet'); });
+      var profileLinkHistory = document.getElementById('profile-link-history');
+      if (profileLinkHistory) {
+        profileLinkHistory.addEventListener('click', function(e) { e.preventDefault(); renderSubsAndPayFromApi(); openSheet('history-sheet-overlay', 'history-sheet'); });
+      }
+      document.querySelectorAll('[data-history-tab]').forEach(function(btn) {
+        btn.addEventListener('click', function() {
+          var tab = this.getAttribute('data-history-tab');
+          document.querySelectorAll('[data-history-tab]').forEach(function(b) { b.classList.remove('active'); });
+          this.classList.add('active');
+          document.getElementById('history-content-paid').style.display = tab === 'paid' ? 'block' : 'none';
+          document.getElementById('history-content-pending').style.display = tab === 'pending' ? 'block' : 'none';
+        });
+      });
+      document.getElementById('history-sheet-overlay').addEventListener('click', function() { closeSheet('history-sheet-overlay', 'history-sheet'); });
+      var refScreenBtnInvite = document.getElementById('ref-screen-btn-invite');
+      if (refScreenBtnInvite) refScreenBtnInvite.addEventListener('click', function() { updateRefSheetLinkText(); if (window.MINIAPP_LOAD_AND_REFRESH_REF) window.MINIAPP_LOAD_AND_REFRESH_REF(updateRefSheetLinkText); saveRefLink(getRefLink()); openSheet('ref-sheet-overlay', 'ref-sheet'); });
+      attachSwipeToClose(document.getElementById('account-sheet'), document.getElementById('account-sheet-overlay'), 'profile-sheet-hidden');
+      attachSwipeToClose(document.getElementById('email-sheet'), document.getElementById('email-sheet-overlay'), 'profile-sheet-hidden');
+      attachSwipeToClose(document.getElementById('promo-sheet'), document.getElementById('promo-sheet-overlay'), 'profile-sheet-hidden');
+      attachSwipeToClose(document.getElementById('ref-sheet'), document.getElementById('ref-sheet-overlay'), 'profile-sheet-hidden');
+      attachSwipeToClose(document.getElementById('history-sheet'), document.getElementById('history-sheet-overlay'), 'profile-sheet-hidden');
+      if (refSheetCopy) {
+        refSheetCopy.addEventListener('click', function() {
+          var link = getRefLink();
+          if (link && navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(link).then(function() {
+              if (tg && tg.showPopup) tg.showPopup({ title: '', message: 'Ссылка скопирована' });
+              else if (tg && tg.showAlert) tg.showAlert('Ссылка скопирована');
+            });
+          } else if (!link && tg && tg.showAlert) tg.showAlert('Ссылка появится после загрузки данных');
+        });
+      }
+      var refSheetSend = document.getElementById('ref-sheet-send');
+      if (refSheetSend) {
+        refSheetSend.addEventListener('click', function() {
+          var link = getRefLink();
+          if (!link) { if (tg && tg.showAlert) tg.showAlert('Ссылка появится после загрузки данных'); return; }
+          var shareUrl = 'https://t.me/share/url?url=' + encodeURIComponent(link) + '&text=' + encodeURIComponent('Приглашаю в Bit VPN — быстрый VPN по выгодной цене!');
+          if (tg && tg.openTelegramLink) tg.openTelegramLink(shareUrl);
+          else window.open(shareUrl, '_blank');
+        });
+      }
+      var profileLinkChannel = document.getElementById('profile-link-channel');
+      var profileLinkSupport = document.getElementById('profile-link-support');
+      var TELEGRAM_CHANNEL = 'BitVpnProxy';
+      var TELEGRAM_SUPPORT = 'HelpBit_bot';
+      if (profileLinkChannel) {
+        profileLinkChannel.href = 'https://t.me/' + TELEGRAM_CHANNEL;
+        profileLinkChannel.addEventListener('click', function(e) { e.preventDefault(); if (tg && tg.openTelegramLink) tg.openTelegramLink('https://t.me/' + TELEGRAM_CHANNEL); else window.open('https://t.me/' + TELEGRAM_CHANNEL, '_blank'); });
+      }
+      if (profileLinkSupport) {
+        profileLinkSupport.href = 'https://t.me/' + TELEGRAM_SUPPORT;
+        profileLinkSupport.addEventListener('click', function(e) { e.preventDefault(); if (tg && tg.openTelegramLink) tg.openTelegramLink('https://t.me/' + TELEGRAM_SUPPORT); else window.open('https://t.me/' + TELEGRAM_SUPPORT, '_blank'); });
+      }
+    })();
+  </script>
+</body>
+</html>
