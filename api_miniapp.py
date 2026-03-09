@@ -470,6 +470,7 @@ async def miniapp_create_payment(request: Request):
     Возвращает payment_url для открытия в браузере (openLink).
     """
     logger.info("create-payment: request started")
+    print("[MINIAPP] create-payment called", flush=True)  # всегда в stdout для Vercel Logs
     try:
         from bot.config.settings import SUBSCRIPTION_PLANS, PAYMENT_METHODS, calc_subscription_price
         from bot.utils.payments import payment_manager, PaymentError
@@ -550,6 +551,7 @@ async def miniapp_create_payment(request: Request):
             raise
         except PaymentError as e:
             logger.error("create-payment PaymentError (YooKassa/backend): %s", e)
+            print("[MINIAPP] create-payment ERROR:", str(e), flush=True)
             raise HTTPException(status_code=400, detail=str(e))
         except Exception as e:
             logger.exception("miniapp_create_payment: %s", e)

@@ -1,0 +1,95 @@
+═══════════════════════════════════════════════════════════════
+  Логи API Mini App на своём сервере (journalctl)
+═══════════════════════════════════════════════════════════════
+
+  Если на Vercel в логах ничего не появляется при нажатии СБП, можно
+  запустить API мини-приложения на вашем сервере. Тогда все запросы
+  (create-payment и др.) пойдут на сервер, и логи будут в journalctl.
+
+  Схема: Mini App по-прежнему открывается с Vercel (страница), но
+  запросы к API идут на ваш сервер (параметр ?api= в URL приложения).
+
+1. ЗАПУСТИТЬ API НА СЕРВЕРЕ (порт 8765)
+
+   На сервере (ssh root@155.212.164.135, путь /opt/vpn-bot):
+
+   • Создайте systemd-сервис для API (один раз):
+
+     sudo nano /etc/systemd/system/miniapp-api.service
+
+   Вставьте (путь BOT_PATH замените на свой, например /opt/vpn-bot):
+
+     [Unit]
+     Description=Bit VPN Mini App API
+     After=network.target
+
+     [Service]
+     Type=simple
+     WorkingDirectory=/opt/vpn-bot
+     EnvironmentFile=/opt/vpn-bot/.env
+     ExecStart=/usr/bin/python3 -m uvicorn api_miniapp:app --host 127.0.0.1 --port 8765
+     Restart=always
+     RestartSec=5
+
+     [Install]
+     WantedBy=multi-user.target
+
+   • Включите и запустите:
+
+     sudo systemctl daemon-reload
+     sudo systemctl enable miniapp-api
+     sudo systemctl start miniapp-api
+     sudo systemctl status miniapp-api
+
+2. NGINX: ПРОКСИРОВАТЬ /api НА ПОРТ 8765
+
+   Нужен HTTPS-домен (например nikolay.lisobyk.fvds.ru). В конфиг
+   nginx для этого домена добавьте location для API:
+
+     location /api/ {
+         proxy_pass http://127.0.0.1:8765;
+         proxy_http_version 1.1;
+         proxy_set_header Host $host;
+         proxy_set_header X-Real-IP $remote_addr;
+         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+         proxy_set_header X-Forwarded-Proto $scheme;
+     }
+
+   Перезагрузите nginx:  sudo nginx -t && sudo systemctl reload nginx
+
+3. URL МИНИ-ПРИЛОЖЕНИЯ С ПАРАМЕТРОМ api=
+
+   Чтобы запросы шли на ваш сервер, бот должен открывать Mini App
+   с параметром api= на ваш HTTPS-домен.
+
+   • В .env на ПК и на сервере задайте (подставьте свой домен с HTTPS):
+
+     WEBAPP_URL=https://bitvpn.vercel.app?api=https://nikolay.lisobyk.fvds.ru
+
+   • В коде бота кнопка Web App использует WEBAPP_URL. Нужно, чтобы
+     при формировании кнопки подставлялся этот полный URL (с ?api=).
+     Проверьте в bot/handlers/main.py и bot/main.py: везде, где
+     задаётся url для WebAppInfo, должна использоваться переменная
+     с полным WEBAPP_URL (уже с ?api=...).
+
+   • Перезапустите бота на сервере:  sudo systemctl restart vpn-bot
+
+4. ПРОВЕРКА И ЛОГИ
+
+   • Откройте Mini App из бота, нажмите СБП. Запрос create-payment
+     уйдёт на https://ваш-домен/api/miniapp/create-payment.
+   • Логи смотрите на сервере:
+
+     journalctl -u miniapp-api -f --no-pager
+
+   Там появится [MINIAPP] create-payment called и при ошибке ЮKassa —
+   строка create-payment ERROR с текстом от API.
+
+5. ЕСЛИ НЕ ХОТИТЕ МЕНЯТЬ URL (оставить только Vercel)
+
+   Тогда остаётся смотреть логи только на Vercel: после деплоя кода
+   с print() сбросьте фильтры (Reset Filters), выберите «Last hour»,
+   нажмите СБП и обновите логи. Либо откройте в Vercel вкладку
+   Observability или Runtime Logs конкретного деплоя.
+
+═══════════════════════════════════════════════════════════════
