@@ -5,7 +5,6 @@
     { "source": "/index.html", "destination": "/api/root" }
   ],
   "functions": {
-    "api/root.py": { "maxDuration": 30 },
     "api/fullpage.py": {
       "includeFiles": "api/root_index.html",
       "maxDuration": 30

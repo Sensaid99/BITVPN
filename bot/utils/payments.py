@@ -112,9 +112,10 @@ class YooKassaPayment:
         try:
             url = f"{self.base_url}/payments"
             value_rub = f"{(amount / 100):.2f}"
+            # СБП отображается в форме только при одностадийной оплате (capture=true)
             payload = {
                 "amount": {"value": value_rub, "currency": "RUB"},
-                "capture": True,  # одностадийная оплата — обязательна для СБП
+                "capture": True,
                 "confirmation": {
                     "type": "redirect",
                     "return_url": "https://t.me/",  # пользователь вернётся в Telegram
