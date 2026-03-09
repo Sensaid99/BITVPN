@@ -1803,13 +1803,17 @@
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ initData: initData, months: subscribeSelectedMonths, devices: subscribeSelectedDevices, payment_method: method })
-                  }).then(function(r) { return r.json().catch(function() { return {}; }); }).then(function(data) {
-                    if (data && data.payment_url) {
+                  }).then(function(r) {
+                    return r.json().then(function(data) { return { ok: r.ok, data: data }; }).catch(function() { return { ok: r.ok, data: {} }; });
+                  }).then(function(res) {
+                    var data = res.data;
+                    if (res.ok && data && data.payment_url) {
                       if (tg && tg.openLink) tg.openLink(data.payment_url);
                       else window.open(data.payment_url, '_blank');
                       closeSubscribeSheet();
                     } else {
-                      var msg = (data && data.detail) ? data.detail : 'Не удалось создать платёж. Попробуйте в боте.';
+                      var detail = data && data.detail;
+                      var msg = typeof detail === 'string' ? detail : (Array.isArray(detail) && detail[0] ? detail[0].msg || String(detail[0]) : 'Не удалось создать платёж. Попробуйте в боте или включите СБП в кабинете ЮKassa.');
                       if (tg && tg.showAlert) tg.showAlert(msg);
                       else alert(msg);
                       btn.disabled = false;
