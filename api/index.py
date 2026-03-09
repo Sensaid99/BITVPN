@@ -69,14 +69,22 @@ def serve_root():
     except Exception:
         return Response(content=_MINIMAL_HTML, media_type="text/html; charset=utf-8")
 
-# Подключаем полный API (тарифы, /api/miniapp/me и т.д.). Если импорт упадёт — корень уже отдаётся выше.
+# Подключаем полный API (тарифы, /api/miniapp/me и т.д.). Если импорт упадёт — для /api/* отдаём JSON, не HTML.
 try:
     from api_miniapp import app as miniapp_app
     app.include_router(miniapp_app.router)
-except Exception:
-    @app.api_route("/{path:path}", methods=["GET", "POST"])
-    def fallback(path: str = ""):
-        return Response(content=_MINIMAL_HTML, media_type="text/html; charset=utf-8")
+except Exception as _e:
+    import logging
+    logging.getLogger(__name__).warning("api_miniapp import failed (API will return 503): %s", _e)
+
+    @app.api_route("/api/{path:path}", methods=["GET", "POST"])
+    def api_fallback(path: str = ""):
+        return JSONResponse(
+            status_code=503,
+            content={
+                "detail": "API недоступен на этом сервере. Укажите в ссылке на приложение свой сервер: ?api=https://ваш-домен (см. ЛОГИ_API_НА_СЕРВЕРЕ.txt)"
+            },
+        )
 
 from mangum import Mangum
 handler = Mangum(app, lifespan="off")
