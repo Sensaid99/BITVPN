@@ -469,6 +469,7 @@ async def miniapp_create_payment(request: Request):
     Создать платёж из мини-апп: initData, months, devices, payment_method.
     Возвращает payment_url для открытия в браузере (openLink).
     """
+    logger.info("create-payment: request started")
     try:
         from bot.config.settings import SUBSCRIPTION_PLANS, PAYMENT_METHODS, calc_subscription_price
         from bot.utils.payments import payment_manager, PaymentError
@@ -548,6 +549,7 @@ async def miniapp_create_payment(request: Request):
         except HTTPException:
             raise
         except PaymentError as e:
+            logger.error("create-payment PaymentError (YooKassa/backend): %s", e)
             raise HTTPException(status_code=400, detail=str(e))
         except Exception as e:
             logger.exception("miniapp_create_payment: %s", e)
