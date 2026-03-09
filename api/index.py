@@ -1,6 +1,8 @@
 # -*- coding: utf-8 -*-
 """
-Точка входа API для Vercel. GET / обрабатывается первым. Любая необработанная ошибка → 200 + минимальный HTML (без 500).
+Точка входа API для Vercel. GET / обрабатывается первым.
+Для /api/* необработанные ошибки → JSON 500 (чтобы Mini App мог показать сообщение).
+Для остальных — минимальный HTML (без 500).
 """
 import sys
 import os
@@ -10,11 +12,11 @@ if ROOT not in sys.path:
     sys.path.insert(0, ROOT)
 
 from fastapi import FastAPI, Request
-from fastapi.responses import Response
+from fastapi.responses import Response, JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.exceptions import HTTPException
 
-# Минимальная страница — отдаём при необработанной ошибке (чтобы не было 500)
+# Минимальная страница — отдаём при необработанной ошибке на не-API путях
 _MINIMAL_HTML = b"""<!DOCTYPE html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Bit VPN</title></head><body><p>Bit VPN</p><p><a href="https://t.me/Bitvpnproxy_bot">@Bitvpnproxy_bot</a></p></body></html>"""
 
 
@@ -22,10 +24,16 @@ app = FastAPI(title="Bit VPN API")
 
 
 @app.exception_handler(Exception)
-def _catch_all(_request: Request, exc: Exception):
-    """Любая необработанная ошибка (кроме HTTPException) → 200 + минимальный HTML, без 500."""
+def _catch_all(request: Request, exc: Exception):
+    """HTTPException → проброс. Для /api/* — JSON 500. Иначе — 200 + минимальный HTML."""
     if isinstance(exc, HTTPException):
         raise exc
+    path = getattr(request, "scope", {}).get("path", "")
+    if path.startswith("/api/"):
+        return JSONResponse(
+            status_code=500,
+            content={"detail": "Ошибка сервера. Попробуйте в боте: «Купить VPN»."},
+        )
     return Response(content=_MINIMAL_HTML, media_type="text/html; charset=utf-8", status_code=200)
 
 

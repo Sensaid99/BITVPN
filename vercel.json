@@ -10,7 +10,7 @@
       "maxDuration": 30
     },
     "api/index.py": {
-      "includeFiles": "api/root_index.html",
+      "includeFiles": "api/root_index.html,bot/**",
       "maxDuration": 30
     }
   }
