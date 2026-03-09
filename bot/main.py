@@ -142,7 +142,9 @@ def create_application() -> Application:
 async def error_handler(update: object, context) -> None:
     """Логируем ошибки и отправляем пользователю сообщение. В лог пишем причину для отладки."""
     import traceback
-    tb = "".join(traceback.format_exception(type(context.error), context.error, context.error.__traceback__))
+    err = context.error
+    err_type = type(err).__name__
+    tb = "".join(traceback.format_exception(type(err), err, err.__traceback__))
     # Контекст: что делал пользователь (чтобы искать причину "через раз")
     ctx_info = ""
     if update is not None:
@@ -150,13 +152,20 @@ async def error_handler(update: object, context) -> None:
             ctx_info = f" callback_data={getattr(update.callback_query, 'data', '')}"
         elif hasattr(update, "message") and update.message is not None:
             ctx_info = f" message_text={getattr(update.message, 'text', '') or '(не текст)'}"
-    logger.error("Exception while handling an update%s: %s\n%s", ctx_info, context.error, tb)
+    # Тип исключения в первой строке — удобно искать в journalctl при ошибке /start
+    logger.error("[%s] Exception while handling an update%s: %s\n%s", err_type, ctx_info, err, tb)
     
     support = getattr(Config, "SUPPORT_USERNAME", None) or "HelpBit_bot"
     support = support.lstrip("@")
-    # Временные сетевые/таймаут ошибки — дружелюбнее формулировка
+    # Временные сетевые/БД ошибки — дружелюбнее формулировка
     err_name = type(context.error).__name__
-    if "Timeout" in err_name or "Network" in err_name or "Connection" in err_name:
+    err_msg = str(context.error).lower()
+    is_temporary = (
+        "Timeout" in err_name or "Network" in err_name or "Connection" in err_name
+        or "OperationalError" in err_name
+        or "timeout" in err_msg or "connection" in err_msg
+    )
+    if is_temporary:
         user_text = (
             "⚠️ Временная ошибка связи.\n\n"
             "Попробуйте через минуту. Если повторится — напишите в поддержку: @{support}"

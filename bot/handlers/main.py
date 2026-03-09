@@ -1,5 +1,6 @@
 """Main handlers for VPN Telegram Bot"""
 
+import asyncio
 import logging
 import re
 from datetime import datetime, timedelta
@@ -7,7 +8,7 @@ from urllib.parse import quote
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup, WebAppInfo, KeyboardButton, ReplyKeyboardMarkup, ReplyKeyboardRemove
 from telegram.ext import ContextTypes, ConversationHandler
 from telegram.error import BadRequest
-from sqlalchemy.orm import sessionmaker
+from sqlalchemy.orm import sessionmaker, joinedload
 
 from bot.models.database import DatabaseManager, User, Subscription, Payment, ReferralPayout
 from bot.config.settings import Config, SUBSCRIPTION_PLANS, PAYMENT_METHODS, calc_subscription_price
@@ -125,11 +126,15 @@ def get_persistent_keyboard(telegram_id=None):
 
 
 def get_or_create_user(telegram_user) -> User:
-    """Get or create user in database"""
+    """Get or create user in database. Подписки подгружаются одним запросом (снижает риск SSL closed от Neon)."""
     session = db_manager.get_session()
     try:
-        user = session.query(User).filter_by(telegram_id=telegram_user.id).first()
-        
+        user = (
+            session.query(User)
+            .options(joinedload(User.subscriptions))
+            .filter_by(telegram_id=telegram_user.id)
+            .first()
+        )
         if not user:
             user = User(
                 telegram_id=telegram_user.id,
@@ -149,17 +154,40 @@ def get_or_create_user(telegram_user) -> User:
         user.last_activity = datetime.utcnow()
         session.commit()
         session.refresh(user)
-        # Подгрузить связи до закрытия сессии, иначе user.has_active_subscription упадёт после session.close()
-        _ = list(user.subscriptions)
-        
+        # subscriptions уже загружены через joinedload
         return user
     finally:
         session.close()
 
 
+def _is_db_retryable_error(exc: Exception) -> bool:
+    """Проверка: ошибка БД/сети, при которой имеет смысл повторить запрос (Neon SSL closed, таймаут и т.п.)."""
+    name = type(exc).__name__
+    msg = str(exc).lower()
+    if "OperationalError" in name or "Timeout" in name or "Connection" in name:
+        return True
+    if "timeout" in msg or "connection" in msg or "could not connect" in msg:
+        return True
+    if "ssl" in msg and "closed" in msg:
+        return True
+    return False
+
+
 async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """Handle /start command"""
-    user = get_or_create_user(update.effective_user)
+    user = None
+    for attempt in range(2):
+        try:
+            user = get_or_create_user(update.effective_user)
+            break
+        except Exception as e:
+            if attempt == 0 and _is_db_retryable_error(e):
+                logger.warning("start_command: DB/connection error on first attempt, retrying: %s", e)
+                await asyncio.sleep(1.5)
+                continue
+            raise
+    if user is None:
+        raise RuntimeError("get_or_create_user failed")
     if user.is_admin:
         ensure_admin_unlimited_subscription(user.telegram_id)
         user = get_or_create_user(update.effective_user)
