@@ -471,7 +471,7 @@ async def miniapp_create_payment(request: Request):
     """
     try:
         from bot.config.settings import SUBSCRIPTION_PLANS, PAYMENT_METHODS, calc_subscription_price
-        from bot.utils.payments import payment_manager
+        from bot.utils.payments import payment_manager, PaymentError
         from bot.utils.helpers import get_plan_duration_key
         from bot.utils import happ_client
 
@@ -547,6 +547,8 @@ async def miniapp_create_payment(request: Request):
             }
         except HTTPException:
             raise
+        except PaymentError as e:
+            raise HTTPException(status_code=400, detail=str(e))
         except Exception as e:
             logger.exception("miniapp_create_payment: %s", e)
             raise HTTPException(status_code=500, detail="Ошибка создания платежа")

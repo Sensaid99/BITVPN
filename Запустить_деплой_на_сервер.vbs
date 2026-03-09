@@ -1,7 +1,8 @@
 Option Explicit
-Dim fso, scriptDir, wsh
+Dim fso, scriptDir, wsh, q
 Set fso = CreateObject("Scripting.FileSystemObject")
 scriptDir = fso.GetParentFolderName(WScript.ScriptFullName)
+q = Chr(34)
 Set wsh = CreateObject("WScript.Shell")
 wsh.CurrentDirectory = scriptDir
-wsh.Run "cmd /k """ & scriptDir & "\ДЕПЛОЙ_НА_СЕРВЕР.bat""", 1, False
+wsh.Run "cmd /k " & q & "cd /d " & q & scriptDir & q & " && deploy_server.bat" & q, 1, False

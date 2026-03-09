@@ -131,7 +131,14 @@ class YooKassaPayment:
                 "Idempotence-Key": str(uuid.uuid4()),
             }
             response = requests.post(url, json=payload, headers=headers, timeout=15)
-            response.raise_for_status()
+            if not response.ok:
+                try:
+                    err = response.json()
+                    msg = err.get("description") or err.get("message") or response.text[:200]
+                except Exception:
+                    msg = response.text[:200] if response.text else "HTTP %s" % response.status_code
+                logger.error("YooKassa API error: %s %s", response.status_code, msg)
+                raise PaymentError(msg or "Ошибка ЮKassa")
             result = response.json()
             conf = result.get("confirmation", {})
             payment_url = conf.get("confirmation_url", "")
@@ -143,6 +150,8 @@ class YooKassaPayment:
                 "amount": amount,
                 "expires_at": datetime.utcnow() + timedelta(minutes=30),
             }
+        except PaymentError:
+            raise
         except requests.RequestException as e:
             logger.error(f"YooKassa API error: {e}")
             raise PaymentError("Ошибка подключения к ЮKassa")
