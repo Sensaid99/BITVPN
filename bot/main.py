@@ -21,12 +21,6 @@ from telegram.ext import (
 from bot.config.settings import Config
 from bot.handlers.main import (
     start_command,
-    show_plans,
-    select_duration,
-    select_devices,
-    select_payment_method,
-    process_payment,
-    verify_payment,
     show_profile,
     show_my_config,
     show_referral_info,
@@ -36,11 +30,6 @@ from bot.handlers.main import (
     show_help,
     show_support,
     main_menu,
-    cancel_conversation,
-    SELECTING_PLAN,
-    SELECTING_DEVICES,
-    SELECTING_PAYMENT_METHOD,
-    WAITING_PAYMENT,
     WAITING_PAYOUT_REQUISITES,
 )
 from bot.handlers.admin import (
@@ -64,33 +53,6 @@ def create_application() -> Application:
     
     # Create application
     application = Application.builder().token(Config.BOT_TOKEN).build()
-    
-    # Purchase conversation handler
-    purchase_conversation = ConversationHandler(
-        entry_points=[CallbackQueryHandler(show_plans, pattern='^buy_vpn$')],
-        states={
-            SELECTING_PLAN: [
-                CallbackQueryHandler(select_duration, pattern='^plan_'),
-                CallbackQueryHandler(main_menu, pattern='^main_menu$')
-            ],
-            SELECTING_DEVICES: [
-                CallbackQueryHandler(select_devices, pattern='^devices_'),
-                CallbackQueryHandler(show_plans, pattern='^buy_vpn$')
-            ],
-            SELECTING_PAYMENT_METHOD: [
-                CallbackQueryHandler(process_payment, pattern='^pay_'),
-                CallbackQueryHandler(show_plans, pattern='^buy_vpn$')
-            ],
-            WAITING_PAYMENT: [
-                CallbackQueryHandler(verify_payment, pattern='^verify_payment_'),
-                CallbackQueryHandler(main_menu, pattern='^main_menu$')
-            ]
-        },
-        fallbacks=[
-            CommandHandler('cancel', cancel_conversation),
-            CallbackQueryHandler(main_menu, pattern='^main_menu$')
-        ]
-    )
     
     payout_conversation = ConversationHandler(
         entry_points=[CallbackQueryHandler(request_payout_start, pattern='^request_payout$')],
@@ -117,9 +79,7 @@ def create_application() -> Application:
     application.add_handler(CallbackQueryHandler(show_support, pattern='^support$'), group=-1)
     application.add_handler(CallbackQueryHandler(main_menu, pattern='^main_menu$'), group=-1)
     
-    # Покупка (цепочка: тариф → устройства → оплата; или из мини-апп — сразу оплата)
-    application.add_handler(purchase_conversation)
-    application.add_handler(CallbackQueryHandler(process_payment, pattern='^pay_'))  # deep link из мини-апп
+    # Покупка и оплата — только в мини-приложении
     application.add_handler(payout_conversation)
     
     # Admin handlers

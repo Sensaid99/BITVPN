@@ -220,105 +220,11 @@ async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
         finally:
             session.close()
     
-    # Переход из Mini App: сразу создать платёж и отправить ссылку (pay_sbp_6month_3 / pay_yookassa_1month_1)
-    if context.args and len(context.args[0]) > 8 and context.args[0].startswith('pay_'):
-        m_direct = re.match(r'pay_(yookassa|sbp|crypto|qiwi|yoomoney)_(\d+)month_(\d+)', context.args[0])
-        if m_direct:
-            payment_method = m_direct.group(1)
-            months, devices = int(m_direct.group(2)), int(m_direct.group(3))
-            if months in (1, 3, 6, 9, 12) and devices in (1, 3, 5, 10):
-                available = payment_manager.get_available_methods()
-                if payment_method in available:
-                    plan_key = {1: '1_month', 3: '3_months', 6: '6_months', 9: '9_months', 12: '12_months'}[months]
-                    plan_type = f'{plan_key}_{devices}'
-                    duration_key = get_plan_duration_key(plan_type)
-                    plan = SUBSCRIPTION_PLANS.get(duration_key)
-                    if plan:
-                        amount_rub = calc_subscription_price(devices, months)
-                        session = db_manager.get_session()
-                        try:
-                            payment = Payment(
-                                user_id=user.id,
-                                amount=amount_rub * 100,
-                                plan_type=plan_type,
-                                payment_method=payment_method,
-                                expires_at=datetime.utcnow() + timedelta(minutes=15),
-                            )
-                            session.add(payment)
-                            session.commit()
-                            session.refresh(payment)
-                            payment_data = payment_manager.create_payment(
-                                method=payment_method,
-                                amount=payment.amount,
-                                order_id=f"vpn_{payment.id}",
-                                description=f"VPN подписка {plan['name']}",
-                            )
-                            payment.payment_id = payment_data["payment_id"]
-                            payment.payment_url = payment_data["payment_url"]
-                            session.commit()
-                            context.user_data["payment_id"] = payment.id
-                            month_label = "1 год" if months == 12 else f"{months} мес."
-                            method_name = PAYMENT_METHODS.get(payment_method, {}).get("name", payment_method)
-                            text = (
-                                f"💳 Оплата <b>{amount_rub} ₽</b> ({method_name})\n"
-                                f"📦 {month_label}, {devices} устройств(а)\n\n"
-                                "Нажмите кнопку ниже, чтобы перейти к оплате:"
-                            )
-                            keyboard = [
-                                [InlineKeyboardButton("🔗 Перейти к оплате", url=payment.payment_url)],
-                                [InlineKeyboardButton("🔄 Проверить оплату", callback_data=f"verify_payment_{payment.id}")],
-                                [InlineKeyboardButton(get_message("btn_main_menu"), callback_data="main_menu")],
-                            ]
-                            await update.message.reply_text(
-                                text,
-                                reply_markup=InlineKeyboardMarkup(keyboard),
-                                parse_mode="HTML",
-                            )
-                            return
-                        except PaymentError as e:
-                            await update.message.reply_text(f"❌ Ошибка создания платежа: {e}")
-                            return
-                        finally:
-                            session.close()
-
-    # Переход из Mini App: оплата с выбором устройств и срока (pay_6month_3)
-    if context.args and len(context.args[0]) > 4 and context.args[0].startswith('pay_'):
-        m = re.match(r'pay_(\d+)month_(\d+)', context.args[0])
-        if m:
-            months, devices = int(m.group(1)), int(m.group(2))
-            if months in (1, 3, 6, 9, 12) and devices in (1, 3, 5, 10):
-                amount = calc_subscription_price(devices, months)
-                plan_key = {1: '1_month', 3: '3_months', 6: '6_months', 9: '9_months', 12: '12_months'}[months]
-                context.user_data['selected_plan'] = f'{plan_key}_{devices}'
-                context.user_data['from_miniapp_amount'] = amount
-                available = payment_manager.get_available_methods()
-                if available:
-                    keyboard = []
-                    for method in available:
-                        method_info = PAYMENT_METHODS[method]
-                        keyboard.append([InlineKeyboardButton(
-                            f"{method_info['emoji']} {method_info['name']}",
-                            callback_data=f'pay_{method}'
-                        )])
-                    keyboard.append([InlineKeyboardButton(get_message('btn_back'), callback_data='buy_vpn')])
-                    month_label = '1 год' if months == 12 else f'{months} мес.'
-                    text = (
-                        f"💳 Оплата <b>{amount} ₽</b>\n"
-                        f"📦 {month_label}, {devices} устройств(а)\n\n"
-                        "Выберите способ оплаты:"
-                    )
-                    await update.message.reply_text(
-                        text,
-                        reply_markup=InlineKeyboardMarkup(keyboard),
-                        parse_mode='HTML'
-                    )
-                    return
     # Check if returning user
     is_returning = user.created_at < datetime.utcnow() - timedelta(hours=1)
     
-    # Кнопки: Купить VPN, Мой профиль, Помощь|Поддержка, Рефералы. Открыть приложение — только кнопкой внизу (меню бота).
+    # Кнопки: Мой профиль, Помощь|Поддержка, Рефералы. Покупка и оплата — только в мини-приложении (кнопка «Открыть VPN» внизу).
     keyboard = [
-        [InlineKeyboardButton(get_message('btn_buy_vpn'), callback_data='buy_vpn')],
         [InlineKeyboardButton(get_message('btn_my_profile'), callback_data='profile')],
         [
             InlineKeyboardButton(get_message('btn_help'), callback_data='help'),
@@ -838,8 +744,9 @@ async def show_profile(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
     else:
         subscription_info = get_message('subscription_inactive')
     
+    webapp_url = get_webapp_url()
     keyboard = [
-        [InlineKeyboardButton("🔄 Продлить подписку", callback_data='buy_vpn')],
+        [InlineKeyboardButton("📱 Открыть приложение", url=webapp_url)],
         [InlineKeyboardButton(get_message('btn_main_menu'), callback_data='main_menu')]
     ]
     
@@ -1068,9 +975,8 @@ async def main_menu(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     
     user = get_or_create_user(update.effective_user)
     
-    # Кнопки без «Открыть приложение» — приложение открывается кнопкой «Открыть VPN» внизу
+    # Покупка только в мини-приложении; внизу кнопка «Открыть VPN»
     keyboard = [
-        [InlineKeyboardButton(get_message('btn_buy_vpn'), callback_data='buy_vpn')],
         [InlineKeyboardButton(get_message('btn_my_profile'), callback_data='profile')],
         [
             InlineKeyboardButton(get_message('btn_help'), callback_data='help'),
