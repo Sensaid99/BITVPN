@@ -482,7 +482,10 @@ async def miniapp_create_payment(request: Request):
         User = ctx.get("User") if isinstance(ctx, dict) else None
         Payment = ctx.get("Payment") if isinstance(ctx, dict) else None
         if not db_manager or not User or not Payment:
-            raise HTTPException(status_code=503, detail="Database not configured.")
+            raise HTTPException(
+                status_code=503,
+                detail="База не настроена. Укажите DATABASE_URL и BOT_TOKEN в Vercel (Environment Variables) или используйте API на своём сервере (?api=...)."
+            )
 
         body = await request.json()
         init_data = (body.get("initData") or "").strip()
@@ -562,4 +565,7 @@ async def miniapp_create_payment(request: Request):
         raise
     except Exception as e:
         logger.exception("miniapp_create_payment failed: %s", e)
-        raise HTTPException(status_code=500, detail="Internal error.")
+        raise HTTPException(
+            status_code=500,
+            detail="Ошибка сервера. Проверьте DATABASE_URL и BOT_TOKEN в Vercel или запустите API на своём сервере (см. ЛОГИ_API_НА_СЕРВЕРЕ.txt)."
+        )
