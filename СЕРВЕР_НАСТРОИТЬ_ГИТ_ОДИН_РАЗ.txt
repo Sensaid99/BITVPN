@@ -45,7 +45,7 @@
     git reset --hard origin/main
     cp .env.bak .env
     git branch --set-upstream-to=origin/main main
-    sudo systemctl restart vpn-bot
+    sudo systemctl restart vpn-botimage.png
   Затем с ПК скопируйте .env на сервер (СКОПИРОВАТЬ_ENV_НА_СЕРВЕР.bat) и снова перезапустите бота.
 
 ═══════════════════════════════════════════════════════════════════

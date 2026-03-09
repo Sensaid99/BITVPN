@@ -219,7 +219,11 @@ class DatabaseManager:
     """Database management class"""
     
     def __init__(self, database_url: str):
-        self.engine = create_engine(database_url)
+        # Для PostgreSQL: проверка соединения перед использованием и переподключение при обрыве SSL
+        engine_opts = {"pool_pre_ping": True}
+        if database_url and "postgres" in (database_url.split(":")[0] or "").lower():
+            engine_opts["pool_recycle"] = 60   # переподключаться каждую минуту (Neon и др. обрывают idle раньше)
+        self.engine = create_engine(database_url, **engine_opts)
         self.SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=self.engine)
     
     def _schema_ok(self) -> bool:

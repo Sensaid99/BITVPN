@@ -479,6 +479,13 @@
     .btn-subscribe-back { flex: 1; padding: 14px 18px; border-radius: 14px; border: 1px solid var(--border); background: rgba(255,255,255,0.06); color: var(--text); font-weight: 600; font-size: 0.95rem; cursor: pointer; transition: background 0.2s; }
     .btn-subscribe-pay { flex: 1; padding: 14px 18px; border-radius: 14px; border: none; background: linear-gradient(135deg, #00ff88, #00cc6a); color: #000; font-weight: 700; font-size: 0.95rem; cursor: pointer; transition: transform 0.2s, box-shadow 0.2s; }
     .btn-subscribe-pay:active { transform: scale(0.98); }
+    .subscribe-payment-methods-block { margin-top: 12px; }
+    .subscribe-payment-methods-title { font-weight: 600; margin: 0 0 12px 0; color: var(--text); font-size: 1rem; }
+    .subscribe-payment-methods-list { display: flex; flex-direction: column; gap: 10px; margin-bottom: 14px; }
+    .btn-payment-method { padding: 14px 18px; border-radius: 14px; border: 1px solid var(--border); background: rgba(255,255,255,0.08); color: var(--text); font-weight: 600; font-size: 0.95rem; cursor: pointer; transition: background 0.2s; text-align: left; }
+    .btn-payment-method:disabled { opacity: 0.7; cursor: not-allowed; }
+    .btn-payment-method:active:not(:disabled) { background: rgba(255,255,255,0.14); }
+    .subscribe-pay-no-methods { margin: 0 0 12px 0; color: var(--text-muted); font-size: 0.9rem; }
     .profile-user-card .avatar { overflow: hidden; }
     .profile-user-card .avatar img { width: 100%; height: 100%; object-fit: cover; }
 
@@ -825,8 +832,8 @@
     <div class="bottom-sheet-handle"></div>
     <div class="sheet-content subscribe-sheet-content">
       <h2 class="sheet-title">Оформить подписку</h2>
-      <p class="subscribe-sheet-desc">Выберите период — оплата и выдача конфига в боте</p>
-      <div class="subscribe-block profile-glass">
+      <p class="subscribe-sheet-desc">Выберите период и способ оплаты. Конфиг придёт в боте после оплаты</p>
+      <div class="subscribe-block profile-glass subscribe-sheet-step-plan">
         <div class="subscribe-block-row subscribe-block-devices">
           <span class="subscribe-block-label">
             <svg class="subscribe-block-icon" viewBox="0 0 24 24"><path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4z"/></svg>
@@ -841,7 +848,7 @@
         </div>
         <div class="subscribe-days-left">Осталось дней: <span id="subscribe-days-left-val">—</span></div>
       </div>
-      <div class="subscribe-block profile-glass">
+      <div class="subscribe-block profile-glass subscribe-sheet-step-plan">
         <div class="subscribe-block-label subscribe-block-renew">
           <svg class="subscribe-block-icon" viewBox="0 0 24 24"><path d="M19 3h-1V1h-2v2H8V1H6v2H5c-1.11 0-1.99.9-1.99 2L3 19c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 16H5V8h14v11zM9 10H7v2h2v-2zm4 0h-2v2h2v-2zm4 0h-2v2h2v-2z"/></svg>
           Продлить на
@@ -853,19 +860,24 @@
           </div>
         </div>
       </div>
-      <div class="subscribe-block profile-glass subscribe-price-block">
+      <div class="subscribe-block profile-glass subscribe-price-block subscribe-sheet-step-plan">
         <div class="subscribe-price-main" id="subscribe-price-main">1 мес – 100 ₽</div>
         <div class="subscribe-price-per-month" id="subscribe-price-per-month">В месяц: 100 ₽/мес</div>
         <div class="subscribe-price-hint" id="subscribe-price-hint">Без скидки при помесячной оплате</div>
       </div>
-      <div class="subscribe-summary profile-glass">
+      <div class="subscribe-summary profile-glass subscribe-sheet-step-plan">
         <div class="subscribe-summary-row"><span>Стоимость:</span><span id="subscribe-summary-cost">100 ₽</span></div>
         <div class="subscribe-summary-row"><span>Добавится дней:</span><span id="subscribe-summary-days">30</span></div>
         <div class="subscribe-summary-row"><span>Новая дата окончания:</span><span id="subscribe-summary-end">—</span></div>
       </div>
-      <div class="subscribe-sheet-actions">
+      <div class="subscribe-sheet-actions subscribe-sheet-step-plan">
         <button type="button" id="subscribe-sheet-btn-back" class="btn-subscribe-back">Назад</button>
         <button type="button" id="subscribe-sheet-btn-pay" class="btn-subscribe-pay">Оплатить <span id="subscribe-pay-amount">100</span> ₽</button>
+      </div>
+      <div id="subscribe-payment-methods-block" class="subscribe-payment-methods-block" style="display:none;">
+        <p class="subscribe-payment-methods-title">Выберите способ оплаты</p>
+        <div id="subscribe-payment-methods-list" class="subscribe-payment-methods-list"></div>
+        <button type="button" id="subscribe-payment-methods-back" class="btn-subscribe-back">Назад</button>
       </div>
     </div>
   </div>
@@ -1255,7 +1267,7 @@
           if (match) botUsername = match[1];
         }
       } catch (e) {}
-      window.MINIAPP_API_DEFAULT = '';
+      window.MINIAPP_API_DEFAULT = ''; /* не задаём — используем тот же домен, с которого открыто приложение */
       window.MINIAPP_BOT_DEFAULT = 'Bitvpnproxy_bot';
       if (!botUsername && window.MINIAPP_BOT_DEFAULT) botUsername = window.MINIAPP_BOT_DEFAULT;
       var apiBase = (function() { var m = /[?&]api=([^&]+)/.exec(location.search); if (m) return decodeURIComponent(m[1]).replace(/\/+$/, ''); return (window.location && window.location.origin) ? window.location.origin : ''; })();
@@ -1333,7 +1345,10 @@
             if (res[0]) {
               if (res[0].plans) API_PLANS = res[0].plans;
               if (res[0].pricing) window.API_PRICING = res[0].pricing;
+              if (res[0].config) window.API_CONFIG = res[0].config;
+              if (res[0].payment_methods) window.API_PAYMENT_METHODS = res[0].payment_methods;
             }
+            if (!window.API_CONFIG) window.API_CONFIG = {};
             if (res[1]) API_ME = res[1];
             var refEl = document.getElementById('ref-sheet-link');
             if (refEl) {
@@ -1734,6 +1749,7 @@
           s.style.transition = '';
           requestAnimationFrame(function() { requestAnimationFrame(function() { s.classList.add('open'); }); });
         }
+        hideSubscribePaymentMethodsStep();
       }
       function closeSubscribeSheet() {
         var o = document.getElementById('subscribe-sheet-overlay');
@@ -1748,6 +1764,74 @@
       var subscribeSheetOverlay = document.getElementById('subscribe-sheet-overlay');
       var subscribeSheet = document.getElementById('subscribe-sheet');
       if (subscribeSheetOverlay) subscribeSheetOverlay.addEventListener('click', closeSubscribeSheet);
+      function showSubscribePaymentMethodsStep() {
+        var sheet = document.getElementById('subscribe-sheet');
+        if (!sheet) return;
+        sheet.querySelectorAll('.subscribe-sheet-step-plan').forEach(function(el) { el.style.display = 'none'; });
+        var block = document.getElementById('subscribe-payment-methods-block');
+        if (block) {
+          block.style.display = 'block';
+          var list = document.getElementById('subscribe-payment-methods-list');
+          if (list) {
+            var methods = (window.API_PAYMENT_METHODS && window.API_PAYMENT_METHODS.length) ? window.API_PAYMENT_METHODS : [{ id: 'yookassa', name: 'ЮKassa', emoji: '💳' }, { id: 'sbp', name: 'СБП', emoji: '📱' }];
+            var hasApi = !!apiBase;
+            if (!hasApi) {
+              list.innerHTML = '<p class="subscribe-pay-no-methods">Откройте приложение из меню бота для оплаты по ссылке.</p><button type="button" class="btn-payment-method" data-method="bot">💳 Оплатить в боте</button>';
+              var botBtn = list.querySelector('.btn-payment-method[data-method="bot"]');
+              if (botBtn) botBtn.addEventListener('click', function() {
+                closeSubscribeSheet();
+                openBotPay(subscribeSelectedMonths, subscribeSelectedDevices);
+              });
+            } else {
+              list.innerHTML = methods.map(function(m) {
+                return '<button type="button" class="btn-payment-method" data-method="' + (m.id || '') + '">' + (m.emoji || '💳') + ' ' + (m.name || m.id) + '</button>';
+              }).join('');
+              list.querySelectorAll('.btn-payment-method').forEach(function(btn) {
+                btn.addEventListener('click', function() {
+                  var method = btn.getAttribute('data-method');
+                  if (!method) return;
+                  if (method === 'bot') {
+                    closeSubscribeSheet();
+                    openBotPay(subscribeSelectedMonths, subscribeSelectedDevices);
+                    return;
+                  }
+                  if (!apiBase) return;
+                  var initData = getInitData();
+                  if (!initData && tg && tg.showAlert) { tg.showAlert('Откройте приложение из меню бота.'); return; }
+                  btn.disabled = true;
+                  fetch(apiBase + '/api/miniapp/create-payment', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ initData: initData, months: subscribeSelectedMonths, devices: subscribeSelectedDevices, payment_method: method })
+                  }).then(function(r) { return r.json().catch(function() { return {}; }); }).then(function(data) {
+                    if (data && data.payment_url) {
+                      if (tg && tg.openLink) tg.openLink(data.payment_url);
+                      else window.open(data.payment_url, '_blank');
+                      closeSubscribeSheet();
+                    } else {
+                      var msg = (data && data.detail) ? data.detail : 'Не удалось создать платёж. Попробуйте в боте.';
+                      if (tg && tg.showAlert) tg.showAlert(msg);
+                      else alert(msg);
+                      btn.disabled = false;
+                    }
+                  }).catch(function() {
+                    if (tg && tg.showAlert) tg.showAlert('Ошибка сети или API. Попробуйте в боте.');
+                    else alert('Ошибка сети или API. Попробуйте в боте.');
+                    btn.disabled = false;
+                  });
+                });
+              });
+            }
+          }
+        }
+      }
+      function hideSubscribePaymentMethodsStep() {
+        document.querySelectorAll('.subscribe-sheet-step-plan').forEach(function(el) { el.style.display = ''; });
+        var block = document.getElementById('subscribe-payment-methods-block');
+        if (block) block.style.display = 'none';
+      }
+      var subscribePaymentMethodsBack = document.getElementById('subscribe-payment-methods-back');
+      if (subscribePaymentMethodsBack) subscribePaymentMethodsBack.addEventListener('click', hideSubscribePaymentMethodsStep);
       var subscribeSheetBtnBack = document.getElementById('subscribe-sheet-btn-back');
       if (subscribeSheetBtnBack) subscribeSheetBtnBack.addEventListener('click', closeSubscribeSheet);
       document.querySelectorAll('.subscribe-dev-btn').forEach(function(btn) {
@@ -1775,8 +1859,7 @@
       }
       var subscribeSheetBtnPay = document.getElementById('subscribe-sheet-btn-pay');
       if (subscribeSheetBtnPay) subscribeSheetBtnPay.addEventListener('click', function() {
-        closeSubscribeSheet();
-        openBotPay(subscribeSelectedMonths, subscribeSelectedDevices);
+        showSubscribePaymentMethodsStep();
       });
       if (subscribeSheet) subscribeSheet.addEventListener('click', function(e) { e.stopPropagation(); });
       if (subscribeSheetOverlay) {
@@ -1797,7 +1880,7 @@
         buyBtn.addEventListener('click', function(e) { e.preventDefault(); openSubscribeSheet(); });
       }
       if (btnInstallSub) {
-        btnInstallSub.addEventListener('click', function() { openBotPay(1, 1); });
+        btnInstallSub.addEventListener('click', function() { openSubscribeSheet(); });
       }
       loadFromApi(function() { renderSubsAndPayFromApi(); });
 

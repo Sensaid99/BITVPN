@@ -140,19 +140,41 @@ def create_application() -> Application:
 
 
 async def error_handler(update: object, context) -> None:
-    """Log errors caused by Updates."""
-    logger.error(f"Exception while handling an update: {context.error}")
+    """Логируем ошибки и отправляем пользователю сообщение. В лог пишем причину для отладки."""
+    import traceback
+    tb = "".join(traceback.format_exception(type(context.error), context.error, context.error.__traceback__))
+    # Контекст: что делал пользователь (чтобы искать причину "через раз")
+    ctx_info = ""
+    if update is not None:
+        if hasattr(update, "callback_query") and update.callback_query is not None:
+            ctx_info = f" callback_data={getattr(update.callback_query, 'data', '')}"
+        elif hasattr(update, "message") and update.message is not None:
+            ctx_info = f" message_text={getattr(update.message, 'text', '') or '(не текст)'}"
+    logger.error("Exception while handling an update%s: %s\n%s", ctx_info, context.error, tb)
     
-    # Try to send error message to user if possible
+    support = getattr(Config, "SUPPORT_USERNAME", None) or "HelpBit_bot"
+    support = support.lstrip("@")
+    # Временные сетевые/таймаут ошибки — дружелюбнее формулировка
+    err_name = type(context.error).__name__
+    if "Timeout" in err_name or "Network" in err_name or "Connection" in err_name:
+        user_text = (
+            "⚠️ Временная ошибка связи.\n\n"
+            "Попробуйте через минуту. Если повторится — напишите в поддержку: @{support}"
+        ).format(support=support)
+    else:
+        user_text = (
+            "❌ Произошла техническая ошибка. Мы уже работаем над её устранением.\n\n"
+            "Попробуйте позже или обратитесь в поддержку: @{support}"
+        ).format(support=support)
+    
     try:
-        if update and hasattr(update, 'effective_chat') and update.effective_chat:
+        if update and hasattr(update, "effective_chat") and update.effective_chat:
             await context.bot.send_message(
                 chat_id=update.effective_chat.id,
-                text="❌ Произошла техническая ошибка. Мы уже работаем над её устранением.\n\n"
-                     "Попробуйте позже или обратитесь в поддержку: @HelpBit_bot"
+                text=user_text
             )
     except Exception as e:
-        logger.error(f"Failed to send error message to user: {e}")
+        logger.error("Failed to send error message to user: %s", e)
 
 
 async def post_init(application: Application) -> None:
@@ -169,22 +191,23 @@ async def post_init(application: Application) -> None:
     bot_info = await application.bot.get_me()
     logger.info(f"✅ Bot started: @{bot_info.username} ({bot_info.first_name})")
     logger.info(f"📱 Mini App URL: {Config.WEBAPP_URL or '(не задан)'}")
+    from bot.utils.payments import payment_manager
+    pm = payment_manager.get_available_methods()
+    logger.info(f"💳 Способы оплаты: {pm if pm else '(нет — проверьте YOOKASSA_* или YOOMONEY_TOKEN в .env)'}")
     
     # Меню бота: одна команда — Запустить бота с ракетой
     await application.bot.set_my_commands([BotCommand("start", "🚀 Запустить бота")])
     
-    # Кнопка меню «Открыть VPN» — всегда ставим https://bitvpn.vercel.app, чтобы мини-приложение открывалось даже при пустом/старом .env на сервере
+    # Единственная кнопка для мини-приложения — «Открыть VPN» внизу; при каждом старте синхронизируем URL с ботом
     MINI_APP_URL = "https://bitvpn.vercel.app"
     webapp_url = (Config.WEBAPP_URL or "").strip().rstrip("/")
-    if webapp_url and "bitvpn.vercel.app" in webapp_url:
-        pass  # используем из .env
-    else:
+    if not webapp_url or "bitvpn.vercel.app" not in webapp_url:
         webapp_url = MINI_APP_URL
     try:
         await application.bot.set_chat_menu_button(
             menu_button=MenuButtonWebApp(text="Открыть VPN", web_app=WebAppInfo(url=webapp_url))
         )
-        logger.info(f"✅ Кнопка меню бота «Открыть VPN» → {webapp_url}")
+        logger.info(f"✅ Кнопка «Открыть VPN» → {webapp_url}")
     except Exception as e:
         logger.warning(f"Не удалось установить кнопку меню бота: {e}")
     
@@ -238,7 +261,11 @@ async def post_shutdown(application: Application) -> None:
                 logger.warning(f"Failed to send shutdown message to admin {admin_id}: {e}")
                 
     except Exception as e:
-        logger.error(f"Error during shutdown: {e}")
+        # При остановке бота httpx/telegram часто дают RuntimeError — не считаем это критичной ошибкой
+        if "HTTPXRequest" in str(e) or "not initialized" in str(e):
+            logger.debug("Shutdown: telegram/httpx already closed (%s)", e)
+        else:
+            logger.warning("Error during shutdown: %s", e)
     
     logger.info("✅ VPN Bot shutdown completed")
 

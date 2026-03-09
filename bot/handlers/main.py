@@ -249,11 +249,10 @@ async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
         reply_markup=reply_markup,
         parse_mode='HTML'
     )
-    
-    # Убираем лишнюю клавиатуру; открывать приложение — кнопкой «Открыть VPN» внизу.
+    # Подсказка: мини-приложение только через кнопку «Открыть VPN» внизу (меню бота)
     await context.bot.send_message(
         chat_id=update.effective_chat.id,
-        text="👇 Откройте приложение кнопкой ниже",
+        text="👇 Всё в мини-приложении: нажмите кнопку «Открыть VPN» внизу",
         reply_markup=ReplyKeyboardRemove()
     )
 

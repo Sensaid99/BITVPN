@@ -12,7 +12,7 @@ import hmac
 import hashlib
 import logging
 from urllib.parse import unquote
-from datetime import datetime
+from datetime import datetime, timedelta
 
 import requests
 
@@ -426,6 +426,22 @@ async def miniapp_me(request: Request):
         raise HTTPException(status_code=500, detail="Internal error. Check Vercel logs.")
 
 
+def payment_methods_for_miniapp():
+    """Список доступных способов оплаты для мини-апп (id, name, emoji)."""
+    try:
+        from bot.config.settings import PAYMENT_METHODS
+        from bot.utils.payments import payment_manager
+        available = payment_manager.get_available_methods()
+        return [
+            {"id": m, "name": PAYMENT_METHODS[m]["name"], "emoji": PAYMENT_METHODS[m].get("emoji", "💳")}
+            for m in available
+            if m in (PAYMENT_METHODS or {})
+        ]
+    except Exception as e:
+        logger.warning("payment_methods_for_miniapp: %s", e)
+        return []
+
+
 @app.get("/api/miniapp/plans")
 async def miniapp_plans():
     """Тарифы, цены и настройки для мини-апп — единый источник с ботом (тарифы, цены, поддержка, рефералы)."""
@@ -438,9 +454,106 @@ async def miniapp_plans():
             "plans": plans_for_miniapp(ctx),
             "pricing": pricing_for_miniapp(),
             "config": config_for_miniapp(),
+            "payment_methods": payment_methods_for_miniapp(),
         }
     except HTTPException:
         raise
     except Exception as e:
         logger.exception("miniapp_plans failed: %s", e)
         raise HTTPException(status_code=500, detail="Internal error. Check Vercel logs.")
+
+
+@app.post("/api/miniapp/create-payment")
+async def miniapp_create_payment(request: Request):
+    """
+    Создать платёж из мини-апп: initData, months, devices, payment_method.
+    Возвращает payment_url для открытия в браузере (openLink).
+    """
+    try:
+        from bot.config.settings import SUBSCRIPTION_PLANS, PAYMENT_METHODS, calc_subscription_price
+        from bot.utils.payments import payment_manager
+        from bot.utils.helpers import get_plan_duration_key
+        from bot.utils import happ_client
+
+        ctx = _get_db()
+        db_manager = ctx.get("db_manager") if isinstance(ctx, dict) else None
+        User = ctx.get("User") if isinstance(ctx, dict) else None
+        Payment = ctx.get("Payment") if isinstance(ctx, dict) else None
+        if not db_manager or not User or not Payment:
+            raise HTTPException(status_code=503, detail="Database not configured.")
+
+        body = await request.json()
+        init_data = (body.get("initData") or "").strip()
+        if not init_data:
+            raise HTTPException(status_code=400, detail="initData required")
+
+        parsed = validate_init_data(init_data)
+        if not parsed:
+            raise HTTPException(status_code=401, detail="Invalid initData")
+
+        telegram_id, _ = get_telegram_user_from_init(parsed)
+        if not telegram_id:
+            raise HTTPException(status_code=400, detail="user not in initData")
+
+        months = int(body.get("months", 1))
+        devices = int(body.get("devices", 1))
+        payment_method = (body.get("payment_method") or "").strip()
+        if months not in (1, 3, 6, 9, 12) or devices not in (1, 3, 5, 10):
+            raise HTTPException(status_code=400, detail="Invalid months or devices")
+        if not payment_method or payment_method not in payment_manager.get_available_methods():
+            raise HTTPException(status_code=400, detail="Invalid or unavailable payment method")
+
+        plan_key = {1: "1_month", 3: "3_months", 6: "6_months", 9: "9_months", 12: "12_months"}.get(months, "1_month")
+        plan_type = f"{plan_key}_{devices}"
+        duration_key = get_plan_duration_key(plan_type)
+        plan = SUBSCRIPTION_PLANS.get(duration_key)
+        if not plan:
+            raise HTTPException(status_code=400, detail="Unknown plan")
+
+        amount_rub = calc_subscription_price(devices, months)
+        amount_kop = amount_rub * 100
+
+        session = db_manager.get_session()
+        try:
+            user = session.query(User).filter_by(telegram_id=telegram_id).first()
+            if not user:
+                raise HTTPException(status_code=404, detail="User not found. Start the bot first.")
+
+            payment = Payment(
+                user_id=user.id,
+                amount=amount_kop,
+                plan_type=plan_type,
+                payment_method=payment_method,
+                expires_at=datetime.utcnow() + timedelta(minutes=15),
+            )
+            session.add(payment)
+            session.commit()
+            session.refresh(payment)
+
+            payment_data = payment_manager.create_payment(
+                method=payment_method,
+                amount=payment.amount,
+                order_id=f"vpn_{payment.id}",
+                description=f"VPN подписка {plan['name']}",
+            )
+            payment.payment_id = payment_data["payment_id"]
+            payment.payment_url = payment_data["payment_url"]
+            session.commit()
+
+            return {
+                "ok": True,
+                "payment_url": payment_data["payment_url"],
+                "payment_id": payment.id,
+            }
+        except HTTPException:
+            raise
+        except Exception as e:
+            logger.exception("miniapp_create_payment: %s", e)
+            raise HTTPException(status_code=500, detail="Ошибка создания платежа")
+        finally:
+            session.close()
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.exception("miniapp_create_payment failed: %s", e)
+        raise HTTPException(status_code=500, detail="Internal error.")

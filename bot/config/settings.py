@@ -29,6 +29,9 @@ class Config:
     
     # Payment Settings
     YOOMONEY_TOKEN = os.getenv('YOOMONEY_TOKEN')
+    # ЮKassa (YooKassa) — shop_id и секретный ключ из личного кабинета ЮKassa
+    YOOKASSA_SHOP_ID = (os.getenv('YOOKASSA_SHOP_ID') or '').strip() or None
+    YOOKASSA_SECRET_KEY = (os.getenv('YOOKASSA_SECRET_KEY') or '').strip() or None
     QIWI_TOKEN = os.getenv('QIWI_TOKEN')
     CRYPTOMUS_API_KEY = os.getenv('CRYPTOMUS_API_KEY')
     CRYPTOMUS_MERCHANT_ID = os.getenv('CRYPTOMUS_MERCHANT_ID')
@@ -162,6 +165,16 @@ PAYMENT_METHODS = {
         'name': 'ЮMoney',
         'emoji': '💳',
         'description': 'Банковские карты, электронные кошельки'
+    },
+    'yookassa': {
+        'name': 'ЮKassa',
+        'emoji': '💳',
+        'description': 'Банковские карты, ЮMoney'
+    },
+    'sbp': {
+        'name': 'СБП',
+        'emoji': '📱',
+        'description': 'Система быстрых платежей'
     },
     'qiwi': {
         'name': 'QIWI',

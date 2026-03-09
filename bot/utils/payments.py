@@ -4,6 +4,8 @@ import logging
 import hashlib
 import hmac
 import json
+import uuid
+import base64
 import requests
 from datetime import datetime, timedelta
 from typing import Optional, Dict, Any
@@ -91,6 +93,82 @@ class YooMoneyPayment:
         except Exception as e:
             logger.error(f"YooMoney payment check error: {e}")
             return 'unknown'
+
+
+class YooKassaPayment:
+    """ЮKassa (YooKassa) payment processor — API v3"""
+
+    def __init__(self):
+        self.shop_id = Config.YOOKASSA_SHOP_ID
+        self.secret_key = Config.YOOKASSA_SECRET_KEY
+        self.base_url = "https://api.yookassa.ru/v3"
+
+    def _auth_header(self) -> str:
+        raw = f"{self.shop_id}:{self.secret_key}"
+        return "Basic " + base64.b64encode(raw.encode()).decode()
+
+    def create_payment(self, amount: int, order_id: str, description: str, payment_method_type: str | None = None) -> Dict[str, Any]:
+        """Create ЮKassa payment. amount — в копейках. payment_method_type: None = форма выбора, 'sbp' = только СБП."""
+        try:
+            url = f"{self.base_url}/payments"
+            value_rub = f"{(amount / 100):.2f}"
+            payload = {
+                "amount": {"value": value_rub, "currency": "RUB"},
+                "capture": True,  # одностадийная оплата — обязательна для СБП
+                "confirmation": {
+                    "type": "redirect",
+                    "return_url": "https://t.me/",  # пользователь вернётся в Telegram
+                },
+                "description": description[:255],
+                "metadata": {"order_id": order_id},
+            }
+            if payment_method_type == "sbp":
+                payload["payment_method_data"] = {"type": "sbp"}
+            headers = {
+                "Authorization": self._auth_header(),
+                "Content-Type": "application/json",
+                "Idempotence-Key": str(uuid.uuid4()),
+            }
+            response = requests.post(url, json=payload, headers=headers, timeout=15)
+            response.raise_for_status()
+            result = response.json()
+            conf = result.get("confirmation", {})
+            payment_url = conf.get("confirmation_url", "")
+            if not payment_url:
+                raise PaymentError("ЮKassa не вернула ссылку на оплату")
+            return {
+                "payment_id": result["id"],
+                "payment_url": payment_url,
+                "amount": amount,
+                "expires_at": datetime.utcnow() + timedelta(minutes=30),
+            }
+        except requests.RequestException as e:
+            logger.error(f"YooKassa API error: {e}")
+            raise PaymentError("Ошибка подключения к ЮKassa")
+        except Exception as e:
+            logger.error(f"YooKassa payment creation error: {e}")
+            raise PaymentError("Ошибка создания платежа ЮKassa")
+
+    def check_payment(self, payment_id: str) -> str:
+        """Check ЮKassa payment status."""
+        try:
+            url = f"{self.base_url}/payments/{payment_id}"
+            headers = {
+                "Authorization": self._auth_header(),
+                "Content-Type": "application/json",
+            }
+            response = requests.get(url, headers=headers, timeout=10)
+            response.raise_for_status()
+            result = response.json()
+            status = result.get("status", "").lower()
+            if status == "succeeded":
+                return "completed"
+            if status in ("canceled", "cancelled"):
+                return "failed"
+            return "pending"
+        except Exception as e:
+            logger.error(f"YooKassa payment check error: {e}")
+            return "unknown"
 
 
 class QiwiPayment:
@@ -274,14 +352,19 @@ class PaymentManager:
     
     def __init__(self):
         self.yoomoney = YooMoneyPayment() if Config.YOOMONEY_TOKEN else None
+        self.yookassa = YooKassaPayment() if (Config.YOOKASSA_SHOP_ID and Config.YOOKASSA_SECRET_KEY) else None
         self.qiwi = QiwiPayment() if Config.QIWI_TOKEN else None
         self.cryptomus = CryptomusPayment() if Config.CRYPTOMUS_API_KEY else None
-    
+
     def create_payment(self, method: str, amount: int, order_id: str, description: str) -> Dict[str, Any]:
         """Create payment with specified method"""
         try:
             if method == 'yoomoney' and self.yoomoney:
                 return self.yoomoney.create_payment(amount, order_id, description)
+            elif method == 'yookassa' and self.yookassa:
+                return self.yookassa.create_payment(amount, order_id, description)
+            elif method == 'sbp' and self.yookassa:
+                return self.yookassa.create_payment(amount, order_id, description, payment_method_type="sbp")
             elif method == 'qiwi' and self.qiwi:
                 return self.qiwi.create_payment(amount, order_id, description)
             elif method == 'crypto' and self.cryptomus:
@@ -300,6 +383,10 @@ class PaymentManager:
         try:
             if method == 'yoomoney' and self.yoomoney:
                 return self.yoomoney.check_payment(payment_id)
+            elif method == 'yookassa' and self.yookassa:
+                return self.yookassa.check_payment(payment_id)
+            elif method == 'sbp' and self.yookassa:
+                return self.yookassa.check_payment(payment_id)
             elif method == 'qiwi' and self.qiwi:
                 return self.qiwi.check_payment(payment_id)
             elif method == 'crypto' and self.cryptomus:
@@ -316,6 +403,9 @@ class PaymentManager:
         methods = []
         if self.yoomoney:
             methods.append('yoomoney')
+        if self.yookassa:
+            methods.append('yookassa')
+            methods.append('sbp')  # СБП через ЮKassa — отдельная кнопка, платёж с type sbp
         if self.qiwi:
             methods.append('qiwi')
         if self.cryptomus:
