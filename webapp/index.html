@@ -1867,13 +1867,11 @@
                     } else {
                       btn.disabled = false;
                       closeSubscribeSheet();
-                      if (tg && tg.showAlert) tg.showAlert('Открываю бота — там придёт ссылка на оплату.');
                       openBotPayWithMethod(method, subscribeSelectedMonths, subscribeSelectedDevices);
                     }
                   }).catch(function() {
                     btn.disabled = false;
                     closeSubscribeSheet();
-                    if (tg && tg.showAlert) tg.showAlert('Открываю бота — там придёт ссылка на оплату.');
                     openBotPayWithMethod(method, subscribeSelectedMonths, subscribeSelectedDevices);
                   });
                 });
