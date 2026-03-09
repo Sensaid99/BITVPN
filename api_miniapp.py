@@ -228,19 +228,21 @@ def pricing_for_miniapp():
 
 
 def config_for_miniapp():
-    """Общие настройки для мини-апп (поддержка, рефералы) — из того же .env, что и бот."""
+    """Общие настройки для мини-апп (поддержка, рефералы, bot_username) — из того же .env, что и бот."""
     try:
         from bot.config.settings import Config
         return {
             "support_username": (getattr(Config, "SUPPORT_USERNAME", None) or os.getenv("SUPPORT_USERNAME") or "").strip() or None,
             "referral_bonus_percent": int(getattr(Config, "REFERRAL_BONUS_PERCENT", None) or os.getenv("REFERRAL_BONUS_PERCENT", "10") or "10"),
             "referral_min_payout": int(getattr(Config, "REFERRAL_MIN_PAYOUT", None) or os.getenv("REFERRAL_MIN_PAYOUT", "100") or "100"),
+            "bot_username": (getattr(Config, "BOT_USERNAME", None) or os.getenv("BOT_USERNAME") or "").strip() or None,
         }
     except Exception:
         return {
             "support_username": (os.getenv("SUPPORT_USERNAME") or "").strip() or None,
             "referral_bonus_percent": 10,
             "referral_min_payout": 100,
+            "bot_username": (os.getenv("BOT_USERNAME") or "").strip() or None,
         }
 
 
