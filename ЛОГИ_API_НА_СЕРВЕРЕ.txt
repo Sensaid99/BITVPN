@@ -1,99 +1,265 @@
 ═══════════════════════════════════════════════════════════════
-  Логи API Mini App на своём сервере (journalctl)
+  Кнопка «Логи API на сервере» — как перекинуть API на наш сервер
+  (папка VPN BOT)
 ═══════════════════════════════════════════════════════════════
 
-  Если пользователь видит «Не удалось создать платёж» — значит запрос
-  create-payment не прошёл (API недоступен или вернул ошибку). Ниже —
-  как запустить API на своём сервере и перенаправить запросы туда.
+  Зачем: оплата по СБП в мини-апке не идёт, на Vercel логов не видно.
+  Решение: запустить API мини-приложения на ВАШЕМ сервере — тогда
+  все запросы (create-payment, СБП) пойдут на сервер и логи будут
+  в journalctl. Так вы увидите точную ошибку ЮKassa/БД.
 
-  Если на Vercel в логах ничего не появляется при нажатии СБП, можно
-  запустить API мини-приложения на вашем сервере. Тогда все запросы
-  (create-payment и др.) пойдут на сервер, и логи будут в journalctl.
+  Схема: страница мини-приложения грузится с Vercel, но запросы
+  к API идут на ваш сервер (параметр ?api=https://ваш-домен в URL).
 
-  Схема: Mini App по-прежнему открывается с Vercel (страница), но
-  запросы к API идут на ваш сервер (параметр ?api= в URL приложения).
+  Краткая шпаргалка (команды по порядку, на сервере после ssh):
+    sudo cp /opt/vpn-bot/deploy/miniapp-api.service /etc/systemd/system/
+    sudo systemctl daemon-reload && sudo systemctl enable miniapp-api && sudo systemctl start miniapp-api
+    sudo nano /etc/nginx/sites-available/default   → добавить location /api/ { ... }
+    sudo nginx -t && sudo systemctl reload nginx
+    sudo nano /opt/vpn-bot/.env   → WEBAPP_URL=https://bitvpn.vercel.app?api=https://ВАШ_ДОМЕН
+    sudo systemctl restart vpn-bot
+    journalctl -u miniapp-api -f --no-pager   → смотреть логи
 
-1. ЗАПУСТИТЬ API НА СЕРВЕРЕ (порт 8765)
+───────────────────────────────────────────────────────────────
+  ПОШАГОВО ОТ А ДО Я (всё по порядку)
+───────────────────────────────────────────────────────────────
 
-   На сервере (ssh root@155.212.164.135, путь /opt/vpn-bot):
+  Где вы находитесь:
+  • C:\Users\Admin>  — это ваш компьютер (Windows). Здесь только
+    команда ssh для входа на сервер.
+  • root@nikolay:~#  — это сервер (Ubuntu). Все команды cd, ls,
+    systemctl, nano и т.д. вводите только когда видите это.
 
-   • Создайте systemd-сервис для API (один раз):
+  Нужно заранее: проект VPN BOT на сервере в /opt/vpn-bot (или
+  свой путь), бот уже запущен, в .env есть DATABASE_URL, BOT_TOKEN,
+  YOOKASSA_SHOP_ID, YOOKASSA_SECRET_KEY. HTTPS-домен сервера
+  (например nikolay.lisobyk.fvds.ru).
 
-     sudo nano /etc/systemd/system/miniapp-api.service
+────────── ШАГ 0. Подключиться к серверу ──────────
 
-   Вставьте (путь BOT_PATH замените на свой, например /opt/vpn-bot):
+  1. На ПК откройте командную строку (Win+R → cmd → Enter)
+     или PowerShell.
 
-     [Unit]
-     Description=Bit VPN Mini App API
-     After=network.target
+  2. Введите (обязательно с «собачкой»; параметр сохраняет соединение):
+       ssh -o ServerAliveInterval=60 root@155.212.164.135
+     Или просто:  ssh root@155.212.164.135
+     Нажмите Enter.
 
-     [Service]
-     Type=simple
-     WorkingDirectory=/opt/vpn-bot
-     EnvironmentFile=/opt/vpn-bot/.env
-     ExecStart=/usr/bin/python3 -m uvicorn api_miniapp:app --host 127.0.0.1 --port 8765
-     Restart=always
-     RestartSec=5
+  3. Когда спросят пароль — введите пароль пользователя root
+     на сервере (тот, что в панели хостера). На экране при
+     вводе пароль не отображается — это нормально. Enter.
 
-     [Install]
-     WantedBy=multi-user.target
+  4. Должна появиться строка вида:
+       root@nikolay:~#
+     Значит вы на сервере. Дальше все команды — на сервере.
 
-   • Включите и запустите:
+  ВАЖНО:
+  • Команды sudo, cp, nano, systemctl и т.д. вводите ТОЛЬКО когда
+    видите root@nikolay:~# (вы на сервере). Никогда не вводите их
+    когда видите C:\Users\Admin> — это ваш ПК (Windows), там таких
+    команд нет, будет ошибка «Sudo отключен» или «not recognized».
+  • Если соединение сразу обрывается («Connection closed») — подключайтесь
+    с keepalive:  ssh -o ServerAliveInterval=60 root@155.212.164.135
+    Как только увидели root@nikolay:~#, сразу вводите команды.
+  • После команды systemctl status внизу появляется (END) — это пейджер.
+    Нажмите клавишу q (quit), чтобы выйти и вернуться в строку root@nikolay:~#.
+    Если не нажать q, сессия может «зависнуть» и соединение оборвётся.
 
-     sudo systemctl daemon-reload
-     sudo systemctl enable miniapp-api
-     sudo systemctl start miniapp-api
-     sudo systemctl status miniapp-api
+  Блок команд для вставки на сервере (скопируйте и вставьте по
+  очереди после root@nikolay:~#, после каждой строки — Enter):
 
-2. NGINX: ПРОКСИРОВАТЬ /api НА ПОРТ 8765
+    sudo cp /opt/vpn-bot/deploy/miniapp-api.service /etc/systemd/system/
+    sudo systemctl daemon-reload
+    sudo systemctl enable miniapp-api
+    sudo systemctl start miniapp-api
+    sudo systemctl status miniapp-api
 
-   Нужен HTTPS-домен (например nikolay.lisobyk.fvds.ru). В конфиг
-   nginx для этого домена добавьте location для API:
+  Если status показал active (running) — сервис API запущен. Дальше
+  шаги 2 (nginx) и 3 (.env, перезапуск бота).
 
-     location /api/ {
-         proxy_pass http://127.0.0.1:8765;
-         proxy_http_version 1.1;
-         proxy_set_header Host $host;
-         proxy_set_header X-Real-IP $remote_addr;
-         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-         proxy_set_header X-Forwarded-Proto $scheme;
-     }
+────────── ШАГ 1. Сервис API (один раз) ──────────
 
-   Перезагрузите nginx:  sudo nginx -t && sudo systemctl reload nginx
+  Все команды ниже вводите на сервере (когда видите root@nikolay:~#).
 
-3. URL МИНИ-ПРИЛОЖЕНИЯ С ПАРАМЕТРОМ api=
+  1.1 Скопировать файл сервиса в systemd.
+      Введите по очереди (после каждой — Enter):
 
-   Чтобы запросы шли на ваш сервер, бот должен открывать Mini App
-   с параметром api= на ваш HTTPS-домен.
+        sudo cp /opt/vpn-bot/deploy/miniapp-api.service /etc/systemd/system/
 
-   • В .env на ПК и на сервере задайте (подставьте свой домен с HTTPS):
+      Если папки deploy нет или путь другой — создайте сервис вручную
+      (шаг 1.2). Иначе переходите к 1.3.
 
-     WEBAPP_URL=https://bitvpn.vercel.app?api=https://nikolay.lisobyk.fvds.ru
+  1.2 Если копировать нечего — создать файл вручную.
+      Введите:
+        sudo nano /etc/systemd/system/miniapp-api.service
+      Откроется редактор. Вставьте весь текст ниже (без лишних пробелов
+      в начале строк). Обязательно должна быть строка EnvironmentFile.
 
-   • В коде бота кнопка Web App использует WEBAPP_URL. Нужно, чтобы
-     при формировании кнопки подставлялся этот полный URL (с ?api=).
-     Проверьте в bot/handlers/main.py и bot/main.py: везде, где
-     задаётся url для WebAppInfo, должна использоваться переменная
-     с полным WEBAPP_URL (уже с ?api=...).
+        [Unit]
+        Description=Bit VPN Mini App API
+        After=network.target
 
-   • Перезапустите бота на сервере:  sudo systemctl restart vpn-bot
+        [Service]
+        Type=simple
+        User=root
+        WorkingDirectory=/opt/vpn-bot
+        EnvironmentFile=/opt/vpn-bot/.env
+        Environment=PATH=/opt/vpn-bot/venv/bin:/usr/local/bin:/usr/bin:/bin
+        ExecStart=/opt/vpn-bot/venv/bin/uvicorn api_miniapp:app --host 127.0.0.1 --port 8765
+        Restart=always
+        RestartSec=10
 
-4. ПРОВЕРКА И ЛОГИ
+        [Install]
+        WantedBy=multi-user.target
 
-   • Откройте Mini App из бота, нажмите СБП. Запрос create-payment
-     уйдёт на https://ваш-домен/api/miniapp/create-payment.
-   • Логи смотрите на сервере:
+      Сохранить: Ctrl+O, Enter. Выйти: Ctrl+X.
+      Если проект у вас не в /opt/vpn-bot — замените все /opt/vpn-bot
+      на свой путь (например /root/vpn-bot).
 
-     journalctl -u miniapp-api -f --no-pager
+  1.3 Перезагрузить список сервисов.
+      Введите:
+        sudo systemctl daemon-reload
 
-   Там появится [MINIAPP] create-payment called и при ошибке ЮKassa —
-   строка create-payment ERROR с текстом от API.
+  1.4 Включить автозапуск API при перезагрузке сервера.
+      Введите:
+        sudo systemctl enable miniapp-api
 
-5. ЕСЛИ НЕ ХОТИТЕ МЕНЯТЬ URL (оставить только Vercel)
+  1.5 Запустить API.
+      Введите:
+        sudo systemctl start miniapp-api
 
-   Тогда остаётся смотреть логи только на Vercel: после деплоя кода
-   с print() сбросьте фильтры (Reset Filters), выберите «Last hour»,
-   нажмите СБП и обновите логи. Либо откройте в Vercel вкладку
-   Observability или Runtime Logs конкретного деплоя.
+  1.6 Проверить, что API запущен.
+      Введите:
+        sudo systemctl status miniapp-api
+
+      Должно быть: «Active: active (running)». Если «failed» — смотрите
+      вывод ниже или выполните:
+        journalctl -u miniapp-api -n 50 --no-pager
+      и исправьте путь/venv/.env по ошибке.
+
+────────── ШАГ 2. Nginx: проксировать /api на порт 8765 ──────────
+
+  Вариант А — автоматически (рекомендуется)
+  Если в папке проекта на сервере есть файл deploy/apply-nginx-api.sh:
+    1. Подключитесь к серверу: ssh -o ServerAliveInterval=60 root@155.212.164.135
+    2. Обновите проект на сервере (если только что добавили скрипт):
+         cd /opt/vpn-bot && git pull
+       или скопируйте файл deploy/apply-nginx-api.sh с ПК на сервер.
+    3. Выполните на сервере:
+         sudo bash /opt/vpn-bot/deploy/apply-nginx-api.sh
+    4. Должно вывести «Готово». Тогда переходите к шагу 3.
+
+  Вариант Б — вручную
+  Нужен HTTPS-домен (например nikolay.lisobyk.fvds.ru), на котором
+  уже работает nginx. Команды — на сервере.
+
+  2.1 Узнать, какой конфиг отвечает за ваш домен.
+      Введите:
+        ls /etc/nginx/sites-available/
+      Запомните имя файла (например default или имя вашего сайта).
+
+  2.2 Открыть этот конфиг в редакторе.
+      Введите (подставьте имя файла из 2.1):
+        sudo nano /etc/nginx/sites-available/default
+      или, если сайт в отдельном файле:
+        sudo nano /etc/nginx/sites-available/ваш-сайт
+
+  2.3 Найти блок server { ... } для вашего HTTPS-домена.
+      Внутри него (например после строки с server_name) добавьте
+      новый блок location. Вставьте ровно это:
+
+        location /api/ {
+            proxy_pass http://127.0.0.1:8765;
+            proxy_http_version 1.1;
+            proxy_set_header Host $host;
+            proxy_set_header X-Real-IP $remote_addr;
+            proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+            proxy_set_header X-Forwarded-Proto $scheme;
+        }
+
+      Сохранить: Ctrl+O, Enter. Выйти: Ctrl+X.
+
+  2.4 Проверить конфиг nginx и перезагрузить.
+      Введите:
+        sudo nginx -t && sudo systemctl reload nginx
+      Должно быть: «syntax is ok» и «test is successful». Если ошибка —
+      откройте конфиг снова и проверьте скобки и точку с запятой.
+
+────────── ШАГ 3. URL мини-приложения с параметром api= ──────────
+
+  Чтобы мини-апка отправляла запросы на ваш сервер, бот должен
+  открывать приложение по ссылке с ?api=https://ваш-домен.
+
+  3.1 На сервере открыть .env проекта.
+      Введите (если проект в /opt/vpn-bot):
+        sudo nano /opt/vpn-bot/.env
+      Если проект в другой папке — подставьте свой путь.
+
+  3.2 Найти строку WEBAPP_URL (или добавить новую).
+      Должно быть ровно так (подставьте СВОЙ HTTPS-домен без слэша):
+        WEBAPP_URL=https://bitvpn.vercel.app?api=https://nikolay.lisobyk.fvds.ru
+      Пример для другого домена:
+        WEBAPP_URL=https://bitvpn.vercel.app?api=https://ваш-домен.ru
+      Сохранить: Ctrl+O, Enter. Выйти: Ctrl+X.
+
+  3.3 То же значение WEBAPP_URL задать в .env на вашем ПК
+      (в папке VPN BOT, где вы разрабатываете), чтобы при следующем
+      деплое бота на сервер настройка не затерялась.
+
+  3.4 Перезапустить бота на сервере.
+      На сервере введите:
+        sudo systemctl restart vpn-bot
+      Проверить, что бот запустился:
+        sudo systemctl status vpn-bot
+      Должно быть: «active (running)».
+
+  Итог: кнопка «Открыть VPN» в Telegram теперь откроет мини-апку
+  с этим URL; все запросы API (в т.ч. СБП) пойдут на ваш сервер.
+
+────────── ШАГ 4. Проверка и просмотр логов ──────────
+
+  4.1 Открыть мини-апку из Telegram.
+      В боте нажмите кнопку «Открыть VPN» внизу (меню). Откроется
+      мини-приложение.
+
+  4.2 Сделать тестовый запрос на оплату.
+      В мини-апке выберите период подписки и нажмите СБП (или ЮKassa).
+      Запрос уйдёт на ваш сервер: https://ваш-домен/api/miniapp/create-payment.
+      Либо появится ссылка на оплату, либо ошибка в окне приложения.
+
+  4.3 Смотреть логи API на сервере в реальном времени.
+      На сервере (в той же SSH-сессии или в новой) введите:
+        journalctl -u miniapp-api -f --no-pager
+      Оставьте окно открытым. Снова нажмите СБП в мини-апке — в логах
+      появятся строки вроде:
+        [MINIAPP] create-payment called
+      и при ошибке — текст от ЮKassa или БД. По нему можно понять,
+      почему оплата не проходит.
+      Остановить просмотр логов: Ctrl+C.
+
+  4.4 Посмотреть последние 100 строк логов (без «хвоста»).
+      Введите:
+        journalctl -u miniapp-api -n 100 --no-pager
+      Удобно, чтобы не держать -f открытым.
+
+───────────────────────────────────────────────────────────────
+  ЕСЛИ ЧТО-ТО НЕ РАБОТАЕТ
+───────────────────────────────────────────────────────────────
+
+  • miniapp-api не стартует — проверьте путь в .service и наличие
+    .env (DATABASE_URL, BOT_TOKEN, YOOKASSA_*). Зависимости:
+    pip install fastapi uvicorn (и всё из requirements.txt проекта).
+
+  • 502 Bad Gateway в nginx — API не слушает 8765 или упал:
+    systemctl status miniapp-api; journalctl -u miniapp-api -n 30.
+
+  • В мини-апке по-прежнему «Не удалось создать платёж» — убедитесь,
+    что открываете приложение именно из бота (кнопка «Открыть VPN»),
+    чтобы в URL был ?api=https://ваш-домен. Проверьте WEBAPP_URL
+    в .env и перезапуск бота.
+
+  • СБП/ЮKassa ошибка в логах — смотрите текст после create-payment
+    ERROR; проверьте YOOKASSA_SHOP_ID, YOOKASSA_SECRET_KEY и настройки
+    в личном кабинете ЮKassa (СБП, тестовый/боевой режим).
 
 ═══════════════════════════════════════════════════════════════

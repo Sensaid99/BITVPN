@@ -560,7 +560,7 @@ async def miniapp_create_payment(request: Request):
             raise HTTPException(status_code=400, detail=str(e))
         except Exception as e:
             logger.exception("miniapp_create_payment: %s", e)
-            raise HTTPException(status_code=500, detail="Ошибка создания платежа")
+            raise HTTPException(status_code=500, detail="Не удалось создать платёж. Проверьте настройки API (DATABASE_URL, ЮKassa) или запустите API на своём сервере.")
         finally:
             session.close()
     except HTTPException:
@@ -569,5 +569,5 @@ async def miniapp_create_payment(request: Request):
         logger.exception("miniapp_create_payment failed: %s", e)
         raise HTTPException(
             status_code=500,
-            detail="Ошибка сервера. Проверьте DATABASE_URL и BOT_TOKEN в Vercel или запустите API на своём сервере (см. ЛОГИ_API_НА_СЕРВЕРЕ.txt)."
+            detail="Ошибка при создании платежа. Укажите DATABASE_URL и BOT_TOKEN в настройках или запустите API на своём сервере (ЛОГИ_API_НА_СЕРВЕРЕ.txt)."
         )

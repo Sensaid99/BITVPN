@@ -32,7 +32,7 @@ def _catch_all(request: Request, exc: Exception):
     if path.startswith("/api/"):
         return JSONResponse(
             status_code=500,
-            content={"detail": "Ошибка сервера. Попробуйте в боте: «Купить VPN»."},
+            content={"detail": "Временная ошибка сервера. Проверьте подключение и попробуйте снова. Если повторяется — запустите API на своём сервере (см. ЛОГИ_API_НА_СЕРВЕРЕ.txt)."},
         )
     return Response(content=_MINIMAL_HTML, media_type="text/html; charset=utf-8", status_code=200)
 

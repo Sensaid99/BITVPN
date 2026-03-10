@@ -6,8 +6,9 @@ After=network.target
 Type=simple
 User=root
 WorkingDirectory=/opt/vpn-bot
+EnvironmentFile=/opt/vpn-bot/.env
 Environment=PATH=/opt/vpn-bot/venv/bin:/usr/local/bin:/usr/bin:/bin
-ExecStart=/opt/vpn-bot/venv/bin/uvicorn api_miniapp:app --host 0.0.0.0 --port 8765
+ExecStart=/opt/vpn-bot/venv/bin/uvicorn api_miniapp:app --host 127.0.0.1 --port 8765
 Restart=always
 RestartSec=10
 
