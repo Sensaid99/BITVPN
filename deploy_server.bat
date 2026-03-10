@@ -33,7 +33,10 @@ if "%SERVER_IP%"=="" (
     goto :error
 )
 
-echo 1. Синхронизация Mini App...
+echo 1. Синхронизация Mini App (webapp -^> public -^> index, api)...
+if exist "webapp\index.html" (
+    copy /Y "webapp\index.html" "public\index.html" >nul 2>nul
+)
 if exist "public\index.html" (
     copy /Y "public\index.html" "index.html" >nul
     if exist "api" copy /Y "public\index.html" "api\root_index.html" >nul 2>nul

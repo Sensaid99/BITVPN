@@ -1267,7 +1267,7 @@
           if (match) botUsername = match[1];
         }
       } catch (e) {}
-      window.MINIAPP_API_DEFAULT = ''; /* не задаём — используем тот же домен, с которого открыто приложение */
+      window.MINIAPP_API_DEFAULT = '';
       window.MINIAPP_BOT_DEFAULT = 'Bitvpnproxy_bot';
       if (!botUsername && window.MINIAPP_BOT_DEFAULT) botUsername = window.MINIAPP_BOT_DEFAULT;
       var apiBase = (function() { var m = /[?&]api=([^&]+)/.exec(location.search); if (m) return decodeURIComponent(m[1]).replace(/\/+$/, ''); return (window.location && window.location.origin) ? window.location.origin : ''; })();
@@ -1382,10 +1382,16 @@
       }
       window.MINIAPP_API_BASE = apiBase;
       window.MINIAPP_LOAD_AND_REFRESH_REF = function(cb) { loadFromApi(cb); };
+      function updateSupportLinksFromConfig() {
+        var u = (window.API_CONFIG && window.API_CONFIG.support_username) ? window.API_CONFIG.support_username : 'HelpBit_bot';
+        var el = document.getElementById('link-support'); if (el) el.href = 'https://t.me/' + u;
+        el = document.getElementById('profile-link-support'); if (el) el.href = 'https://t.me/' + u;
+      }
       function startAppLoad() {
         loadFromApi(function() {
           if (typeof renderSubsAndPayFromApi === 'function') renderSubsAndPayFromApi();
           if (typeof updateProfileUI === 'function') updateProfileUI();
+          if (typeof updateSupportLinksFromConfig === 'function') updateSupportLinksFromConfig();
         });
       }
       if (tg && tg.ready) tg.ready();
@@ -1781,6 +1787,33 @@
       var subscribeSheetOverlay = document.getElementById('subscribe-sheet-overlay');
       var subscribeSheet = document.getElementById('subscribe-sheet');
       if (subscribeSheetOverlay) subscribeSheetOverlay.addEventListener('click', closeSubscribeSheet);
+      var subscribePaymentMethodsBack = document.getElementById('subscribe-payment-methods-back');
+      if (subscribePaymentMethodsBack) subscribePaymentMethodsBack.addEventListener('click', hideSubscribePaymentMethodsStep);
+      var subscribeSheetBtnBack = document.getElementById('subscribe-sheet-btn-back');
+      if (subscribeSheetBtnBack) subscribeSheetBtnBack.addEventListener('click', closeSubscribeSheet);
+      document.querySelectorAll('.subscribe-dev-btn').forEach(function(btn) {
+        btn.addEventListener('click', function() {
+          subscribeSelectedDevices = parseInt(this.getAttribute('data-dev'), 10) || 1;
+          document.querySelectorAll('.subscribe-dev-btn').forEach(function(b) { b.classList.remove('selected'); });
+          this.classList.add('selected');
+          updateSubscribeSummary();
+        });
+      });
+      var subscribeDurationSlider = document.getElementById('subscribe-duration-slider');
+      if (subscribeDurationSlider) {
+        subscribeDurationSlider.addEventListener('input', function() {
+          var idx = parseInt(this.value, 10) || 0;
+          subscribeSelectedMonths = sliderIndexToMonths(idx);
+          updateSubscribeSliderLabels();
+          updateSubscribeSummary();
+        });
+        subscribeDurationSlider.addEventListener('change', function() {
+          var idx = parseInt(this.value, 10) || 0;
+          subscribeSelectedMonths = sliderIndexToMonths(idx);
+          updateSubscribeSliderLabels();
+          updateSubscribeSummary();
+        });
+      }
       function showSubscribePaymentMethodsStep() {
         var sheet = document.getElementById('subscribe-sheet');
         if (!sheet) return;
@@ -1859,33 +1892,6 @@
         var block = document.getElementById('subscribe-payment-methods-block');
         if (block) block.style.display = 'none';
       }
-      var subscribePaymentMethodsBack = document.getElementById('subscribe-payment-methods-back');
-      if (subscribePaymentMethodsBack) subscribePaymentMethodsBack.addEventListener('click', hideSubscribePaymentMethodsStep);
-      var subscribeSheetBtnBack = document.getElementById('subscribe-sheet-btn-back');
-      if (subscribeSheetBtnBack) subscribeSheetBtnBack.addEventListener('click', closeSubscribeSheet);
-      document.querySelectorAll('.subscribe-dev-btn').forEach(function(btn) {
-        btn.addEventListener('click', function() {
-          subscribeSelectedDevices = parseInt(this.getAttribute('data-dev'), 10) || 1;
-          document.querySelectorAll('.subscribe-dev-btn').forEach(function(b) { b.classList.remove('selected'); });
-          this.classList.add('selected');
-          updateSubscribeSummary();
-        });
-      });
-      var subscribeDurationSlider = document.getElementById('subscribe-duration-slider');
-      if (subscribeDurationSlider) {
-        subscribeDurationSlider.addEventListener('input', function() {
-          var idx = parseInt(this.value, 10) || 0;
-          subscribeSelectedMonths = sliderIndexToMonths(idx);
-          updateSubscribeSliderLabels();
-          updateSubscribeSummary();
-        });
-        subscribeDurationSlider.addEventListener('change', function() {
-          var idx = parseInt(this.value, 10) || 0;
-          subscribeSelectedMonths = sliderIndexToMonths(idx);
-          updateSubscribeSliderLabels();
-          updateSubscribeSummary();
-        });
-      }
       var subscribeSheetBtnPay = document.getElementById('subscribe-sheet-btn-pay');
       if (subscribeSheetBtnPay) subscribeSheetBtnPay.addEventListener('click', function() {
         showSubscribePaymentMethodsStep();
@@ -1913,11 +1919,11 @@
       }
       loadFromApi(function() { renderSubsAndPayFromApi(); });
 
+      function getSupportUsername() { return (window.API_CONFIG && window.API_CONFIG.support_username) ? window.API_CONFIG.support_username : 'HelpBit_bot'; }
       var helpBtn = document.getElementById('btn-help');
-      var SUPPORT_BOT = 'HelpBit_bot';
       if (helpBtn) {
         helpBtn.addEventListener('click', function() {
-          var url = 'https://t.me/' + SUPPORT_BOT;
+          var url = 'https://t.me/' + getSupportUsername();
           if (tg && tg.openTelegramLink) tg.openTelegramLink(url);
           else window.open(url, '_blank');
         });
@@ -2048,11 +2054,13 @@
 
       var supportLink = document.getElementById('link-support');
       if (supportLink) {
-        supportLink.href = 'https://t.me/HelpBit_bot';
+        var supportUser = (window.API_CONFIG && window.API_CONFIG.support_username) ? window.API_CONFIG.support_username : 'HelpBit_bot';
+        supportLink.href = 'https://t.me/' + supportUser;
         supportLink.addEventListener('click', function(e) {
           e.preventDefault();
-          if (tg && tg.openTelegramLink) tg.openTelegramLink('https://t.me/HelpBit_bot');
-          else window.open('https://t.me/HelpBit_bot', '_blank');
+          var u = (window.API_CONFIG && window.API_CONFIG.support_username) ? window.API_CONFIG.support_username : 'HelpBit_bot';
+          if (tg && tg.openTelegramLink) tg.openTelegramLink('https://t.me/' + u);
+          else window.open('https://t.me/' + u, '_blank');
         });
       }
 
@@ -2267,14 +2275,14 @@
       var profileLinkChannel = document.getElementById('profile-link-channel');
       var profileLinkSupport = document.getElementById('profile-link-support');
       var TELEGRAM_CHANNEL = 'BitVpnProxy';
-      var TELEGRAM_SUPPORT = 'HelpBit_bot';
+      var supportUsername = (window.API_CONFIG && window.API_CONFIG.support_username) ? window.API_CONFIG.support_username : 'HelpBit_bot';
       if (profileLinkChannel) {
         profileLinkChannel.href = 'https://t.me/' + TELEGRAM_CHANNEL;
         profileLinkChannel.addEventListener('click', function(e) { e.preventDefault(); if (tg && tg.openTelegramLink) tg.openTelegramLink('https://t.me/' + TELEGRAM_CHANNEL); else window.open('https://t.me/' + TELEGRAM_CHANNEL, '_blank'); });
       }
       if (profileLinkSupport) {
-        profileLinkSupport.href = 'https://t.me/' + TELEGRAM_SUPPORT;
-        profileLinkSupport.addEventListener('click', function(e) { e.preventDefault(); if (tg && tg.openTelegramLink) tg.openTelegramLink('https://t.me/' + TELEGRAM_SUPPORT); else window.open('https://t.me/' + TELEGRAM_SUPPORT, '_blank'); });
+        profileLinkSupport.href = 'https://t.me/' + supportUsername;
+        profileLinkSupport.addEventListener('click', function(e) { e.preventDefault(); if (tg && tg.openTelegramLink) tg.openTelegramLink('https://t.me/' + supportUsername); else window.open('https://t.me/' + supportUsername, '_blank'); });
       }
     })();
   </script>
