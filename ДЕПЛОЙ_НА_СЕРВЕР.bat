@@ -60,9 +60,10 @@ if not errorlevel 1 (
 )
 echo.
 
-echo 3. Копирование .env на сервер (локальный .env перезапишет серверный)...
-scp -q ".env" %SERVER_USER%@%SERVER_IP%:%BOT_PATH%/.env 2>nul
-if errorlevel 1 (echo    Не удалось. Проверьте путь и SSH.) else (echo    .env скопирован.)
+echo 3. Копирование .env на сервер — ОТКЛЮЧЕНО (чтобы не затирать WEBAPP_URL с ?api= на сервере).
+echo    Если нужно обновить .env на сервере — скопируйте вручную или раскомментируйте строки ниже.
+REM scp -q ".env" %SERVER_USER%@%SERVER_IP%:%BOT_PATH%/.env 2>nul
+REM if errorlevel 1 (echo    Не удалось.) else (echo    .env скопирован.)
 echo.
 
 echo 4. На сервере: обновление из GitHub и перезапуск...

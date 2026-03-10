@@ -60,9 +60,8 @@ if not errorlevel 1 (
 )
 echo.
 
-echo 3. Копирование .env на сервер...
-scp -q ".env" %SERVER_USER%@%SERVER_IP%:%BOT_PATH%/.env 2>nul
-if errorlevel 1 (echo    Не удалось. Проверьте путь и SSH.) else (echo    .env скопирован.)
+echo 3. Копирование .env — ОТКЛЮЧЕНО (не затираем .env на сервере).
+REM scp -q ".env" %SERVER_USER%@%SERVER_IP%:%BOT_PATH%/.env 2>nul
 echo.
 
 echo 4. На сервере: обновление из GitHub и перезапуск...
