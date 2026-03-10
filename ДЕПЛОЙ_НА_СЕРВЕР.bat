@@ -60,7 +60,7 @@ if not errorlevel 1 (
 )
 echo.
 
-echo 3. Копирование .env на сервер...
+echo 3. Копирование .env на сервер (локальный .env перезапишет серверный)...
 scp -q ".env" %SERVER_USER%@%SERVER_IP%:%BOT_PATH%/.env 2>nul
 if errorlevel 1 (echo    Не удалось. Проверьте путь и SSH.) else (echo    .env скопирован.)
 echo.
