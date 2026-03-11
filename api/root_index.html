@@ -506,6 +506,15 @@
     .bottom-sheet .sheet-client-id .client-id-value { font-family: 'JetBrains Mono', monospace; font-size: 0.85rem; color: var(--accent); font-weight: 600; flex: 1; word-break: break-all; }
     .bottom-sheet .sheet-client-id .btn-copy { width: 36px; height: 36px; padding: 0; border-radius: 10px; background: rgba(0,255,136,0.15); color: var(--accent); border: 1px solid rgba(0,255,136,0.4); cursor: pointer; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
     .bottom-sheet .sheet-client-id .btn-copy svg { width: 18px; height: 18px; fill: currentColor; }
+    .sheet-happ-link-block { margin-bottom: 14px; padding: 12px; background: rgba(0,255,136,0.08); border: 1px solid rgba(0,255,136,0.25); border-radius: 12px; }
+    .sheet-happ-link-label { font-size: 0.9rem; font-weight: 600; color: var(--text); margin: 0 0 8px 0; }
+    .sheet-happ-link-row { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
+    .sheet-happ-link-input { flex: 1; min-width: 0; padding: 10px 12px; border-radius: 10px; border: 1px solid var(--border); background: rgba(0,0,0,0.2); color: var(--text); font-size: 0.78rem; font-family: 'JetBrains Mono', monospace; }
+    .sheet-happ-link-row .btn-copy { width: 40px; height: 40px; flex-shrink: 0; border-radius: 10px; background: rgba(0,255,136,0.2); border: 1px solid var(--accent); color: var(--accent); display: flex; align-items: center; justify-content: center; cursor: pointer; }
+    .sheet-happ-link-row .btn-copy svg { width: 18px; height: 18px; fill: currentColor; }
+    .sheet-happ-link-tip { font-size: 0.75rem; color: var(--text-muted); margin: 0; line-height: 1.35; }
+    .sheet-happ-no-link-hint { margin-bottom: 12px; padding: 10px 12px; background: rgba(255,193,7,0.08); border: 1px solid rgba(255,193,7,0.3); border-radius: 10px; font-size: 0.8rem; color: var(--text-muted); line-height: 1.4; }
+    .sheet-happ-no-link-hint p { margin: 0; }
     .sheet-current-device { padding: 14px; margin-bottom: 12px; background: linear-gradient(135deg, rgba(0,255,136,0.06), rgba(0,255,136,0.02)); border: 1px solid rgba(0,255,136,0.2); border-radius: 14px; }
     .sheet-current-device-top { display: flex; align-items: center; gap: 12px; margin-bottom: 12px; }
     .sheet-current-device-icon { width: 44px; height: 44px; border-radius: 12px; background: rgba(0,255,136,0.12); display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
@@ -919,6 +928,17 @@
         <span id="sheet-client-id-value" class="client-id-value">—</span>
         <button type="button" id="sheet-copy-id" class="btn-copy" title="Копировать"><svg viewBox="0 0 24 24"><path d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z"/></svg></button>
       </div>
+      <div id="sheet-happ-link-block" class="sheet-happ-link-block" style="display:none;">
+        <p class="sheet-happ-link-label">🔗 Ссылка для приложения Happ</p>
+        <div class="sheet-happ-link-row">
+          <input type="text" id="sheet-happ-link-value" readonly class="sheet-happ-link-input" />
+          <button type="button" id="sheet-happ-link-copy" class="btn-copy" title="Скопировать"><svg viewBox="0 0 24 24"><path d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z"/></svg></button>
+        </div>
+        <p class="sheet-happ-link-tip">Вставьте ссылку в приложение Happ (меню «+» или из буфера обмена).</p>
+      </div>
+      <div id="sheet-happ-no-link-hint" class="sheet-happ-no-link-hint" style="display:none;">
+        <p>У вас есть подписка. Если ссылка выше не отображается — откройте приложение из меню бота и обновите страницу, или в боте нажмите «Мой конфиг» — ссылка придёт в чат.</p>
+      </div>
       <div id="sheet-current-device-block" class="sheet-current-device">
         <div class="sheet-current-device-top">
           <div class="sheet-current-device-icon" id="sheet-device-icon"></div>
@@ -991,7 +1011,15 @@
     <div class="bottom-sheet-handle"></div>
     <div class="sheet-content">
       <h2 class="sheet-title">Подключение VPN (Happ)</h2>
-      <p class="sheet-setup-intro">Ссылку подписки вы получите в боте после оплаты. Ниже — как установить приложение Happ и добавить ссылку.</p>
+      <p class="sheet-setup-intro" id="setup-intro-text">Ссылку подписки вы получите в боте после оплаты. Ниже — как установить приложение Happ и добавить ссылку.</p>
+      <div id="setup-happ-link-block" class="sheet-happ-link-block" style="display:none;">
+        <p class="sheet-happ-link-label">🔗 Ваша ссылка подписки</p>
+        <div class="sheet-happ-link-row">
+          <input type="text" id="setup-happ-link-value" readonly class="sheet-happ-link-input" />
+          <button type="button" id="setup-happ-link-copy" class="btn-copy" title="Скопировать"><svg viewBox="0 0 24 24"><path d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z"/></svg></button>
+        </div>
+        <p class="sheet-happ-link-tip">Вставьте ссылку в приложение Happ (меню «+» или из буфера обмена).</p>
+      </div>
       <div class="setup-devices">
         <div class="setup-device-block">
           <div class="setup-device-head">🤖 Android</div>
@@ -1461,6 +1489,14 @@
         var payments = API_ME.payments || [];
         var activeSubs = subs.filter(function(s) { return s.is_active; });
         var inactiveSubs = subs.filter(function(s) { return !s.is_active; });
+        var hasActiveSub = !!(API_ME.subscription || activeSubs.length > 0);
+        var mainStatusBadge = document.getElementById('status-badge');
+        var mainInstallWrap = document.querySelector('.main-install-wrap');
+        if (mainStatusBadge) {
+          mainStatusBadge.textContent = hasActiveSub ? 'Активна' : 'Подписка не оформлена';
+          mainStatusBadge.classList.toggle('active', !!hasActiveSub);
+        }
+        if (mainInstallWrap) mainInstallWrap.style.display = hasActiveSub ? 'none' : '';
         var listActive = document.getElementById('subs-list-active');
         var listInactive = document.getElementById('subs-list-inactive');
         var emptyActive = document.getElementById('subs-empty-active');
@@ -1902,8 +1938,13 @@
                     var data = res.data || {};
                     if (res.ok && data.payment_url) {
                       closeSubscribeSheet();
-                      if (tg && tg.openLink) tg.openLink(data.payment_url);
-                      else window.open(data.payment_url, '_blank');
+                      if (tg && tg.openLink) {
+                        tg.openLink(data.payment_url);
+                        if (tg.showAlert) tg.showAlert('После оплаты ссылка на VPN придёт вам в бот автоматически.');
+                      } else {
+                        window.open(data.payment_url, '_blank');
+                        alert('После оплаты ссылка на VPN придёт вам в бот автоматически.');
+                      }
                     } else {
                       var detail = data.detail;
                       var msg = typeof detail === 'string' ? detail : (Array.isArray(detail) && detail[0] && detail[0].msg ? detail[0].msg : 'Не удалось создать платёж. Проверьте подключение и попробуйте снова.');
@@ -1968,6 +2009,9 @@
       var btnDevices = document.getElementById('btn-devices');
       var sheetClientIdValue = document.getElementById('sheet-client-id-value');
       var sheetCopyId = document.getElementById('sheet-copy-id');
+      var sheetHappLinkBlock = document.getElementById('sheet-happ-link-block');
+      var sheetHappLinkValue = document.getElementById('sheet-happ-link-value');
+      var sheetHappLinkCopy = document.getElementById('sheet-happ-link-copy');
       var sheetDevicesList = document.getElementById('sheet-devices-list');
       var sheetDevicesCount = document.getElementById('sheet-devices-count');
       var sheetAddDevice = document.getElementById('sheet-add-device');
@@ -2021,6 +2065,18 @@
         if (titleEl) titleEl.textContent = 'Настройка на ' + dev.name;
         if (descEl) descEl.textContent = 'VPN в 3 шага. Вы заходите с этого устройства.';
         if (iconEl) iconEl.innerHTML = dev.icon;
+        var subLink = (typeof API_ME !== 'undefined' && API_ME && API_ME.subscription && API_ME.subscription.subscription_link) ? API_ME.subscription.subscription_link : '';
+        var hasActiveSub = !!(typeof API_ME !== 'undefined' && API_ME && (API_ME.subscription || (API_ME.subscriptions && API_ME.subscriptions.some(function(s) { return s.is_active; }))));
+        if (sheetHappLinkBlock && sheetHappLinkValue) {
+          if (subLink) {
+            sheetHappLinkBlock.style.display = '';
+            sheetHappLinkValue.value = subLink;
+          } else {
+            sheetHappLinkBlock.style.display = 'none';
+          }
+        }
+        var noLinkHint = document.getElementById('sheet-happ-no-link-hint');
+        if (noLinkHint) noLinkHint.style.display = (hasActiveSub && !subLink) ? '' : 'none';
         if (devicesOverlay) { devicesOverlay.classList.remove('devices-sheet-hidden'); devicesOverlay.classList.add('open'); devicesOverlay.setAttribute('aria-hidden', 'false'); }
         if (devicesSheet) { devicesSheet.style.transform = ''; devicesSheet.style.transition = ''; devicesSheet.classList.remove('devices-sheet-hidden'); devicesSheet.classList.add('open'); }
       }
@@ -2059,11 +2115,43 @@
           }
         });
       }
+      if (sheetHappLinkCopy && sheetHappLinkValue) {
+        sheetHappLinkCopy.addEventListener('click', function() {
+          var link = sheetHappLinkValue.value;
+          if (!link) return;
+          if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(link).then(function() {
+              if (tg && tg.showPopup) tg.showPopup({ title: '', message: 'Ссылка скопирована' });
+              else if (tg && tg.showAlert) tg.showAlert('Ссылка скопирована');
+              else sheetHappLinkCopy.textContent = 'Скопировано';
+            }).catch(function() {
+              if (tg && tg.showAlert) tg.showAlert(link);
+            });
+          } else {
+            if (tg && tg.showAlert) tg.showAlert(link);
+          }
+        });
+      }
       var sheetBtnSetupThis = document.getElementById('sheet-btn-setup-this');
       var sheetBtnSetupOther = document.getElementById('sheet-btn-setup-other');
       var setupSheet = document.getElementById('setup-sheet');
       var setupOverlay = document.getElementById('setup-sheet-overlay');
+      var setupHappLinkBlock = document.getElementById('setup-happ-link-block');
+      var setupHappLinkValue = document.getElementById('setup-happ-link-value');
+      var setupHappLinkCopy = document.getElementById('setup-happ-link-copy');
+      var setupIntroText = document.getElementById('setup-intro-text');
       function openSetupSheet() {
+        var subLink = (typeof API_ME !== 'undefined' && API_ME && API_ME.subscription && API_ME.subscription.subscription_link) ? API_ME.subscription.subscription_link : '';
+        if (setupHappLinkBlock && setupHappLinkValue) {
+          if (subLink) {
+            setupHappLinkBlock.style.display = '';
+            setupHappLinkValue.value = subLink;
+            if (setupIntroText) setupIntroText.textContent = 'Ваша ссылка подписки ниже. Ниже — как установить Happ и добавить ссылку.';
+          } else {
+            setupHappLinkBlock.style.display = 'none';
+            if (setupIntroText) setupIntroText.textContent = 'Ссылку подписки вы получите в боте после оплаты. Ниже — как установить приложение Happ и добавить ссылку.';
+          }
+        }
         if (setupOverlay) { setupOverlay.classList.remove('setup-sheet-hidden'); setupOverlay.classList.add('open'); setupOverlay.setAttribute('aria-hidden', 'false'); }
         if (setupSheet) { setupSheet.classList.remove('setup-sheet-hidden'); setupSheet.classList.add('open'); }
       }
@@ -2076,6 +2164,23 @@
       if (sheetBtnSetupThis) {
         sheetBtnSetupThis.addEventListener('click', function() {
           openSetupSheet();
+        });
+      }
+      if (setupHappLinkCopy && setupHappLinkValue) {
+        setupHappLinkCopy.addEventListener('click', function() {
+          var link = setupHappLinkValue.value;
+          if (!link) return;
+          if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(link).then(function() {
+              if (tg && tg.showPopup) tg.showPopup({ title: '', message: 'Ссылка скопирована' });
+              else if (tg && tg.showAlert) tg.showAlert('Ссылка скопирована');
+              else setupHappLinkCopy.textContent = 'Скопировано';
+            }).catch(function() {
+              if (tg && tg.showAlert) tg.showAlert(link);
+            });
+          } else {
+            if (tg && tg.showAlert) tg.showAlert(link);
+          }
         });
       }
       if (sheetBtnSetupOther) {

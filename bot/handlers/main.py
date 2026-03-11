@@ -557,6 +557,14 @@ async def verify_payment(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
             await query.edit_message_text("❌ Нет доступа к этому платежу.")
             return ConversationHandler.END
         
+        # Уже обработан (например вебхуком ЮKassa) — не создаём подписку повторно
+        if payment.status == 'completed':
+            await query.edit_message_text(
+                "✅ Оплата уже проведена.\n\nСсылка на VPN была отправлена вам в чат ранее — проверьте сообщения выше.",
+                parse_mode='HTML'
+            )
+            return ConversationHandler.END
+        
         # Check if payment expired
         if payment.is_expired:
             await query.edit_message_text(get_message('error_payment_timeout'))
@@ -744,6 +752,23 @@ async def show_profile(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
                 time_remaining=sub.time_remaining_text,
                 server_location=f"{get_server_flag(sub.server_location)} {sub.server_location}"
             )
+            # Для подписки через Happ: показать «Подключено X/Y устройств»
+            if Config.HAPP_PROVIDER_CODE and Config.HAPP_AUTH_KEY and getattr(sub, 'vpn_config', None):
+                install_code = happ_client.parse_install_code_from_happ_link(sub.vpn_config)
+                limit_from_plan = happ_client.devices_from_plan_type(sub.plan_type)
+                if install_code:
+                    used, limit = happ_client.get_install_stats(
+                        Config.HAPP_API_URL,
+                        Config.HAPP_PROVIDER_CODE,
+                        Config.HAPP_AUTH_KEY,
+                        install_code,
+                    )
+                    if used is not None and limit is not None:
+                        subscription_info += f"\n📱 Подключено устройств: <b>{used}/{limit}</b>"
+                    elif used is not None:
+                        subscription_info += f"\n📱 Подключено устройств: <b>{used}/{limit_from_plan}</b>"
+                elif limit_from_plan > 1:
+                    subscription_info += f"\n📱 Лимит устройств: <b>{limit_from_plan}</b>"
     else:
         subscription_info = get_message('subscription_inactive')
     

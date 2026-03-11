@@ -283,6 +283,32 @@ def health():
     return {"service": "Bit VPN Mini App API", "status": "ok"}
 
 
+@app.get("/api/miniapp/check-happ-env")
+def check_happ_env():
+    """
+    Проверка: видит ли API переменные Happ (для отладки).
+    Возвращает, какие переменные заданы, без значений.
+    Вызовите в браузере: https://ваш-домен-api/api/miniapp/check-happ-env
+    """
+    try:
+        from bot.config.settings import Config
+        env = {
+            "HAPP_API_URL": bool(getattr(Config, "HAPP_API_URL", None)),
+            "HAPP_PROVIDER_CODE": bool(getattr(Config, "HAPP_PROVIDER_CODE", None)),
+            "HAPP_AUTH_KEY": bool(getattr(Config, "HAPP_AUTH_KEY", None)),
+            "HAPP_SUBSCRIPTION_URL": bool(getattr(Config, "HAPP_SUBSCRIPTION_URL", None)),
+        }
+        all_ok = all(env.values())
+        return {
+            "ok": all_ok,
+            "message": "Все HAPP_* заданы. Ссылка должна генерироваться." if all_ok else "Не хватает переменных — добавьте в .env на СЕРВЕРЕ и перезапустите API.",
+            "env_set": env,
+        }
+    except Exception as e:
+        logger.warning("check_happ_env: %s", e)
+        return {"ok": False, "message": str(e), "env_set": {}}
+
+
 @app.post("/api/miniapp/me")
 async def miniapp_me(request: Request):
     """
@@ -399,6 +425,42 @@ async def miniapp_me(request: Request):
                 }
 
             status = get_subscription_status(sub.plan_type)
+            # Ссылка для Happ — отдаём только если это URL (Happ), не отдаём WireGuard-конфиг
+            vpn_cfg = getattr(sub, "vpn_config", None) or ""
+            subscription_link = None
+            if vpn_cfg and isinstance(vpn_cfg, str) and ("installid=" in vpn_cfg or vpn_cfg.strip().startswith("http")):
+                subscription_link = vpn_cfg.strip()
+            # Если подписка активна, но ссылки нет — пробуем сгенерировать Happ-ссылку (и сохранить в подписку)
+            if not subscription_link and sub.end_date and sub.end_date > datetime.utcnow():
+                try:
+                    from bot.config.settings import Config
+                    from bot.utils import happ_client
+                    use_happ = bool(
+                        getattr(Config, "HAPP_PROVIDER_CODE", None)
+                        and getattr(Config, "HAPP_AUTH_KEY", None)
+                        and getattr(Config, "HAPP_SUBSCRIPTION_URL", None)
+                    )
+                    if not use_happ:
+                        logger.info("miniapp_me: Happ fallback skipped — HAPP_PROVIDER_CODE, HAPP_AUTH_KEY or HAPP_SUBSCRIPTION_URL missing in env (check .env on API server)")
+                    elif use_happ:
+                        devices = happ_client.devices_from_plan_type(sub.plan_type or "")
+                        _, happ_link = happ_client.create_happ_install_link(
+                            getattr(Config, "HAPP_API_URL", "https://happ-proxy.com"),
+                            Config.HAPP_PROVIDER_CODE,
+                            Config.HAPP_AUTH_KEY,
+                            devices,
+                            Config.HAPP_SUBSCRIPTION_URL,
+                            note=f"tg{user.telegram_id}",
+                        )
+                        if happ_link:
+                            subscription_link = happ_link
+                            sub.vpn_config = happ_link
+                            session.commit()
+                            logger.info("miniapp_me: Happ link generated and saved for user %s", user.telegram_id)
+                        else:
+                            logger.warning("miniapp_me: Happ API returned no link (check HAPP_* in .env and subscription URL; see HAPP_КАК_НАСТРОИТЬ_ССЫЛКУ.md)")
+                except Exception as e:
+                    logger.warning("miniapp_me: generate Happ link fallback: %s", e)
             return {
                 "ok": True,
                 "user": user_row(user),
@@ -413,6 +475,7 @@ async def miniapp_me(request: Request):
                     "days_remaining": sub.days_remaining,
                     "server_location": sub.server_location or "",
                     "server_flag": get_server_flag(sub.server_location or "") if get_server_flag and sub.server_location else "🌍",
+                    "subscription_link": subscription_link,
                 },
                 "subscription_status": status,
                 "subscriptions": subscriptions_list,
@@ -571,3 +634,218 @@ async def miniapp_create_payment(request: Request):
             status_code=500,
             detail="Ошибка при создании платежа. Укажите DATABASE_URL и BOT_TOKEN в настройках или запустите API на своём сервере (ЛОГИ_API_НА_СЕРВЕРЕ.txt)."
         )
+
+
+def _complete_payment_and_send_link(payment_db_id: int) -> bool:
+    """
+    Завершить платёж (подписка + выдача ссылки/конфига) и отправить сообщения в Telegram.
+    Вызывается из вебхука ЮKassa. Возвращает True если обработано успешно.
+    """
+    try:
+        from bot.config.settings import Config, SUBSCRIPTION_PLANS
+        from bot.utils.helpers import (
+            get_plan_duration_key,
+            calculate_end_date,
+            get_random_server_location,
+            get_server_flag,
+            create_config_file,
+            generate_config_filename,
+            create_qr_code,
+            generate_vpn_config,
+            calculate_referral_bonus,
+            format_date,
+        )
+        from bot.utils import happ_client
+        from locales.ru import get_message
+        from bot.models.database import Subscription
+    except Exception as e:
+        logger.exception("webhook imports: %s", e)
+        return False
+
+    ctx = _get_db()
+    db_manager = ctx.get("db_manager") if isinstance(ctx, dict) else None
+    User = ctx.get("User") if isinstance(ctx, dict) else None
+    Payment = ctx.get("Payment") if isinstance(ctx, dict) else None
+    if not db_manager or not User or not Payment or not BOT_TOKEN:
+        return False
+
+    session = db_manager.get_session()
+    try:
+        payment = session.query(Payment).filter_by(id=payment_db_id).first()
+        if not payment or payment.status == "completed":
+            return True
+        user = session.query(User).filter_by(id=payment.user_id).first()
+        if not user:
+            return False
+        telegram_id = user.telegram_id
+
+        payment.status = "completed"
+        payment.completed_at = datetime.utcnow()
+        user.total_spent += payment.amount_rubles
+
+        for sub in session.query(Subscription).filter_by(user_id=payment.user_id, is_active=True).all():
+            sub.is_active = False
+
+        use_happ = bool(
+            getattr(Config, "HAPP_PROVIDER_CODE", None)
+            and getattr(Config, "HAPP_AUTH_KEY", None)
+            and getattr(Config, "HAPP_SUBSCRIPTION_URL", None)
+        )
+        happ_link = None
+        if use_happ:
+            devices = happ_client.devices_from_plan_type(payment.plan_type)
+            _, happ_link = happ_client.create_happ_install_link(
+                getattr(Config, "HAPP_API_URL", "https://happ-proxy.com"),
+                Config.HAPP_PROVIDER_CODE,
+                Config.HAPP_AUTH_KEY,
+                devices,
+                Config.HAPP_SUBSCRIPTION_URL,
+                note=f"tg{telegram_id}",
+            )
+            if not happ_link:
+                use_happ = False
+        server_location = get_random_server_location()
+        vpn_config_content = (
+            happ_link if use_happ else generate_vpn_config(telegram_id, server_location)
+        )
+        subscription = Subscription(
+            user_id=payment.user_id,
+            plan_type=payment.plan_type,
+            end_date=calculate_end_date(payment.plan_type),
+            vpn_config=vpn_config_content,
+            config_name=f"VPN_{SUBSCRIPTION_PLANS.get(get_plan_duration_key(payment.plan_type), {}).get('name', payment.plan_type)}",
+            server_location=server_location,
+        )
+        session.add(subscription)
+
+        if getattr(user, "referrer_id", None):
+            from bot.models.database import User as U
+            referrer = session.query(U).filter_by(id=user.referrer_id).first()
+            if referrer:
+                bonus = calculate_referral_bonus(payment.amount)
+                referrer.referral_balance += bonus / 100
+                session.commit()
+                try:
+                    requests.post(
+                        f"https://api.telegram.org/bot{BOT_TOKEN}/sendMessage",
+                        json={
+                            "chat_id": referrer.telegram_id,
+                            "text": get_message("referral_bonus", amount=bonus / 100, friend_name=user.full_name),
+                            "parse_mode": "HTML",
+                        },
+                        timeout=10,
+                    )
+                except Exception as e:
+                    logger.warning("referral notify: %s", e)
+
+        session.commit()
+
+        plan = SUBSCRIPTION_PLANS.get(get_plan_duration_key(payment.plan_type), SUBSCRIPTION_PLANS.get("1_month", {}))
+        success_message = get_message(
+            "payment_success",
+            plan_name=plan.get("name", payment.plan_type),
+            end_date=format_date(subscription.end_date),
+            server_location=f"{get_server_flag(server_location)} {server_location}",
+        )
+        base_url = f"https://api.telegram.org/bot{BOT_TOKEN}"
+
+        requests.post(
+            base_url + "/sendMessage",
+            json={"chat_id": telegram_id, "text": success_message, "parse_mode": "HTML"},
+            timeout=10,
+        )
+
+        if use_happ and happ_link:
+            caption = get_message("happ_link_caption") + f"\n\n<code>{happ_link}</code>"
+            requests.post(
+                base_url + "/sendMessage",
+                json={"chat_id": telegram_id, "text": caption, "parse_mode": "HTML"},
+                timeout=10,
+            )
+            config_filename = f"happ_subscription_{telegram_id}.txt"
+            file_buffer = create_config_file(happ_link, config_filename)
+            file_buffer.seek(0)
+            requests.post(
+                base_url + "/sendDocument",
+                data={"chat_id": telegram_id, "caption": "Ссылку можно вставить в приложение Happ из этого файла.", "parse_mode": "HTML"},
+                files={"document": (config_filename, file_buffer.read(), "text/plain")},
+                timeout=15,
+            )
+        else:
+            config_filename = generate_config_filename(telegram_id, payment.plan_type)
+            file_buffer = create_config_file(subscription.vpn_config, config_filename)
+            file_buffer.seek(0)
+            requests.post(
+                base_url + "/sendDocument",
+                data={"chat_id": telegram_id, "caption": get_message("vpn_config_info"), "parse_mode": "HTML"},
+                files={"document": (config_filename, file_buffer.read(), "text/plain")},
+                timeout=15,
+            )
+            qr_bytes = create_qr_code(subscription.vpn_config)
+            if qr_bytes:
+                qr_bytes.seek(0)
+                requests.post(
+                    base_url + "/sendPhoto",
+                    data={"chat_id": telegram_id, "caption": get_message("config_qr"), "parse_mode": "HTML"},
+                    files={"photo": ("qr.png", qr_bytes.read(), "image/png")},
+                    timeout=15,
+                )
+
+        setup_text = get_message("setup_choose_device")
+        webapp_url = (getattr(Config, "WEBAPP_URL", None) or os.getenv("WEBAPP_URL") or "https://bitvpn.vercel.app").strip().rstrip("/")
+        keyboard = {
+            "inline_keyboard": [
+                [{"text": "🤖 Android", "callback_data": "setup_android"}],
+                [{"text": "🍎 iOS", "callback_data": "setup_ios"}],
+                [{"text": "🖥️ Windows", "callback_data": "setup_windows"}],
+                [{"text": "📱 Открыть приложение", "url": webapp_url}],
+            ]
+        }
+        requests.post(
+            base_url + "/sendMessage",
+            json={"chat_id": telegram_id, "text": setup_text, "reply_markup": keyboard, "parse_mode": "HTML"},
+            timeout=10,
+        )
+        return True
+    except Exception as e:
+        logger.exception("_complete_payment_and_send_link: %s", e)
+        session.rollback()
+        return False
+    finally:
+        session.close()
+
+
+@app.post("/api/webhook/yookassa")
+async def webhook_yookassa(request: Request):
+    """
+    Вебхук ЮKassa: при payment.succeeded находим платёж по object.id (payment_id),
+    завершаем подписку и отправляем пользователю ссылку Happ (или конфиг) в Telegram.
+    Ответ 200 OK обязателен в течение нескольких секунд.
+    """
+    try:
+        body = await request.json()
+    except Exception:
+        return Response(status_code=400)
+    event = (body.get("event") or "").strip()
+    obj = body.get("object") or {}
+    yookassa_payment_id = (obj.get("id") or "").strip()
+    if event != "payment.succeeded" or not yookassa_payment_id:
+        return Response(status_code=200)
+
+    ctx = _get_db()
+    db_manager = ctx.get("db_manager") if isinstance(ctx, dict) else None
+    Payment = ctx.get("Payment") if isinstance(ctx, dict) else None
+    if not db_manager or not Payment:
+        return Response(status_code=200)
+
+    session = db_manager.get_session()
+    try:
+        payment = session.query(Payment).filter_by(payment_id=yookassa_payment_id).first()
+        if not payment:
+            return Response(status_code=200)
+        payment_db_id = payment.id
+    finally:
+        session.close()
+
+    _complete_payment_and_send_link(payment_db_id)
+    return Response(status_code=200)
