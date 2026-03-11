@@ -23,6 +23,7 @@ from bot.handlers.main import (
     start_command,
     show_profile,
     show_my_config,
+    setup_device_handler,
     show_referral_info,
     request_payout_start,
     request_payout_done,
@@ -74,6 +75,7 @@ def create_application() -> Application:
     # Кнопки меню — group=-1 чтобы обрабатывались ДО ConversationHandler (иначе callback не доходят)
     application.add_handler(CallbackQueryHandler(show_profile, pattern='^profile$'), group=-1)
     application.add_handler(CallbackQueryHandler(show_my_config, pattern='^my_config$'), group=-1)
+    application.add_handler(CallbackQueryHandler(setup_device_handler, pattern='^setup_(android|ios|windows)$'), group=-1)
     application.add_handler(CallbackQueryHandler(show_referral_info, pattern='^referral$'), group=-1)
     application.add_handler(CallbackQueryHandler(show_help, pattern='^help$'), group=-1)
     application.add_handler(CallbackQueryHandler(show_support, pattern='^support$'), group=-1)

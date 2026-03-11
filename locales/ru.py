@@ -156,6 +156,32 @@ MESSAGES = {
         "🔗 Ваша ссылка для приложения Happ (лимит устройств по тарифу):\n\n"
         "Добавьте ссылку в приложение Happ — через меню «+» или вставку из буфера обмена."
     ),
+    # Настроить VPN — выбор устройства (одно сообщение)
+    'setup_choose_device': (
+        "📱 <b>Настроить VPN</b>\n\n"
+        "Выберите устройство — пришлю короткую инструкцию и ссылку на приложение Happ."
+    ),
+    'setup_android': (
+        "🤖 <b>Android</b>\n\n"
+        "1️⃣ Скачайте приложение Happ:\n"
+        "Google Play → <a href=\"https://play.google.com/store/apps/details?id=com.happproxy\">Happ — Proxy Utility</a>\n\n"
+        "2️⃣ Откройте Happ → нажмите «+» → вставьте вашу ссылку подписки (она выше в чате).\n\n"
+        "3️⃣ Подключитесь и пользуйтесь VPN."
+    ),
+    'setup_ios': (
+        "🍎 <b>iOS</b>\n\n"
+        "1️⃣ Скачайте приложение Happ:\n"
+        "App Store → <a href=\"https://apps.apple.com/app/happ-proxy-utility/id6504287215\">Happ — Proxy Utility</a>\n\n"
+        "2️⃣ Откройте Happ → нажмите «+» → вставьте вашу ссылку подписки (она выше в чате).\n\n"
+        "3️⃣ Подключитесь и пользуйтесь VPN."
+    ),
+    'setup_windows': (
+        "🖥️ <b>Windows</b>\n\n"
+        "1️⃣ Скачайте Happ для ПК:\n"
+        "<a href=\"https://github.com/Happ-proxy/happ-desktop/releases/latest/download/setup-Happ.x64.exe\">Happ для Windows (x64)</a>\n\n"
+        "2️⃣ Установите и откройте Happ → «+» → вставьте вашу ссылку подписки (она выше в чате).\n\n"
+        "3️⃣ Подключитесь и пользуйтесь VPN."
+    ),
     
     # Referral system
     'referral_info': (

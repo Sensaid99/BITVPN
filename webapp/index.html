@@ -527,6 +527,13 @@
     .bottom-sheet .sheet-devices-empty { color: var(--text-muted); font-size: 0.8rem; padding: 8px 0; }
     .bottom-sheet .sheet-add-device { display: inline-flex; align-items: center; justify-content: center; gap: 6px; padding: 10px 18px; border-radius: 10px; background: rgba(0,255,136,0.12); color: var(--accent); font-weight: 600; font-size: 0.85rem; border: 1px solid rgba(0,255,136,0.35); cursor: pointer; width: 100%; }
     .bottom-sheet .sheet-tip { font-size: 0.72rem; color: var(--text-muted); text-align: center; margin-top: 10px; line-height: 1.4; }
+    .setup-sheet-hidden { display: none !important; }
+    .sheet-setup-intro { font-size: 0.82rem; color: var(--text-muted); margin-bottom: 14px; line-height: 1.45; }
+    .setup-devices { display: flex; flex-direction: column; gap: 12px; }
+    .setup-device-block { padding: 12px; background: rgba(255,255,255,0.04); border: 1px solid var(--border); border-radius: 12px; }
+    .setup-device-head { font-size: 0.95rem; font-weight: 700; color: var(--text); margin-bottom: 6px; }
+    .setup-device-block p { font-size: 0.8rem; color: var(--text-muted); line-height: 1.4; margin-bottom: 8px; }
+    .setup-link { display: inline-block; font-size: 0.82rem; font-weight: 600; color: var(--accent); text-decoration: none; }
 
     /* Подписки */
     .subs-tabs { display: flex; gap: 8px; margin-bottom: 12px; }
@@ -976,6 +983,33 @@
         <button type="button" id="promo-sheet-apply" class="btn-save">Применить</button>
       </div>
       <p class="sheet-email-hint">Использовано раз: <span id="promo-sheet-count">0</span>. Результат придёт в боте.</p>
+    </div>
+  </div>
+
+  <div id="setup-sheet-overlay" class="bottom-sheet-overlay setup-sheet-hidden" aria-hidden="true"></div>
+  <div id="setup-sheet" class="bottom-sheet setup-sheet-hidden" role="dialog" aria-label="Инструкция по подключению" style="max-height:70vh;">
+    <div class="bottom-sheet-handle"></div>
+    <div class="sheet-content">
+      <h2 class="sheet-title">Подключение VPN (Happ)</h2>
+      <p class="sheet-setup-intro">Ссылку подписки вы получите в боте после оплаты. Ниже — как установить приложение Happ и добавить ссылку.</p>
+      <div class="setup-devices">
+        <div class="setup-device-block">
+          <div class="setup-device-head">🤖 Android</div>
+          <p>Скачайте Happ в Google Play, откройте приложение → «+» → вставьте ссылку подписки.</p>
+          <a href="https://play.google.com/store/apps/details?id=com.happproxy" target="_blank" rel="noopener" class="setup-link">Google Play — Happ</a>
+        </div>
+        <div class="setup-device-block">
+          <div class="setup-device-head">🍎 iOS</div>
+          <p>Скачайте Happ в App Store, откройте приложение → «+» → вставьте ссылку подписки.</p>
+          <a href="https://apps.apple.com/app/happ-proxy-utility/id6504287215" target="_blank" rel="noopener" class="setup-link">App Store — Happ</a>
+        </div>
+        <div class="setup-device-block">
+          <div class="setup-device-head">🖥️ Windows</div>
+          <p>Скачайте Happ для ПК, установите → откройте → «+» → вставьте ссылку подписки.</p>
+          <a href="https://github.com/Happ-proxy/happ-desktop/releases/latest/download/setup-Happ.x64.exe" target="_blank" rel="noopener" class="setup-link">Скачать Happ для Windows</a>
+        </div>
+      </div>
+      <p class="sheet-tip">Если вы уже оплатили — откройте бота: там будет ваша ссылка и кнопка «Настроить VPN».</p>
     </div>
   </div>
 
@@ -2027,16 +2061,21 @@
       }
       var sheetBtnSetupThis = document.getElementById('sheet-btn-setup-this');
       var sheetBtnSetupOther = document.getElementById('sheet-btn-setup-other');
+      var setupSheet = document.getElementById('setup-sheet');
+      var setupOverlay = document.getElementById('setup-sheet-overlay');
+      function openSetupSheet() {
+        if (setupOverlay) { setupOverlay.classList.remove('setup-sheet-hidden'); setupOverlay.classList.add('open'); setupOverlay.setAttribute('aria-hidden', 'false'); }
+        if (setupSheet) { setupSheet.classList.remove('setup-sheet-hidden'); setupSheet.classList.add('open'); }
+      }
+      function closeSetupSheet() {
+        if (setupOverlay) { setupOverlay.classList.remove('open'); setupOverlay.classList.add('setup-sheet-hidden'); setupOverlay.setAttribute('aria-hidden', 'true'); }
+        if (setupSheet) { setupSheet.classList.remove('open'); setupSheet.classList.add('setup-sheet-hidden'); }
+      }
+      if (setupOverlay) setupOverlay.addEventListener('click', closeSetupSheet);
+      attachSwipeToClose(setupSheet, setupOverlay, 'setup-sheet-hidden');
       if (sheetBtnSetupThis) {
         sheetBtnSetupThis.addEventListener('click', function() {
-          var bot = botUsername || (function() { var m = /[?&]bot=([^&]+)/.exec(location.search); return m ? m[1] : ''; })();
-          if (bot) {
-            var link = 'https://t.me/' + bot + '?start=config';
-            if (tg && tg.openTelegramLink) tg.openTelegramLink(link);
-            else window.open(link, '_blank');
-          } else {
-            if (tg && tg.showAlert) tg.showAlert('Откройте бота из меню и нажмите «Мой конфиг» или «Скачать конфиг» для настройки на этом устройстве.');
-          }
+          openSetupSheet();
         });
       }
       if (sheetBtnSetupOther) {

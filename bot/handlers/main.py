@@ -192,9 +192,15 @@ async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
         ensure_admin_unlimited_subscription(user.telegram_id)
         user = get_or_create_user(update.effective_user)
     
-    # Deep link из Mini App «Настроить на этом устройстве» — сразу показать конфиг
+    # Deep link из Mini App «Настроить здесь» — одно сообщение «Настроить VPN» с кнопками (без /start и без файлов)
     if context.args and context.args[0].lower() == 'config':
-        await show_my_config(update, context)
+        if user.is_admin and not user.has_active_subscription:
+            ensure_admin_unlimited_subscription(user.telegram_id)
+            user = get_or_create_user(update.effective_user)
+        if not user.has_active_subscription:
+            await update.message.reply_text(get_message('error_no_subscription'), parse_mode='HTML')
+            return
+        await send_setup_device_choice(context.bot, update.effective_chat.id)
         return
     
     # Handle referral code
@@ -674,6 +680,8 @@ async def verify_payment(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
                     parse_mode='HTML'
                 )
             
+            # Одно сообщение «Настроить VPN» с кнопками выбора устройства
+            await send_setup_device_choice(context.bot, update.effective_chat.id)
             # Send main menu
             await main_menu(update, context)
             
@@ -761,8 +769,44 @@ async def show_profile(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
     )
 
 
+def _get_setup_device_keyboard():
+    """Клавиатура «Настроить VPN»: выбор устройства (Happ)."""
+    webapp_url = get_webapp_url()
+    return InlineKeyboardMarkup([
+        [InlineKeyboardButton("🤖 Android", callback_data='setup_android')],
+        [InlineKeyboardButton("🍎 iOS", callback_data='setup_ios')],
+        [InlineKeyboardButton("🖥️ Windows", callback_data='setup_windows')],
+        [InlineKeyboardButton("📱 Открыть приложение", url=webapp_url)],
+    ])
+
+
+async def send_setup_device_choice(bot, chat_id: int) -> None:
+    """Отправить одно сообщение «Настроить VPN» с кнопками выбора устройства (без /start и без файлов)."""
+    text = get_message('setup_choose_device')
+    await bot.send_message(
+        chat_id=chat_id,
+        text=text,
+        reply_markup=_get_setup_device_keyboard(),
+        parse_mode='HTML'
+    )
+
+
+async def setup_device_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    """Ответ на нажатие кнопки устройства: одно сообщение с инструкцией Happ для выбранной ОС."""
+    query = update.callback_query
+    await query.answer()
+    device = query.data  # setup_android, setup_ios, setup_windows
+    key = 'setup_android' if device == 'setup_android' else 'setup_ios' if device == 'setup_ios' else 'setup_windows'
+    text = get_message(key)
+    await context.bot.send_message(
+        chat_id=update.effective_chat.id,
+        text=text,
+        parse_mode='HTML'
+    )
+
+
 async def show_my_config(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    """Show user's VPN configuration (вызов и по callback из меню, и по /start config из Mini App)."""
+    """Показать «Настроить VPN» — одно сообщение с кнопками выбора устройства (Happ). Без файла и QR в чате."""
     query = getattr(update, 'callback_query', None)
     chat_id = update.effective_chat.id
     if query:
@@ -780,40 +824,18 @@ async def show_my_config(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
             await context.bot.send_message(chat_id=chat_id, text=msg)
         return
     
-    subscription = user.active_subscription
-    is_happ_link = subscription.vpn_config and subscription.vpn_config.strip().startswith("http")
-    
-    if is_happ_link:
-        config_info_text = get_message('happ_link_caption') + f"\n\n<code>{subscription.vpn_config}</code>"
-        config_filename = f"happ_subscription_{user.telegram_id}.txt"
-    else:
-        config_info_text = get_message('vpn_config_info')
-        config_filename = generate_config_filename(user.telegram_id, subscription.plan_type)
-    
+    text = get_message('setup_choose_device')
     if query:
-        await query.edit_message_text(text=config_info_text, parse_mode='HTML')
+        try:
+            await query.edit_message_text(
+                text=text,
+                reply_markup=_get_setup_device_keyboard(),
+                parse_mode='HTML'
+            )
+        except BadRequest:
+            await context.bot.send_message(chat_id=chat_id, text=text, reply_markup=_get_setup_device_keyboard(), parse_mode='HTML')
     else:
-        await context.bot.send_message(chat_id=chat_id, text=config_info_text, parse_mode='HTML')
-    
-    # Send config file (ссылка Happ — .txt, иначе WireGuard .conf)
-    config_file = create_config_file(subscription.vpn_config, config_filename)
-    
-    await context.bot.send_document(
-        chat_id=chat_id,
-        document=config_file,
-        filename=config_filename,
-        caption=f"📱 Конфигурация VPN\n🌍 Сервер: {get_server_flag(subscription.server_location)} {subscription.server_location}",
-        parse_mode='HTML'
-    )
-    
-    # Send QR code
-    qr_buffer = create_qr_code(subscription.vpn_config)
-    await context.bot.send_photo(
-        chat_id=chat_id,
-        photo=qr_buffer,
-        caption=get_message('config_qr'),
-        parse_mode='HTML'
-    )
+        await context.bot.send_message(chat_id=chat_id, text=text, reply_markup=_get_setup_device_keyboard(), parse_mode='HTML')
 
 
 async def show_referral_info(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
