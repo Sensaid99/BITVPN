@@ -1823,7 +1823,7 @@
           block.style.display = 'block';
           var list = document.getElementById('subscribe-payment-methods-list');
           if (list) {
-            var methods = (window.API_PAYMENT_METHODS && window.API_PAYMENT_METHODS.length) ? window.API_PAYMENT_METHODS : [{ id: 'yookassa', name: 'ЮKassa', emoji: '💳' }, { id: 'sbp', name: 'СБП', emoji: '📱' }];
+            var methods = (window.API_PAYMENT_METHODS && window.API_PAYMENT_METHODS.length) ? window.API_PAYMENT_METHODS : [{ id: 'sbp', name: 'СБП', emoji: '📱' }, { id: 'yookassa', name: 'Банковская карта', emoji: '💳' }];
             var hasApi = !!apiBase;
             if (!hasApi) {
               list.innerHTML = '<p class="subscribe-pay-no-methods">Откройте приложение из меню бота для оплаты по ссылке.</p><button type="button" class="btn-payment-method" data-method="bot">💳 Оплатить в боте</button>';

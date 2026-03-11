@@ -167,7 +167,7 @@ PAYMENT_METHODS = {
         'description': 'Банковские карты, электронные кошельки'
     },
     'yookassa': {
-        'name': 'ЮKassa',
+        'name': 'Банковская карта',
         'emoji': '💳',
         'description': 'Банковские карты, ЮMoney'
     },

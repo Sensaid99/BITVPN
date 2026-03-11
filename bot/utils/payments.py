@@ -414,8 +414,8 @@ class PaymentManager:
         if self.yoomoney:
             methods.append('yoomoney')
         if self.yookassa:
-            methods.append('yookassa')
-            methods.append('sbp')  # СБП через ЮKassa — отдельная кнопка, платёж с type sbp
+            methods.append('sbp')   # СБП через ЮKassa — первым
+            methods.append('yookassa')  # Банковская карта — вторым
         if self.qiwi:
             methods.append('qiwi')
         if self.cryptomus:

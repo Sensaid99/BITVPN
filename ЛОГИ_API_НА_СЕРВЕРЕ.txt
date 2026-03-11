@@ -192,8 +192,8 @@
 
   3.1 На сервере открыть .env проекта.
       Введите (если проект в /opt/vpn-bot):
-        sudo nano /opt/vpn-bot/.env
-      Если проект в другой папке — подставьте свой путь.
+      
+          Если проект в другой папке — подставьте свой путь.
 
   3.2 Найти строку WEBAPP_URL (или добавить новую).
       Должно быть ровно так (подставьте СВОЙ HTTPS-домен без слэша):
@@ -241,6 +241,91 @@
       Введите:
         journalctl -u miniapp-api -n 100 --no-pager
       Удобно, чтобы не держать -f открытым.
+
+───────────────────────────────────────────────────────────────
+  ЕСЛИ В БРАУЗЕРЕ ERR_CONNECTION_REFUSED (сайт недоступен)
+───────────────────────────────────────────────────────────────
+
+  Если при открытии https://nikolay.lisobyk.fvds.ru (или /api/miniapp/plans)
+  браузер пишет «Не удается получить доступ к сайту» / ERR_CONNECTION_REFUSED —
+  на сервере не настроен приём HTTPS (порт 443). Nginx должен слушать 443
+  и иметь сертификат для вашего домена. Сделайте по шагам на сервере.
+
+  Диагностика (на сервере):
+    systemctl status nginx
+    ss -tlnp | grep -E ':80|:443'
+  Если nginx не запущен — запустите: sudo systemctl enable nginx && sudo systemctl start nginx
+  Если в списке нет :443 — nginx не настроен на HTTPS.
+
+  Если grep server_name показал только «server_name _;» (строка 54):
+  в конфиге не указан ваш домен — certbot не сможет привязать сертификат.
+  Откройте конфиг и замените строку «server_name _;» на:
+    server_name nikolay.lisobyk.fvds.ru;
+  Сохраните, затем: sudo nginx -t && sudo systemctl reload nginx.
+
+  Настройка HTTPS для домена nikolay.lisobyk.fvds.ru (один раз):
+
+  1) Установить certbot (если «certbot: command not found»):
+       sudo apt update
+       sudo apt install -y certbot python3-certbot-nginx
+     (nginx уже может быть установлен — тогда установится только certbot.)
+
+  2) Сначала пусть nginx слушает HTTP (80), чтобы certbot получил сертификат:
+       sudo nano /etc/nginx/sites-available/default
+     В блоке server { } с listen 80 убедитесь, что есть:
+       server_name nikolay.lisobyk.fvds.ru;
+     (не «server_name _;»). И внутри этого же блока добавьте (если ещё нет):
+       location /api/ {
+           proxy_pass http://127.0.0.1:8765;
+           proxy_http_version 1.1;
+           proxy_set_header Host $host;
+           proxy_set_header X-Real-IP $remote_addr;
+           proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+           proxy_set_header X-Forwarded-Proto $scheme;
+       }
+     Сохранить: Ctrl+O, Enter. Выйти: Ctrl+X.
+       sudo nginx -t && sudo systemctl reload nginx
+
+  3) Получить бесплатный SSL-сертификат (Let's Encrypt):
+       sudo certbot --nginx -d nikolay.lisobyk.fvds.ru
+     Следуйте подсказкам (email, согласие). Certbot сам добавит listen 443 ssl
+     в конфиг nginx и перезагрузит его.
+
+  4) Включить сайт в nginx (если каталог sites-enabled пустой):
+     Команда: ls /etc/nginx/sites-enabled/
+     Если пусто — nginx не подхватит default. Создайте симлинк:
+       sudo ln -s /etc/nginx/sites-available/default /etc/nginx/sites-enabled/default
+       sudo nginx -t && sudo systemctl restart nginx
+     Затем снова проверьте: ss -tlnp | grep -E ':80|:443' — должны быть оба порта.
+
+  5) Проверить с ПК в браузере:
+       https://nikolay.lisobyk.fvds.ru/api/miniapp/plans
+     Должен открыться JSON (список тарифов), а не ошибка соединения.
+
+  Важно: в панели хостера (FVDS и т.п.) у домена nikolay.lisobyk.fvds.ru
+  должна быть A-запись на IP вашего сервера (155.212.164.135). И порт 443
+  не должен быть закрыт файрволом на сервере: sudo ufw allow 443 && sudo ufw status
+
+───────────────────────────────────────────────────────────────
+  АВТООБНОВЛЕНИЕ SSL-СЕРТИФИКАТА (Certbot)
+───────────────────────────────────────────────────────────────
+
+  Let's Encrypt выдаёт сертификат на 90 дней. Certbot при установке
+  добавляет таймер, который раз в день проверяет срок и обновляет
+  сертификат за ~30 дней до истечения.
+
+  Проверить, что таймер включён и работает (на сервере):
+    systemctl status certbot.timer
+  Должно быть: «Active: active (waiting)». Если «inactive» — включите:
+    sudo systemctl enable certbot.timer
+    sudo systemctl start certbot.timer
+
+  Проверить, что обновление сработает (тест без реального обновления):
+    sudo certbot renew --dry-run
+  В конце должно быть: «Congratulations, all simulated renewals succeeded».
+
+  Когда certbot обновит сертификат, он перезагрузит nginx сам.
+  Письма на email (из certbot) приходят только при ошибке обновления.
 
 ───────────────────────────────────────────────────────────────
   ЕСЛИ ЧТО-ТО НЕ РАБОТАЕТ
