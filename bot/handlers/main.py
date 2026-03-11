@@ -226,6 +226,7 @@ async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
     support_username = (Config.SUPPORT_USERNAME or "").strip()
     keyboard = [
         [InlineKeyboardButton("📱 Открыть приложение", url=webapp_url)],
+        [InlineKeyboardButton("🌐 Канал BIT VPN", url="https://t.me/BitVpnProxy")],
     ]
     if support_username:
         support_url = f"https://t.me/{support_username.lstrip('@')}"
@@ -973,6 +974,7 @@ async def main_menu(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     support_username = (Config.SUPPORT_USERNAME or "").strip()
     keyboard = [
         [InlineKeyboardButton("📱 Открыть приложение", url=webapp_url)],
+        [InlineKeyboardButton("🌐 Канал BIT VPN", url="https://t.me/BitVpnProxy")],
     ]
     if support_username:
         support_url = f"https://t.me/{support_username.lstrip('@')}"
