@@ -220,35 +220,29 @@ async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
         finally:
             session.close()
     
-    # Check if returning user
+    # Краткое приветствие и две кнопки: Открыть приложение, Поддержка. Всё остальное — в мини-апп.
     is_returning = user.created_at < datetime.utcnow() - timedelta(hours=1)
-    
-    # Кнопки: Мой профиль, Помощь|Поддержка, Рефералы. Покупка и оплата — только в мини-приложении (кнопка «Открыть VPN» внизу).
+    webapp_url = get_webapp_url()
+    support_username = (Config.SUPPORT_USERNAME or "").strip()
     keyboard = [
-        [InlineKeyboardButton(get_message('btn_my_profile'), callback_data='profile')],
-        [
-            InlineKeyboardButton(get_message('btn_help'), callback_data='help'),
-            InlineKeyboardButton(get_message('btn_support'), callback_data='support')
-        ],
-        [InlineKeyboardButton(get_message('btn_referral'), callback_data='referral')]
+        [InlineKeyboardButton("📱 Открыть приложение", url=webapp_url)],
     ]
+    if support_username:
+        support_url = f"https://t.me/{support_username.lstrip('@')}"
+        keyboard.append([InlineKeyboardButton("💬 Поддержка", url=support_url)])
+    else:
+        keyboard.append([InlineKeyboardButton(get_message('btn_support'), callback_data='support')])
     reply_markup = InlineKeyboardMarkup(keyboard)
     
     if is_returning:
-        message_text = get_message('welcome_back', name=user.first_name or 'друг')
+        message_text = get_message('welcome_back_short', name=user.first_name or 'друг')
     else:
-        message_text = get_message('welcome')
+        message_text = get_message('welcome_short')
     
     await update.message.reply_text(
         message_text,
         reply_markup=reply_markup,
         parse_mode='HTML'
-    )
-    # Подсказка: мини-приложение только через кнопку «Открыть VPN» внизу (меню бота)
-    await context.bot.send_message(
-        chat_id=update.effective_chat.id,
-        text="👇 Всё в мини-приложении: нажмите кнопку «Открыть VPN» внизу",
-        reply_markup=ReplyKeyboardRemove()
     )
 
 
@@ -968,25 +962,26 @@ async def show_support(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
 
 
 async def main_menu(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
-    """Return to main menu"""
+    """Return to main menu — кратко, две кнопки: приложение и поддержка."""
     query = update.callback_query
     if query:
         await query.answer()
     
     user = get_or_create_user(update.effective_user)
     
-    # Покупка только в мини-приложении; внизу кнопка «Открыть VPN»
+    webapp_url = get_webapp_url()
+    support_username = (Config.SUPPORT_USERNAME or "").strip()
     keyboard = [
-        [InlineKeyboardButton(get_message('btn_my_profile'), callback_data='profile')],
-        [
-            InlineKeyboardButton(get_message('btn_help'), callback_data='help'),
-            InlineKeyboardButton(get_message('btn_support'), callback_data='support')
-        ],
-        [InlineKeyboardButton(get_message('btn_referral'), callback_data='referral')]
+        [InlineKeyboardButton("📱 Открыть приложение", url=webapp_url)],
     ]
+    if support_username:
+        support_url = f"https://t.me/{support_username.lstrip('@')}"
+        keyboard.append([InlineKeyboardButton("💬 Поддержка", url=support_url)])
+    else:
+        keyboard.append([InlineKeyboardButton(get_message('btn_support'), callback_data='support')])
     reply_markup = InlineKeyboardMarkup(keyboard)
     
-    message_text = get_message('welcome_back', name=user.first_name or 'друг')
+    message_text = get_message('welcome_back_short', name=user.first_name or 'друг')
     
     if query:
         try:

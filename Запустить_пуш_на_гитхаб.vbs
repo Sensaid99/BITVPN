@@ -5,4 +5,4 @@ scriptDir = fso.GetParentFolderName(WScript.ScriptFullName)
 q = Chr(34)
 Set wsh = CreateObject("WScript.Shell")
 wsh.CurrentDirectory = scriptDir
-wsh.Run "cmd /k " & q & "cd /d " & q & scriptDir & q & " && push_github.bat" & q, 1, False
+wsh.Run "cmd /k " & q & "cd /d " & q & scriptDir & q & " && ПУШ_НА_ГИТХАБ.bat" & q, 1, False
