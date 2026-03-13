@@ -41,6 +41,15 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+
+@app.middleware("http")
+async def log_every_request(request: Request, call_next):
+    """Пишем в лог каждый запрос — чтобы в консоли было видно, что API вызывают."""
+    logger.info(">>> %s %s", request.method, request.url.path)
+    response = await call_next(request)
+    return response
+
+
 BOT_TOKEN = os.getenv("BOT_TOKEN")
 if not BOT_TOKEN:
     logger.warning("BOT_TOKEN not set — initData validation will fail")
@@ -326,39 +335,129 @@ def _country_code_to_flag(code: str) -> str:
 
 # Кэш для снижения нагрузки при большом числе пользователей (см. НАГРУЗКА_МИНИАПП.md)
 _my_ip_cache: dict = {}
-_my_ip_cache_ttl = 600  # 10 минут — один IP не дёргаем ip-api.com чаще
+_my_ip_cache_ttl = 600  # 10 минут — один IP не дёргаем гео-API чаще
 _servers_status_cache: dict = {}
 _servers_status_cache_ttl = 60  # 1 минута — пинг списка серверов раз в минуту для всех
+
+
+def _geo_lookup(client_ip: str):
+    """Возвращает (country_code, country_name) по IP. Сначала ipwho.is, затем ip-api.com, ipapi.co."""
+    # 1) ipwho.is — стабильный, реже 403/429
+    try:
+        r = requests.get(f"https://ipwho.is/{client_ip}", timeout=5)
+        if r.ok:
+            data = r.json()
+            if data.get("success") is not False:
+                cc = (data.get("country_code") or "").strip()
+                cn = (data.get("country") or "").strip()
+                if cc and len(cc) == 2:
+                    logger.info("my-ip geo ok ip=%s provider=ipwho.is country=%s code=%s", client_ip, cn, cc)
+                    return (cc, cn or None)
+        else:
+            logger.info("my-ip geo ipwho.is ip=%s status=%s", client_ip, r.status_code)
+    except Exception as e:
+        logger.info("my-ip geo ipwho.is ip=%s error=%s", client_ip, e)
+    # 2) ip-api.com (часто 403 с хостингов)
+    try:
+        r = requests.get(
+            f"https://ip-api.com/json/{client_ip}?fields=country,countryCode",
+            timeout=5,
+        )
+        if r.ok:
+            data = r.json()
+            cc = (data.get("countryCode") or "").strip()
+            cn = (data.get("country") or "").strip()
+            if cc and len(cc) == 2:
+                logger.info("my-ip geo ok ip=%s provider=ip-api.com country=%s code=%s", client_ip, cn, cc)
+                return (cc, cn or None)
+        else:
+            logger.info("my-ip geo ip-api.com ip=%s status=%s body=%s", client_ip, r.status_code, r.text[:200])
+    except Exception as e:
+        logger.info("my-ip geo ip-api.com ip=%s error=%s", client_ip, e)
+    # 3) ipapi.co (лимит 429)
+    try:
+        r = requests.get(f"https://ipapi.co/{client_ip}/json/", timeout=5)
+        if r.ok:
+            data = r.json()
+            if not data.get("error"):
+                cc = (data.get("country_code") or "").strip()
+                cn = (data.get("country_name") or "").strip()
+                if cc and len(cc) == 2:
+                    logger.info("my-ip geo ok ip=%s provider=ipapi.co country=%s code=%s", client_ip, cn, cc)
+                    return (cc, cn or None)
+        else:
+            logger.info("my-ip geo ipapi.co ip=%s status=%s body=%s", client_ip, r.status_code, r.text[:200])
+    except Exception as e:
+        logger.info("my-ip geo ipapi.co ip=%s error=%s", client_ip, e)
+    logger.info("my-ip geo fail ip=%s (all providers returned no country)", client_ip)
+    return (None, None)
 
 
 @app.get("/api/miniapp/my-ip")
 async def miniapp_my_ip(request: Request):
     """
-    Возвращает IP клиента и страну (по геолокации IP). Кэш по IP 10 мин — при 1000 пользователей
-    не бьём ip-api.com тысячу раз (лимит бесплатного тарифа ~45 req/min).
+    Возвращает IP клиента и страну (по геолокации IP). Кэш по IP 10 мин.
+    Гео: ip-api.com, при неудаче — ipapi.co.
     """
     try:
-        forwarded = request.headers.get("x-forwarded-for") or request.headers.get("x-real-ip")
-        client_ip = forwarded.split(",")[0].strip() if forwarded else (request.client.host if request.client else "")
+        # Реальный IP клиента: Vercel/Cloudflare/прокси передают в заголовках
+        raw = (
+            request.headers.get("x-forwarded-for")
+            or request.headers.get("x-real-ip")
+            or request.headers.get("cf-connecting-ip")
+            or request.headers.get("true-client-ip")
+        )
+        client_ip = raw.split(",")[0].strip() if raw else (request.client.host if request.client else "")
+        logger.info("my-ip request x-forwarded-for=%s cf-connecting-ip=%s client_ip=%s", request.headers.get("x-forwarded-for"), request.headers.get("cf-connecting-ip"), client_ip)
+        # Локальный запуск (127.0.0.1): гео по тестовому IP, чтобы флаг отображался при проверке на своём компе
+        geo_ip = client_ip
         if not client_ip or client_ip == "127.0.0.1":
-            return {"ok": True, "ip": None, "country_code": None, "country_name": None, "flag": None}
+            geo_ip = "8.8.8.8"  # для гео при локальной проверке; в ответе ip оставляем как есть
+            if not client_ip:
+                client_ip = "127.0.0.1"
+            logger.info("my-ip local test: using geo_ip=%s for country lookup", geo_ip)
         now = datetime.utcnow()
-        if client_ip in _my_ip_cache:
-            entry = _my_ip_cache[client_ip]
+        if geo_ip in _my_ip_cache:
+            entry = _my_ip_cache[geo_ip]
             if (now - entry["ts"]).total_seconds() < _my_ip_cache_ttl:
+                logger.info("my-ip cache hit ip=%s country=%s code=%s", geo_ip, entry.get("cn"), entry.get("cc"))
                 return {"ok": True, "ip": client_ip, "country_code": entry.get("cc"), "country_name": entry.get("cn"), "flag": entry.get("flag")}
-        r = requests.get(f"https://ip-api.com/json/{client_ip}?fields=country,countryCode", timeout=3)
-        if r.ok:
-            data = r.json()
-            cc = data.get("countryCode") or ""
-            cn = data.get("country") or ""
-            flag = _country_code_to_flag(cc)
-            _my_ip_cache[client_ip] = {"cc": cc, "cn": cn, "flag": flag, "ts": now}
-            return {"ok": True, "ip": client_ip, "country_code": cc, "country_name": cn, "flag": flag}
-        return {"ok": True, "ip": client_ip, "country_code": None, "country_name": None, "flag": None}
+        cc, cn = _geo_lookup(geo_ip)
+        flag = _country_code_to_flag(cc) if cc else ""
+        if cc:
+            _my_ip_cache[geo_ip] = {"cc": cc, "cn": cn, "flag": flag, "ts": now}
+        return {"ok": True, "ip": client_ip, "country_code": cc, "country_name": cn, "flag": flag}
     except Exception as e:
-        logger.debug("my-ip: %s", e)
+        logger.info("my-ip error: %s", e)
         return {"ok": False, "ip": None, "country_code": None, "country_name": None, "flag": None}
+
+
+@app.get("/api/miniapp/geo")
+async def miniapp_geo(ip: str = ""):
+    """
+    Страна по переданному IP (для случая, когда my-ip вернул ip без страны).
+    Вызов: GET /api/miniapp/geo?ip=188.233.190.15
+    """
+    ip = (ip or "").strip()
+    if not ip or len(ip) > 45:
+        return {"ok": False, "country_code": None, "country_name": None}
+    now = datetime.utcnow()
+    if ip in _my_ip_cache:
+        entry = _my_ip_cache[ip]
+        if (now - entry["ts"]).total_seconds() < _my_ip_cache_ttl:
+            return {"ok": True, "country_code": entry.get("cc"), "country_name": entry.get("cn")}
+    cc, cn = _geo_lookup(ip)
+    if cc:
+        _my_ip_cache[ip] = {"cc": cc, "cn": cn, "flag": _country_code_to_flag(cc), "ts": now}
+    return {"ok": True, "country_code": cc, "country_name": cn}
+
+
+@app.get("/api/miniapp/ping")
+async def miniapp_ping():
+    """
+    Минимальный ответ для замера задержки (RTT) на клиенте. Не делает внешних запросов.
+    """
+    return {"ok": True, "ts": datetime.utcnow().isoformat() + "Z"}
 
 
 @app.get("/api/miniapp/speed-test-file")
@@ -379,6 +478,15 @@ async def miniapp_speed_test_file():
         media_type="application/octet-stream",
         headers={"Content-Length": str(size), "Cache-Control": "no-store"},
     )
+
+
+@app.post("/api/miniapp/speed-test-upload")
+async def miniapp_speed_test_upload(request: Request):
+    """
+    Принимает тело запроса для замера исходящей скорости. Клиент отправляет blob и по времени считает Мбит/с.
+    """
+    body = await request.body()
+    return {"ok": True, "received": len(body)}
 
 
 @app.get("/api/miniapp/servers-status")

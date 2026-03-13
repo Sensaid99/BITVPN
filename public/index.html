@@ -274,6 +274,23 @@
       transition: background 0.2s;
     }
     .main-install-btn:active { background: #2e2e2e; }
+    .speed-compact-row {
+      display: flex; justify-content: space-between; align-items: center; gap: 12px;
+      margin: 8px 0; padding: 10px 12px;
+      border-top: 1px solid var(--border); border-bottom: 1px solid var(--border);
+      background: rgba(0,255,136,0.04); border-radius: 10px; border-left: 1px solid var(--border); border-right: 1px solid var(--border);
+    }
+    .main-card-glass .speed-compact-row { border-color: #2a2a2a; background: rgba(0,255,136,0.03); }
+    .speed-compact-item { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; font-size: 0.7rem; color: var(--text); flex: 1; min-width: 0; text-align: center; }
+    .speed-compact-item:first-child { min-width: 3.2em; }
+    .speed-compact-item:nth-child(n+2) { min-width: 4.2em; }
+    .speed-compact-item .val { font-weight: 600; font-size: 0.72rem; color: var(--accent); white-space: nowrap; }
+    .speed-compact-item .val.ping { color: #7dd3fc; }
+    .speed-compact-item .flag-wrap { display: flex; flex-direction: column; align-items: center; gap: 1px; min-height: 2em; justify-content: center; }
+    .speed-compact-item .flag-emoji { font-size: 1.4rem; line-height: 1; display: block; }
+    .speed-compact-item .flag-code { font-size: 0.7rem; font-weight: 700; color: var(--accent); letter-spacing: 0.02em; }
+    .speed-compact-item .speed-country-name { font-size: 0.58rem; color: var(--text-muted); line-height: 1.2; max-width: 4.2em; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .speed-compact-item .speed-compact-label { font-size: 0.65rem; color: var(--text-muted); }
     .main-card-glass .tariffs-inline {
       border-color: #2a2a2a;
       margin-top: 14px;
@@ -541,6 +558,7 @@
     .profile-sheet-hidden { display: none !important; }
     .bottom-sheet-handle { width: 40px; height: 4px; border-radius: 2px; background: rgba(255,255,255,0.25); margin: 10px auto 6px; flex-shrink: 0; }
     .bottom-sheet .sheet-content { padding: 0 16px 16px; overflow-x: hidden; word-break: break-word; }
+    .bottom-sheet .sheet-content.sheet-content-scrollable { flex: 1; min-height: 0; overflow-y: auto; -webkit-overflow-scrolling: touch; overscroll-behavior: contain; }
     .bottom-sheet .sheet-title { font-size: 1rem; font-weight: 700; color: var(--text); text-align: center; margin-bottom: 12px; }
     .bottom-sheet .sheet-client-id { display: flex; align-items: center; gap: 8px; padding: 8px 12px; margin-bottom: 12px; background: rgba(255,255,255,0.04); border-radius: 12px; border: 1px solid var(--border); }
     .bottom-sheet .sheet-client-id .client-id-label { font-size: 0.8rem; color: var(--text-muted); }
@@ -554,6 +572,14 @@
     .sheet-happ-link-row .btn-copy { width: 40px; height: 40px; flex-shrink: 0; border-radius: 10px; background: rgba(0,255,136,0.2); border: 1px solid var(--accent); color: var(--accent); display: flex; align-items: center; justify-content: center; cursor: pointer; }
     .sheet-happ-link-row .btn-copy svg { width: 18px; height: 18px; fill: currentColor; }
     .sheet-happ-link-tip { font-size: 0.75rem; color: var(--text-muted); margin: 0; line-height: 1.35; }
+    .sheet-happ-link-row .btn-open-happ { flex: 1; min-width: 0; padding: 10px 12px; border-radius: 10px; border: 1px solid var(--accent); background: rgba(0,255,136,0.15); color: var(--accent); font-size: 0.85rem; font-weight: 600; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px; }
+    .subs-happ-block { margin: 14px 0; padding: 12px; background: rgba(0,255,136,0.08); border: 1px solid rgba(0,255,136,0.25); border-radius: 12px; }
+    .subs-happ-block .subs-happ-title { font-size: 0.9rem; font-weight: 600; color: var(--text); margin: 0 0 10px 0; }
+    .subs-happ-btns { display: flex; gap: 10px; margin-bottom: 8px; }
+    .subs-happ-btns .btn-open-happ { flex: 1; padding: 12px 14px; border-radius: 10px; border: 1px solid var(--accent); background: rgba(0,255,136,0.15); color: var(--accent); font-size: 0.9rem; font-weight: 600; cursor: pointer; }
+    .subs-happ-btns .btn-copy { width: 48px; padding: 0; border-radius: 10px; background: rgba(0,255,136,0.2); border: 1px solid var(--accent); color: var(--accent); display: flex; align-items: center; justify-content: center; cursor: pointer; flex-shrink: 0; }
+    .subs-happ-btns .btn-copy svg { width: 20px; height: 20px; fill: currentColor; }
+    .subs-happ-tip { font-size: 0.75rem; color: var(--text-muted); margin: 0; line-height: 1.35; }
     .sheet-happ-no-link-hint { margin-bottom: 12px; padding: 10px 12px; background: rgba(255,193,7,0.08); border: 1px solid rgba(255,193,7,0.3); border-radius: 10px; font-size: 0.8rem; color: var(--text-muted); line-height: 1.4; }
     .sheet-happ-no-link-hint p { margin: 0; }
     .sheet-current-device { padding: 14px; margin-bottom: 12px; background: linear-gradient(135deg, rgba(0,255,136,0.06), rgba(0,255,136,0.02)); border: 1px solid rgba(0,255,136,0.2); border-radius: 14px; }
@@ -577,6 +603,21 @@
     .bottom-sheet .sheet-devices-empty { color: var(--text-muted); font-size: 0.8rem; padding: 8px 0; }
     .bottom-sheet .sheet-add-device { display: inline-flex; align-items: center; justify-content: center; gap: 6px; padding: 10px 18px; border-radius: 10px; background: rgba(0,255,136,0.12); color: var(--accent); font-weight: 600; font-size: 0.85rem; border: 1px solid rgba(0,255,136,0.35); cursor: pointer; width: 100%; }
     .bottom-sheet .sheet-tip { font-size: 0.72rem; color: var(--text-muted); text-align: center; margin-top: 10px; line-height: 1.4; }
+    .speed-sheet-geo { padding: 14px 16px; margin-bottom: 14px; background: rgba(0,255,136,0.06); border: 1px solid rgba(0,255,136,0.2); border-radius: 14px; }
+    .speed-sheet-flag-row { display: flex; align-items: center; gap: 10px; margin-bottom: 6px; }
+    .speed-sheet-flag { font-size: 2rem; line-height: 1; }
+    .speed-sheet-flag-img { width: 32px; height: 24px; object-fit: contain; border-radius: 4px; display: block; }
+    .speed-sheet-flag-wrap { display: inline-flex; align-items: center; min-width: 32px; min-height: 24px; }
+    .speed-sheet-flag-emoji { font-size: 1.5rem; line-height: 1; }
+    .speed-sheet-local-note { font-size: 0.75rem; color: var(--text-muted); margin-top: 8px; line-height: 1.35; }
+    .speed-sheet-country { font-size: 1rem; font-weight: 600; color: var(--text); }
+    .speed-sheet-ip { font-size: 0.8rem; color: var(--text-muted); font-family: 'JetBrains Mono', monospace; }
+    .speed-sheet-metrics { display: flex; flex-direction: column; gap: 12px; }
+    .speed-sheet-row { display: flex; align-items: center; gap: 10px; padding: 12px 14px; background: rgba(255,255,255,0.04); border-radius: 12px; border: 1px solid var(--border); }
+    .speed-sheet-label { font-size: 0.9rem; color: var(--text-muted); flex: 1; }
+    .speed-sheet-arrow { font-size: 1.1rem; color: var(--accent); }
+    .speed-sheet-val { font-size: 1.05rem; font-weight: 700; color: var(--accent); }
+    .speed-sheet-val.speed-sheet-ping { color: #7dd3fc; }
     .setup-sheet-hidden { display: none !important; }
     .sheet-setup-intro { font-size: 0.82rem; color: var(--text-muted); margin-bottom: 14px; line-height: 1.45; }
     .setup-devices { display: flex; flex-direction: column; gap: 12px; }
@@ -697,20 +738,6 @@
         </div>
         <span id="status-badge" class="status-badge">Загрузка…</span>
       </div>
-      <div class="stats-row">
-        <div id="stat-speed-block" class="stat-item" role="button" tabindex="0" title="Нажмите для замера скорости">
-          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M13 2.05v2.02c3.95.49 7 3.85 7 7.93 0 3.95-2.94 7.17-6.77 7.43L15 20.05v2.02c5.05-.5 9-4.76 9-9.95 0-5.18-3.95-9.45-9-9.95z"/></svg>
-          <span id="stat-speed-text">До 100 Мбит/с</span>
-        </div>
-        <div class="stat-item">
-          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 18c1.1 0 1.99-.9 1.99-2L22 6c0-1.1-.9-2-2-2H4c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2H0v2h24v-2h-4zM4 6h16v10H4V6z"/></svg>
-          <span id="stat-devices-text">1 устройство</span>
-        </div>
-        <div class="stat-item">
-          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 17.93c-3.95-.49-7-3.85-7-7.93 0-.62.08-1.21.21-1.79L9 15v1c0 1.1.9 2 2 2v1.93zm6.9-2.54c-.26-.81-1-1.39-1.9-1.39h-1v-3c0-.55-.45-1-1-1H8v-2h2c.55 0 1-.45 1-1V7h2c1.1 0 2-.9 2-2v-.41c2.93 1.19 5 4.06 5 7.41 0 2.08-.8 3.97-2.1 5.39z"/></svg>
-          <span id="stat-servers-text">50+ серверов</span>
-        </div>
-      </div>
       <a id="btn-buy" class="main-cta" href="#">
         <svg viewBox="0 0 24 24"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg>
         Оформить подписку
@@ -725,7 +752,7 @@
           <span class="main-action-label">Помощь</span>
         </button>
       </div>
-      <div class="main-install-wrap">
+      <div class="main-install-wrap" style="display:none;">
         <button type="button" id="btn-install-sub" class="main-install-btn">Установить подписку на это устройство</button>
       </div>
       <div id="help-inline" class="tariffs-inline" style="display:none;">
@@ -763,6 +790,14 @@
           </div>
         </div>
         <div id="subs-empty-active" class="subs-empty" style="display:none;">Нет активных подписок. Оформите подписку на главном экране.</div>
+        <div id="subs-happ-block" class="subs-happ-block" style="display:none;">
+          <p class="subs-happ-title">🔗 Ссылка для приложения Happ</p>
+          <div class="subs-happ-btns">
+            <button type="button" id="subs-happ-open" class="btn-open-happ">Открыть в Happ</button>
+            <button type="button" id="subs-happ-copy" class="btn-copy" title="Скопировать"><svg viewBox="0 0 24 24"><path d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z"/></svg></button>
+          </div>
+          <p class="subs-happ-tip">Нажмите «Открыть в Happ» — приложение откроется и подписка добавится. Или скопируйте и вставьте в меню «+» Happ.</p>
+        </div>
         <div class="subs-extend">
           <a href="#" id="btn-subs-extend" class="btn btn-primary">Продлить подписку</a>
         </div>
@@ -849,6 +884,10 @@
       <button type="button" id="profile-row-promo" class="profile-action-btn profile-glass">
         <span class="action-icon"><svg viewBox="0 0 24 24"><path d="M21.41 11.58l-9-9C12.05 2.22 11.55 2 11 2H4c-1.1 0-2 .9-2 2v7c0 .55.22 1.05.59 1.42l9 9c.36.36.86.58 1.41.58.55 0 1.05-.22 1.41-.59l7-7c.37-.36.59-.86.59-1.41 0-.55-.23-1.06-.59-1.42z"/></svg></span>
         <span class="action-label">Промокод</span>
+      </button>
+      <button type="button" id="profile-row-speed" class="profile-action-btn profile-glass">
+        <span class="action-icon"><svg viewBox="0 0 24 24"><path d="M13 2.05v2.02c3.95.49 7 3.85 7 7.93 0 3.95-2.94 7.17-6.77 7.43L15 20.05v2.02c5.05-.5 9-4.76 9-9.95 0-5.18-3.95-9.45-9-9.95z"/></svg></span>
+        <span class="action-label">Проверить скорость</span>
       </button>
     </div>
     <a href="#" id="profile-link-history" class="profile-row profile-glass">
@@ -977,7 +1016,7 @@
   <div id="devices-sheet-overlay" class="bottom-sheet-overlay" aria-hidden="true"></div>
   <div id="devices-sheet" class="bottom-sheet" role="dialog" aria-label="Устройства">
     <div class="bottom-sheet-handle"></div>
-    <div class="sheet-content">
+    <div class="sheet-content sheet-content-scrollable">
       <h2 class="sheet-title">Устройства</h2>
       <div class="sheet-client-id">
         <span class="client-id-label">ID клиента</span>
@@ -985,12 +1024,13 @@
         <button type="button" id="sheet-copy-id" class="btn-copy" title="Копировать"><svg viewBox="0 0 24 24"><path d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z"/></svg></button>
       </div>
       <div id="sheet-happ-link-block" class="sheet-happ-link-block" style="display:none;">
+        <input type="hidden" id="sheet-happ-link-value" />
         <p class="sheet-happ-link-label">🔗 Ссылка для приложения Happ</p>
         <div class="sheet-happ-link-row">
-          <input type="text" id="sheet-happ-link-value" readonly class="sheet-happ-link-input" />
+          <button type="button" id="sheet-happ-link-open" class="btn-open-happ">Открыть в Happ</button>
           <button type="button" id="sheet-happ-link-copy" class="btn-copy" title="Скопировать"><svg viewBox="0 0 24 24"><path d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z"/></svg></button>
         </div>
-        <p class="sheet-happ-link-tip">Вставьте ссылку в приложение Happ (меню «+» или из буфера обмена).</p>
+        <p class="sheet-happ-link-tip">Нажмите «Открыть в Happ» — приложение откроется и подписка добавится. Или скопируйте и вставьте в меню «+» Happ.</p>
       </div>
       <div id="sheet-happ-no-link-hint" class="sheet-happ-no-link-hint" style="display:none;">
         <p>У вас есть подписка. Если ссылка выше не отображается — откройте приложение из меню бота и обновите страницу, или в боте нажмите «Мой конфиг» — ссылка придёт в чат.</p>
@@ -1021,6 +1061,41 @@
       <p class="sheet-tip">Конфиг и инструкция приходят в боте после оплаты</p>
     </div>
   </div>
+
+  <div id="speed-sheet-overlay" class="bottom-sheet-overlay devices-sheet-hidden" aria-hidden="true"></div>
+  <div id="speed-sheet" class="bottom-sheet devices-sheet-hidden" role="dialog" aria-label="Проверка скорости" style="max-height:70vh;">
+    <div class="bottom-sheet-handle"></div>
+    <div class="sheet-content sheet-content-scrollable">
+      <h2 class="sheet-title">Проверка скорости</h2>
+      <div id="speed-sheet-geo" class="speed-sheet-geo">
+        <div class="speed-sheet-flag-row">
+          <span class="speed-sheet-flag-wrap">
+            <img id="speed-sheet-flag" class="speed-sheet-flag speed-sheet-flag-img" alt="" role="presentation" src="" style="display:none;">
+            <span id="speed-sheet-flag-emoji" class="speed-sheet-flag-emoji" style="display:none;" aria-hidden="true"></span>
+          </span>
+          <span id="speed-sheet-country" class="speed-sheet-country">—</span>
+        </div>
+        <div class="speed-sheet-ip">IP: <span id="speed-sheet-ip">—</span></div>
+        <div id="speed-sheet-local-note" class="speed-sheet-local-note" style="display:none;"></div>
+      </div>
+      <div id="speed-sheet-metrics" class="speed-sheet-metrics">
+        <div class="speed-sheet-row">
+          <span class="speed-sheet-label">Входящая</span>
+          <span class="speed-sheet-arrow">↓</span>
+          <span id="speed-sheet-in" class="speed-sheet-val">—</span>
+        </div>
+        <div class="speed-sheet-row">
+          <span class="speed-sheet-label">Исходящая</span>
+          <span class="speed-sheet-arrow">↑</span>
+          <span id="speed-sheet-out" class="speed-sheet-val">—</span>
+        </div>
+        <div class="speed-sheet-row">
+          <span class="speed-sheet-label">Задержка</span>
+          <span id="speed-sheet-ping" class="speed-sheet-val speed-sheet-ping">—</span>
+        </div>
+      </div>
+      <button type="button" id="speed-sheet-remake" class="btn btn-primary" style="margin-top:12px;">Замерить снова</button>
+    </div>
   </div>
 
   <div id="account-sheet-overlay" class="bottom-sheet-overlay profile-sheet-hidden" aria-hidden="true"></div>
@@ -1065,16 +1140,17 @@
   <div id="setup-sheet-overlay" class="bottom-sheet-overlay setup-sheet-hidden" aria-hidden="true"></div>
   <div id="setup-sheet" class="bottom-sheet setup-sheet-hidden" role="dialog" aria-label="Инструкция по подключению" style="max-height:70vh;">
     <div class="bottom-sheet-handle"></div>
-    <div class="sheet-content">
+    <div class="sheet-content sheet-content-scrollable">
       <h2 class="sheet-title">Подключение VPN (Happ)</h2>
       <p class="sheet-setup-intro" id="setup-intro-text">Ссылку подписки вы получите в боте после оплаты. Ниже — как установить приложение Happ и добавить ссылку.</p>
       <div id="setup-happ-link-block" class="sheet-happ-link-block" style="display:none;">
+        <input type="hidden" id="setup-happ-link-value" />
         <p class="sheet-happ-link-label">🔗 Ваша ссылка подписки</p>
         <div class="sheet-happ-link-row">
-          <input type="text" id="setup-happ-link-value" readonly class="sheet-happ-link-input" />
+          <button type="button" id="setup-happ-link-open" class="btn-open-happ">Открыть в Happ</button>
           <button type="button" id="setup-happ-link-copy" class="btn-copy" title="Скопировать"><svg viewBox="0 0 24 24"><path d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z"/></svg></button>
         </div>
-        <p class="sheet-happ-link-tip">Вставьте ссылку в приложение Happ (меню «+» или из буфера обмена).</p>
+        <p class="sheet-happ-link-tip">Нажмите «Открыть в Happ» или скопируйте и вставьте в меню «+» Happ.</p>
       </div>
       <div class="setup-devices">
         <div class="setup-device-block">
@@ -1395,19 +1471,30 @@
       function getInitData() { return (tg && tg.initData) ? tg.initData : (initDataFromHash || ''); }
       function attachSwipeToClose(sheet, overlay, hiddenClass, closeCallback) {
         if (!sheet || !overlay) return;
-        var startY = 0, startT = 0;
+        var startY = 0, startT = 0, startTarget = null;
+        var sheetContent = sheet.querySelector && sheet.querySelector('.sheet-content');
         function onStart(e) {
           if (!e.touches || !e.touches.length) return;
           startY = e.touches[0].clientY;
           startT = Date.now();
+          startTarget = e.target;
           sheet.style.transition = 'none';
         }
         function onMove(e) {
           if (!e.touches || !e.touches.length) return;
           var y = e.touches[0].clientY;
-          var delta = Math.max(0, y - startY);
-          sheet.style.transform = 'translateY(' + delta + 'px)';
-          if (delta > 10) e.preventDefault();
+          var delta = y - startY;
+          if (sheetContent && sheetContent.contains(startTarget)) {
+            var atTop = sheetContent.scrollTop <= 0;
+            if (atTop && delta > 0) {
+              sheet.style.transform = 'translateY(' + Math.max(0, delta) + 'px)';
+              if (delta > 10) e.preventDefault();
+            }
+            return;
+          }
+          var deltaOnly = Math.max(0, delta);
+          sheet.style.transform = 'translateY(' + deltaOnly + 'px)';
+          if (deltaOnly > 10) e.preventDefault();
         }
         function onEnd(e) {
           if (!e.changedTouches || !e.changedTouches.length) return;
@@ -1563,44 +1650,6 @@
           mainStatusBadge.classList.toggle('active', !!hasActiveSub);
         }
         if (mainInstallWrap) mainInstallWrap.style.display = hasActiveSub ? 'none' : '';
-        var statDevicesEl = document.getElementById('stat-devices-text');
-        var statServersEl = document.getElementById('stat-servers-text');
-        if (statDevicesEl) {
-          var sub = API_ME.subscription;
-          if (sub && sub.devices_used != null && sub.devices_limit != null) {
-            statDevicesEl.textContent = sub.devices_used + ' / ' + sub.devices_limit + ' устройств';
-          } else {
-            var limit = 1;
-            if (sub && sub.plan_type) {
-              var parts = (sub.plan_type + '').split('_');
-              if (parts.length && parts[parts.length - 1] && /^\d+$/.test(parts[parts.length - 1])) limit = Math.max(1, parseInt(parts[parts.length - 1], 10));
-            }
-            statDevicesEl.textContent = limit === 1 ? '1 устройство' : limit + ' устройств';
-          }
-        }
-        if (statServersEl) {
-          if (apiBase) {
-            fetch(apiBase + '/api/miniapp/servers-status').then(function(r) { return r.ok ? r.json() : null; }).catch(function() { return null; }).then(function(d) {
-              if (d && d.ok && statServersEl) statServersEl.textContent = d.online === d.total ? (d.online + ' серверов') : (d.online + ' / ' + d.total + ' серверов');
-            });
-          } else if (window.API_CONFIG && window.API_CONFIG.server_count != null) {
-            statServersEl.textContent = window.API_CONFIG.server_count + ' серверов';
-          }
-        }
-        if (apiBase) {
-          fetch(apiBase + '/api/miniapp/my-ip').then(function(r) { return r.ok ? r.json() : null; }).catch(function() { return null; }).then(function(d) {
-            var speedEl = document.getElementById('stat-speed-text');
-            if (!speedEl) return;
-            if (d && d.ok && d.flag && d.country_name) {
-              window._liveCountry = { flag: d.flag, name: d.country_name };
-              speedEl.textContent = d.flag + ' ' + d.country_name;
-              speedEl.title = 'Нажмите для замера скорости';
-            } else {
-              window._liveCountry = null;
-              speedEl.textContent = 'До 100 Мбит/с';
-            }
-          });
-        }
         var listActive = document.getElementById('subs-list-active');
         var listInactive = document.getElementById('subs-list-inactive');
         var emptyActive = document.getElementById('subs-empty-active');
@@ -1642,6 +1691,17 @@
           historyListPending.innerHTML = pending.length ? pending.slice(0, 10).map(function(p) {
             return '<div class="pay-item"><div class="pay-item-head"><div class="pay-item-title"><svg viewBox="0 0 24 24"><path d="M20 4H4c-1.11 0-1.99.89-1.99 2L2 18c0 1.11.89 2 2 2h16c1.11 0 2-.89 2-2V6c0-1.11-.89-2-2-2zm0 14H4v-6h16v6zm0-10H4V6h16v2z"/></svg>Подписка Bit VPN</div><span class="pay-item-badge pending">В обработке</span></div><div class="pay-item-meta">' + (p.plan_name || p.plan_type || '') + '</div><div class="pay-item-row"><span>Сумма: ' + (p.amount_rubles || 0) + ' ₽</span></div></div>';
           }).join('') : '';
+        }
+        var subsHappBlock = document.getElementById('subs-happ-block');
+        var subLinkForSubs = (API_ME.subscription && API_ME.subscription.subscription_link) ? API_ME.subscription.subscription_link : '';
+        if (subsHappBlock) {
+          if (hasActiveSub && subLinkForSubs) {
+            subsHappBlock.style.display = '';
+            subsHappBlock.setAttribute('data-subscription-link', subLinkForSubs);
+          } else {
+            subsHappBlock.style.display = 'none';
+            subsHappBlock.removeAttribute('data-subscription-link');
+          }
         }
         var refStatInvited = document.getElementById('ref-stat-invited');
         var refStatDays = document.getElementById('ref-stat-days');
@@ -2100,25 +2160,131 @@
       if (btnInstallSub) {
         btnInstallSub.addEventListener('click', function() { openSubscribeSheet(); });
       }
-      var speedBlock = document.getElementById('stat-speed-block');
-      if (speedBlock) {
-        speedBlock.addEventListener('click', function() {
-          var el = document.getElementById('stat-speed-text');
-          if (!apiBase || !el) return;
-          var base = window._liveCountry ? window._liveCountry.flag + ' ' + window._liveCountry.name + ' • ' : '';
-          el.textContent = base + 'Замер...';
+      var _lastGeo = { code: '', country: '' };
+      function codeToFlagEmoji(cc) {
+        if (!cc || cc.length !== 2) return '';
+        var s = String(cc).toUpperCase();
+        if (s.charCodeAt(0) < 65 || s.charCodeAt(0) > 90 || s.charCodeAt(1) < 65 || s.charCodeAt(1) > 90) return '';
+        return String.fromCodePoint(0x1F1E6 + s.charCodeAt(0) - 65, 0x1F1E6 + s.charCodeAt(1) - 65);
+      }
+      function setSpeedSheet(ip, country, countryCode, inMbps, outMbps, pingMs) {
+        var flagEl = document.getElementById('speed-sheet-flag');
+        var flagEmojiEl = document.getElementById('speed-sheet-flag-emoji');
+        var countryEl = document.getElementById('speed-sheet-country');
+        var ipEl = document.getElementById('speed-sheet-ip');
+        var inEl = document.getElementById('speed-sheet-in');
+        var outEl = document.getElementById('speed-sheet-out');
+        var pingEl = document.getElementById('speed-sheet-ping');
+        var localNoteEl = document.getElementById('speed-sheet-local-note');
+        var isLocal = (ip === '127.0.0.1' || ip === 'localhost');
+        if (flagEl) {
+          var cc = (countryCode && countryCode.length >= 2) ? String(countryCode).toLowerCase() : '';
+          if (flagEmojiEl) { flagEmojiEl.style.display = 'none'; flagEmojiEl.textContent = ''; }
+          if (cc) {
+            flagEl.style.display = '';
+            flagEl.alt = country || cc.toUpperCase();
+            flagEl.setAttribute('data-fallback', codeToFlagEmoji(cc.toUpperCase()));
+            flagEl.onerror = function() { flagEl.style.display = 'none'; if (flagEmojiEl) { flagEmojiEl.textContent = flagEl.getAttribute('data-fallback') || ''; flagEmojiEl.style.display = 'inline'; } };
+            flagEl.src = 'https://flagcdn.com/w80/' + cc + '.png';
+          } else { flagEl.src = ''; flagEl.style.display = 'none'; if (flagEmojiEl) flagEmojiEl.style.display = 'none'; }
+        }
+        if (countryEl) countryEl.textContent = (country != null && country !== '') ? country : '—';
+        if (ipEl) ipEl.textContent = (ip != null && ip !== '') ? ip : '—';
+        if (localNoteEl) {
+          if (isLocal) { localNoteEl.textContent = 'Локальный тест: страна показана по тестовому IP (8.8.8.8). В боевом режиме будет ваш IP и страна. Скорость при локальном запуске не отражает интернет.'; localNoteEl.style.display = 'block'; } else { localNoteEl.style.display = 'none'; }
+        }
+        if (inEl) inEl.textContent = (isLocal ? '—' : (inMbps != null ? (inMbps === -1 ? '…' : inMbps.toFixed(2) + ' Мбит/с') : '—'));
+        if (outEl) outEl.textContent = (isLocal ? '—' : (outMbps != null ? (outMbps === -1 ? '…' : outMbps.toFixed(2) + ' Мбит/с') : '—'));
+        if (pingEl) pingEl.textContent = pingMs != null ? (pingMs === -1 ? '…' : Math.round(pingMs) + ' мс') : '—';
+      }
+      function measurePing(n) {
+        n = n || 5;
+        var times = [];
+        function run() {
+          if (times.length >= n) {
+            times.sort(function(a, b) { return a - b; });
+            var mid = Math.floor(times.length / 2);
+            var median = times.length % 2 ? times[mid] : (times[mid - 1] + times[mid]) / 2;
+            return Promise.resolve(median);
+          }
           var t0 = performance.now();
-          fetch(apiBase + '/api/miniapp/speed-test-file').then(function(r) { return r.blob(); }).then(function(blob) {
-            var t1 = performance.now();
-            var sec = (t1 - t0) / 1000;
-            var mb = blob.size / (1024 * 1024);
-            var mbps = (mb * 8) / sec;
-            el.textContent = base + Math.round(mbps) + ' Мбит/с';
-          }).catch(function() {
-            el.textContent = window._liveCountry ? window._liveCountry.flag + ' ' + window._liveCountry.name : 'До 100 Мбит/с';
+          return fetch(apiBase + '/api/miniapp/ping').then(function() {
+            times.push(performance.now() - t0);
+            return run();
+          }).catch(function() { return run(); });
+        }
+        return run();
+      }
+      function measureDownload() {
+        var t0 = performance.now();
+        return fetch(apiBase + '/api/miniapp/speed-test-file').then(function(r) { return r.blob(); }).then(function(blob) {
+          var sec = (performance.now() - t0) / 1000;
+          var mb = blob.size / (1024 * 1024);
+          return sec > 0 ? (mb * 8) / sec : 0;
+        }).catch(function() { return null; });
+      }
+      function runSpeedTestForSheet() {
+        if (!apiBase) { setSpeedSheet(null, 'Нет API', null, null, null, null); return; }
+        setSpeedSheet(null, '…', null, -1, -1, -1);
+        fetch(apiBase + '/api/miniapp/my-ip').then(function(r) { return r.json(); }).then(function(d) {
+          var ip = (d && d.ok && d.ip) ? d.ip : '';
+          var country = (d && d.ok && (d.country_name || d.countryName)) ? (d.country_name || d.countryName) : '';
+          var countryCode = (d && d.ok && (d.country_code || d.countryCode)) ? (d.country_code || d.countryCode) : '';
+          if (d && d.ok) { _lastGeo.code = countryCode; _lastGeo.country = country; window._liveCountry = { name: country, code: countryCode }; }
+          if (ip && (!countryCode || !country)) {
+            return fetch(apiBase + '/api/miniapp/geo?ip=' + encodeURIComponent(ip)).then(function(r) { return r.json(); }).then(function(geo) {
+              if (geo && geo.ok && geo.country_code) { country = geo.country_name || country; countryCode = geo.country_code; _lastGeo.code = countryCode; _lastGeo.country = country; }
+              return { ip: ip, country: country, countryCode: countryCode };
+            });
+          }
+          return Promise.resolve({ ip: ip, country: country, countryCode: countryCode });
+        }).then(function(data) {
+          var ip = data.ip, country = data.country, countryCode = data.countryCode;
+          setSpeedSheet(ip, country, countryCode, -1, -1, -1);
+          measurePing(5).then(function(pingMs) {
+            setSpeedSheet(ip, country, countryCode, -1, -1, pingMs);
+            Promise.all([measureDownload(), measureDownload()]).then(function(results) {
+              var inMbps = results[0] != null && results[1] != null ? Math.max(results[0], results[1]) : (results[0] != null ? results[0] : results[1]);
+              setSpeedSheet(ip, country, countryCode, inMbps, -1, pingMs);
+              var uploadSize = 512 * 1024;
+              var blobToSend = new Blob([new ArrayBuffer(uploadSize)]);
+              var t3 = performance.now();
+              fetch(apiBase + '/api/miniapp/speed-test-upload', { method: 'POST', body: blobToSend }).then(function(r) { return r.json(); }).then(function() {
+                var secUp = (performance.now() - t3) / 1000;
+                var outMbps = secUp > 0 ? (uploadSize * 8 / (1024 * 1024)) / secUp : 0;
+                setSpeedSheet(ip, country, countryCode, inMbps, outMbps, pingMs);
+              }).catch(function() {
+                setSpeedSheet(ip, country, countryCode, inMbps, null, pingMs);
+              });
+            }).catch(function() {
+              setSpeedSheet(ip, country, countryCode, null, null, pingMs);
+            });
           });
+        }).catch(function() {
+          setSpeedSheet(null, '—', null, null, null, null);
         });
       }
+      var speedSheet = document.getElementById('speed-sheet');
+      var speedSheetOverlay = document.getElementById('speed-sheet-overlay');
+      function openSpeedSheet() {
+        if (speedSheetOverlay) { speedSheetOverlay.classList.remove('devices-sheet-hidden'); speedSheetOverlay.classList.add('open'); speedSheetOverlay.setAttribute('aria-hidden', 'false'); }
+        if (speedSheet) { speedSheet.classList.remove('devices-sheet-hidden'); speedSheet.classList.add('open'); }
+        runSpeedTestForSheet();
+      }
+      function closeSpeedSheet() {
+        if (speedSheetOverlay) { speedSheetOverlay.classList.remove('open'); speedSheetOverlay.setAttribute('aria-hidden', 'true'); }
+        if (speedSheet) speedSheet.classList.remove('open');
+        setTimeout(function() {
+          if (speedSheetOverlay) speedSheetOverlay.classList.add('devices-sheet-hidden');
+          if (speedSheet) speedSheet.classList.add('devices-sheet-hidden');
+        }, 300);
+      }
+      if (speedSheetOverlay) speedSheetOverlay.addEventListener('click', closeSpeedSheet);
+      attachSwipeToClose(speedSheet, speedSheetOverlay, 'devices-sheet-hidden');
+      var profileRowSpeed = document.getElementById('profile-row-speed');
+      if (profileRowSpeed) profileRowSpeed.addEventListener('click', openSpeedSheet);
+      var speedSheetRemake = document.getElementById('speed-sheet-remake');
+      if (speedSheetRemake) speedSheetRemake.addEventListener('click', runSpeedTestForSheet);
       loadFromApi(function() { renderSubsAndPayFromApi(); });
 
       function getSupportUsername() { return (window.API_CONFIG && window.API_CONFIG.support_username) ? window.API_CONFIG.support_username : 'HelpBit_bot'; }
@@ -2242,6 +2408,35 @@
           }
         });
       }
+      var HAPP_ANDROID_INTENT = 'intent://#Intent;package=com.happproxy;action=android.intent.action.MAIN;category=android.intent.category.LAUNCHER;end';
+      function isAndroid() {
+        var ua = typeof navigator !== 'undefined' ? navigator.userAgent || '' : '';
+        return /Android/i.test(ua);
+      }
+      function openHappLink(url) {
+        if (!url) return;
+        var msg = 'Ссылка скопирована. Вставьте в Happ: Подписки → +';
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+          navigator.clipboard.writeText(url).then(function() {
+            if (tg && tg.showPopup) tg.showPopup({ title: '', message: msg });
+            else if (tg && tg.showAlert) tg.showAlert(msg);
+          }).catch(function() {});
+        }
+        if (isAndroid()) {
+          try {
+            if (tg && tg.openLink) tg.openLink(HAPP_ANDROID_INTENT);
+            else window.location.href = HAPP_ANDROID_INTENT;
+          } catch (e) {
+            if (tg && tg.showAlert) tg.showAlert(msg);
+          }
+        }
+      }
+      var sheetHappLinkOpen = document.getElementById('sheet-happ-link-open');
+      if (sheetHappLinkOpen && sheetHappLinkValue) {
+        sheetHappLinkOpen.addEventListener('click', function() {
+          openHappLink(sheetHappLinkValue.value);
+        });
+      }
       if (sheetHappLinkCopy && sheetHappLinkValue) {
         sheetHappLinkCopy.addEventListener('click', function() {
           var link = sheetHappLinkValue.value;
@@ -2257,6 +2452,27 @@
           } else {
             if (tg && tg.showAlert) tg.showAlert(link);
           }
+        });
+      }
+      var subsHappOpen = document.getElementById('subs-happ-open');
+      var subsHappCopy = document.getElementById('subs-happ-copy');
+      var subsHappBlockEl = document.getElementById('subs-happ-block');
+      if (subsHappOpen && subsHappBlockEl) {
+        subsHappOpen.addEventListener('click', function() {
+          var link = subsHappBlockEl.getAttribute('data-subscription-link');
+          openHappLink(link);
+        });
+      }
+      if (subsHappCopy && subsHappBlockEl) {
+        subsHappCopy.addEventListener('click', function() {
+          var link = subsHappBlockEl.getAttribute('data-subscription-link');
+          if (!link) return;
+          if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(link).then(function() {
+              if (tg && tg.showPopup) tg.showPopup({ title: '', message: 'Ссылка скопирована' });
+              else if (tg && tg.showAlert) tg.showAlert('Ссылка скопирована');
+            }).catch(function() { if (tg && tg.showAlert) tg.showAlert(link); });
+          } else if (tg && tg.showAlert) tg.showAlert(link);
         });
       }
       var sheetBtnSetupThis = document.getElementById('sheet-btn-setup-this');
@@ -2291,6 +2507,12 @@
       if (sheetBtnSetupThis) {
         sheetBtnSetupThis.addEventListener('click', function() {
           openSetupSheet();
+        });
+      }
+      var setupHappLinkOpen = document.getElementById('setup-happ-link-open');
+      if (setupHappLinkOpen && setupHappLinkValue) {
+        setupHappLinkOpen.addEventListener('click', function() {
+          openHappLink(setupHappLinkValue.value);
         });
       }
       if (setupHappLinkCopy && setupHappLinkValue) {
