@@ -65,12 +65,13 @@ if errorlevel 1 (
     if errorlevel 1 (
         echo    [ОШИБКА] Папка webapp не найдена.
     ) else (
-        echo    Запуск: npx vercel --prod --yes
-        call npx vercel --prod --yes
+        echo    Запуск: npx vercel --prod --yes --no-wait
+        echo    (деплой уходит на Vercel, скрипт не ждёт сборки — окно закроется за ~5 сек)
+        call npx vercel --prod --yes --no-wait
         if errorlevel 1 (
             echo    [ВНИМАНИЕ] Vercel вернул ошибку. Проверьте вывод выше. Логин: vercel login
         ) else (
-            echo    Vercel: деплой завершён.
+            echo    Vercel: деплой отправлен. Сайт обновится через 1-2 мин. Статус: vercel.com/dashboard
         )
         cd /d "%~dp0"
     )
