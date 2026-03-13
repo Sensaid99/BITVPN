@@ -752,8 +752,8 @@
           <span class="main-action-label">Помощь</span>
         </button>
       </div>
-      <div class="main-install-wrap" style="display:none;">
-        <button type="button" id="btn-install-sub" class="main-install-btn">Установить подписку на это устройство</button>
+      <div class="main-install-wrap">
+        <button type="button" id="btn-install-sub" class="main-install-btn">Установить подписку</button>
       </div>
       <div id="help-inline" class="tariffs-inline" style="display:none;">
         <h3>Помощь</h3>
@@ -1650,7 +1650,7 @@
           mainStatusBadge.textContent = hasActiveSub ? 'Активна' : 'Загрузка…';
           mainStatusBadge.classList.toggle('active', !!hasActiveSub);
         }
-        if (mainInstallWrap) mainInstallWrap.style.display = hasActiveSub ? 'none' : '';
+        if (mainInstallWrap) mainInstallWrap.style.display = '';
         var listActive = document.getElementById('subs-list-active');
         var listInactive = document.getElementById('subs-list-inactive');
         var emptyActive = document.getElementById('subs-empty-active');
