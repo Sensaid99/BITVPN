@@ -55,20 +55,26 @@ if errorlevel 1 (
 )
 echo.
 
-REM 2.5 Деплой мини-аппа на Vercel (bitvpn.vercel.app) — без ожидания сборки
+REM 2.5 Деплой мини-аппа на Vercel (bitvpn.vercel.app)
 echo 2.5 Деплой мини-аппа на Vercel (bitvpn.vercel.app)...
 where npx >nul 2>&1
 if errorlevel 1 (
-    echo    npx не найден - деплой Vercel пропущен. Установите Node.js или запустите ДЕПЛОЙ_МИНИАПП_VERCEL.bat отдельно.
+    echo    npx не найден - деплой Vercel пропущен. Установите Node.js.
 ) else (
-    cd webapp
-    call npx vercel --prod --yes --no-wait
+    cd /d "%~dp0webapp"
     if errorlevel 1 (
-        echo    [ВНИМАНИЕ] Деплой Vercel не удался. Запустите ДЕПЛОЙ_МИНИАПП_VERCEL.bat вручную.
+        echo    [ОШИБКА] Папка webapp не найдена.
     ) else (
-        echo    Vercel: деплой отправлен. Сайт обновится через 1-2 мин. Статус: vercel.com/dashboard
+        echo    Запуск: npx vercel --prod --yes
+        call npx vercel --prod --yes
+        set VRC=%errorlevel%
+        cd /d "%~dp0"
+        if %VRC% neq 0 (
+            echo    [ВНИМАНИЕ] Vercel вернул код %VRC%. Проверьте вывод выше. Логин: vercel login
+        ) else (
+            echo    Vercel: деплой завершён.
+        )
     )
-    cd ..
 )
 echo.
 
@@ -88,8 +94,9 @@ if "%SERVER_IP%"=="" (
 echo    Введите пароль от сервера, если попросит.
 ssh %SERVER_USER%@%SERVER_IP% "cd %BOT_PATH% && git pull --ff-only && sudo systemctl restart miniapp-api && echo Готово."
 if errorlevel 1 (
-    echo    [ОШИБКА] Подключение или команды на сервере не удались.
-    goto :error
+    echo    [ВНИМАНИЕ] SSH или команды на сервере не удались. Vercel уже обновлён, если шаг 2.5 прошёл.
+    echo    Проверьте deploy_config.cmd и доступ по SSH.
+    goto :finish
 )
 
 echo.
