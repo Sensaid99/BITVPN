@@ -641,18 +641,18 @@
     .install-intro-sheet .install-intro-btns .btn-install-other { width: 100%; padding: 16px 20px; border-radius: 999px; background: rgba(0,255,136,0.18); color: #fff; font-weight: 600; font-size: 0.95rem; border: 1px solid rgba(0,255,136,0.5); cursor: pointer; text-align: center; }
     /* Экран выбора платформы и приложения (после «Подключить на этом устройстве») */
     .platform-app-sheet-hidden { display: none !important; }
-    .platform-app-sheet .sheet-content { padding: 20px 18px 24px; max-height: 75vh; overflow-y: auto; }
-    .platform-app-sheet .platform-app-title { font-family: 'Unbounded', sans-serif; font-size: 1.2rem; font-weight: 700; color: var(--text); margin-bottom: 6px; letter-spacing: -0.02em; }
-    .platform-app-sheet .platform-app-desc { font-size: 0.85rem; color: var(--text-muted); line-height: 1.45; margin-bottom: 20px; }
-    .platform-app-sheet .platform-label { font-size: 0.75rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-muted); margin-bottom: 8px; }
-    .platform-app-sheet .platform-trigger { width: 100%; padding: 14px 16px; border-radius: 14px; background: rgba(255,255,255,0.05); border: 1px solid var(--border); color: var(--text); font-size: 0.95rem; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 12px; text-align: left; transition: border-color 0.2s, background 0.2s; }
+    .platform-app-sheet .sheet-content { padding: 14px 18px 18px; max-height: 75vh; overflow-y: auto; }
+    .platform-app-sheet .platform-app-title { font-family: 'Unbounded', sans-serif; font-size: 1.15rem; font-weight: 700; color: var(--text); margin-bottom: 6px; letter-spacing: -0.02em; text-align: center; padding: 0 8px; }
+    .platform-app-sheet .platform-app-desc { font-size: 0.82rem; color: var(--text-muted); line-height: 1.4; margin-bottom: 14px; text-align: center; padding: 0 12px 0 6px; max-width: 100%; }
+    .platform-app-sheet .platform-label { font-size: 0.75rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-muted); margin-bottom: 6px; }
+    .platform-app-sheet .platform-trigger { width: 100%; padding: 12px 14px; border-radius: 12px; background: rgba(255,255,255,0.05); border: 1px solid var(--border); color: var(--text); font-size: 0.9rem; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 10px; text-align: left; transition: border-color 0.2s, background 0.2s; }
     .platform-app-sheet .platform-trigger:active { background: rgba(255,255,255,0.08); }
     .platform-app-sheet .platform-trigger .platform-trigger-icon { width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
     .platform-app-sheet .platform-trigger .platform-trigger-icon svg { width: 22px; height: 22px; fill: currentColor; }
     .platform-app-sheet .platform-trigger .platform-trigger-name { flex: 1; }
     .platform-app-sheet .platform-trigger .platform-trigger-chevron { color: var(--text-muted); transition: transform 0.25s; }
     .platform-app-sheet .platform-trigger.open .platform-trigger-chevron { transform: rotate(180deg); }
-    .platform-app-sheet .platform-dropdown { margin-top: 8px; border-radius: 14px; background: rgba(0,0,0,0.25); border: 1px solid var(--border); overflow: hidden; }
+    .platform-app-sheet .platform-dropdown { margin-top: 6px; border-radius: 12px; background: rgba(0,0,0,0.25); border: 1px solid var(--border); overflow: hidden; }
     .platform-app-sheet .platform-option { width: 100%; padding: 12px 16px; border: none; background: transparent; color: var(--text); font-size: 0.9rem; font-weight: 500; cursor: pointer; display: flex; align-items: center; gap: 12px; text-align: left; border-bottom: 1px solid var(--border); transition: background 0.15s; }
     .platform-app-sheet .platform-option:last-child { border-bottom: none; }
     .platform-app-sheet .platform-option:active { background: rgba(0,255,136,0.1); }
@@ -661,16 +661,16 @@
     .platform-app-sheet .platform-option .platform-option-icon svg { width: 20px; height: 20px; fill: currentColor; }
     .platform-app-sheet .platform-option .platform-option-check { margin-left: auto; color: var(--accent); opacity: 0; }
     .platform-app-sheet .platform-option.selected .platform-option-check { opacity: 1; }
-    .platform-app-sheet .app-card { margin-top: 20px; padding: 18px; border-radius: 16px; background: linear-gradient(145deg, rgba(0,255,136,0.08), rgba(0,255,136,0.02)); border: 1px solid rgba(0,255,136,0.25); }
-    .platform-app-sheet .app-card-title { font-size: 1rem; font-weight: 700; color: var(--text); margin-bottom: 4px; display: flex; align-items: center; gap: 10px; }
-    .platform-app-sheet .app-card-title svg { width: 28px; height: 28px; fill: var(--accent); flex-shrink: 0; }
-    .platform-app-sheet .app-card-badge { font-size: 0.7rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; color: var(--accent); }
-    .platform-app-sheet .app-card-desc { font-size: 0.82rem; color: var(--text-muted); line-height: 1.4; margin-top: 8px; }
-    .platform-app-sheet .platform-app-actions { margin-top: 22px; display: flex; flex-direction: column; gap: 10px; }
-    .platform-app-sheet .btn-download-app { width: 100%; padding: 16px 20px; border-radius: 14px; background: linear-gradient(135deg, #00ff88, #00cc6a); color: #0d0d0d; font-weight: 700; font-size: 0.95rem; border: none; cursor: pointer; text-align: center; }
-    .platform-app-sheet .platform-app-footer-row { display: flex; gap: 10px; margin-top: 10px; }
-    .platform-app-sheet .btn-back-platform { flex: 1; padding: 14px 16px; border-radius: 12px; background: rgba(255,255,255,0.08); border: 1px solid var(--border); color: var(--text); font-weight: 600; font-size: 0.9rem; cursor: pointer; text-align: center; }
-    .platform-app-sheet .btn-add-sub-platform { flex: 1; padding: 14px 16px; border-radius: 12px; background: #fff; color: #0d0d0d; font-weight: 600; font-size: 0.9rem; border: none; cursor: pointer; text-align: center; }
+    .platform-app-sheet .app-card { margin-top: 12px; padding: 12px 14px; border-radius: 14px; background: linear-gradient(145deg, rgba(0,255,136,0.08), rgba(0,255,136,0.02)); border: 1px solid rgba(0,255,136,0.25); }
+    .platform-app-sheet .app-card-title { font-size: 0.95rem; font-weight: 700; color: var(--text); margin-bottom: 2px; display: flex; align-items: center; gap: 8px; }
+    .platform-app-sheet .app-card-title svg { width: 20px; height: 20px; fill: var(--accent); flex-shrink: 0; }
+    .platform-app-sheet .app-card-badge { font-size: 0.65rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; color: var(--accent); }
+    .platform-app-sheet .app-card-desc { font-size: 0.78rem; color: var(--text-muted); line-height: 1.35; margin-top: 6px; text-align: center; padding: 0 4px; }
+    .platform-app-sheet .platform-app-actions { margin-top: 14px; display: flex; flex-direction: column; gap: 8px; }
+    .platform-app-sheet .btn-download-app { width: 100%; padding: 12px 16px; border-radius: 12px; background: linear-gradient(135deg, #00ff88, #00cc6a); color: #0d0d0d; font-weight: 700; font-size: 0.9rem; border: none; cursor: pointer; text-align: center; }
+    .platform-app-sheet .platform-app-footer-row { display: flex; gap: 8px; margin-top: 6px; }
+    .platform-app-sheet .btn-back-platform { flex: 1; padding: 10px 12px; border-radius: 10px; background: rgba(255,255,255,0.08); border: 1px solid var(--border); color: var(--text); font-weight: 600; font-size: 0.82rem; cursor: pointer; text-align: center; }
+    .platform-app-sheet .btn-add-sub-platform { flex: 1; padding: 10px 12px; border-radius: 10px; background: #fff; color: #0d0d0d; font-weight: 600; font-size: 0.82rem; border: none; cursor: pointer; text-align: center; white-space: nowrap; }
     .sheet-setup-intro { font-size: 0.82rem; color: var(--text-muted); margin-bottom: 14px; line-height: 1.45; }
     .setup-devices { display: flex; flex-direction: column; gap: 12px; }
     .setup-device-block { padding: 12px; background: rgba(255,255,255,0.04); border: 1px solid var(--border); border-radius: 12px; }
