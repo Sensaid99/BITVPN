@@ -67,13 +67,12 @@ if errorlevel 1 (
     ) else (
         echo    Запуск: npx vercel --prod --yes
         call npx vercel --prod --yes
-        set VRC=%errorlevel%
-        cd /d "%~dp0"
-        if %VRC% neq 0 (
-            echo    [ВНИМАНИЕ] Vercel вернул код %VRC%. Проверьте вывод выше. Логин: vercel login
+        if errorlevel 1 (
+            echo    [ВНИМАНИЕ] Vercel вернул ошибку. Проверьте вывод выше. Логин: vercel login
         ) else (
             echo    Vercel: деплой завершён.
         )
+        cd /d "%~dp0"
     )
 )
 echo.
