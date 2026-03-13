@@ -671,6 +671,12 @@
     .platform-app-sheet .platform-app-footer-row { display: flex; gap: 8px; margin-top: 6px; }
     .platform-app-sheet .btn-back-platform { flex: 1; padding: 10px 12px; border-radius: 10px; background: rgba(255,255,255,0.08); border: 1px solid var(--border); color: var(--text); font-weight: 600; font-size: 0.82rem; cursor: pointer; text-align: center; }
     .platform-app-sheet .btn-add-sub-platform { flex: 1; padding: 10px 12px; border-radius: 10px; background: #fff; color: #0d0d0d; font-weight: 600; font-size: 0.82rem; border: none; cursor: pointer; text-align: center; white-space: nowrap; }
+    /* Окно подтверждения «Установили приложение?» перед добавлением подписки */
+    .confirm-installed-sheet-hidden { display: none !important; }
+    .confirm-installed-sheet .sheet-content { padding: 24px 20px 20px; text-align: center; }
+    .confirm-installed-sheet .confirm-installed-text { font-size: 0.95rem; color: var(--text); line-height: 1.5; margin-bottom: 22px; padding: 0 8px; }
+    .confirm-installed-sheet .btn-confirm-install { width: 100%; padding: 14px 20px; border-radius: 12px; background: #fff; color: #0d0d0d; font-weight: 700; font-size: 0.95rem; border: none; cursor: pointer; text-align: center; margin-bottom: 12px; }
+    .confirm-installed-sheet .btn-confirm-back { width: 100%; padding: 12px 20px; border-radius: 12px; background: rgba(255,255,255,0.12); border: 1px solid var(--border); color: var(--text-muted); font-weight: 600; font-size: 0.9rem; cursor: pointer; text-align: center; }
     .sheet-setup-intro { font-size: 0.82rem; color: var(--text-muted); margin-bottom: 14px; line-height: 1.45; }
     .setup-devices { display: flex; flex-direction: column; gap: 12px; }
     .setup-device-block { padding: 12px; background: rgba(255,255,255,0.04); border: 1px solid var(--border); border-radius: 12px; }
@@ -1243,6 +1249,17 @@
           <button type="button" id="platform-btn-add-sub" class="btn-add-sub-platform">Добавить подписку</button>
         </div>
       </div>
+    </div>
+  </div>
+
+  <!-- Окно: убедитесь, что установили приложение → Установить / Назад -->
+  <div id="confirm-installed-sheet-overlay" class="bottom-sheet-overlay confirm-installed-sheet-hidden" aria-hidden="true"></div>
+  <div id="confirm-installed-sheet" class="bottom-sheet confirm-installed-sheet confirm-installed-sheet-hidden" role="dialog" aria-label="Подтверждение установки" style="max-height:50vh;">
+    <div class="bottom-sheet-handle"></div>
+    <div class="sheet-content">
+      <p id="confirm-installed-text" class="confirm-installed-text">Убедитесь, что Вы установили приложение для дальнейшей автоматической настройки</p>
+      <button type="button" id="confirm-installed-btn-ok" class="btn-confirm-install">Установить</button>
+      <button type="button" id="confirm-installed-btn-back" class="btn-confirm-back">Назад</button>
     </div>
   </div>
 
@@ -2659,9 +2676,42 @@
       if (platformBtnAddSub) {
         platformBtnAddSub.addEventListener('click', function() {
           closePlatformAppSheet();
+          setTimeout(function() { if (typeof openConfirmInstalledSheet === 'function') openConfirmInstalledSheet(); }, 320);
+        });
+      }
+      var confirmInstalledSheet = document.getElementById('confirm-installed-sheet');
+      var confirmInstalledOverlay = document.getElementById('confirm-installed-sheet-overlay');
+      function openConfirmInstalledSheet() {
+        if (confirmInstalledOverlay) { confirmInstalledOverlay.classList.remove('confirm-installed-sheet-hidden'); confirmInstalledOverlay.classList.add('open'); confirmInstalledOverlay.setAttribute('aria-hidden', 'false'); }
+        if (confirmInstalledSheet) { confirmInstalledSheet.style.transform = ''; confirmInstalledSheet.style.transition = ''; confirmInstalledSheet.classList.remove('confirm-installed-sheet-hidden'); confirmInstalledSheet.classList.add('open'); }
+      }
+      function closeConfirmInstalledSheet() {
+        if (confirmInstalledOverlay) { confirmInstalledOverlay.classList.remove('open'); confirmInstalledOverlay.setAttribute('aria-hidden', 'true'); }
+        if (confirmInstalledSheet) { confirmInstalledSheet.style.transition = ''; confirmInstalledSheet.style.transform = ''; confirmInstalledSheet.classList.remove('open'); }
+        setTimeout(function() {
+          if (confirmInstalledOverlay) confirmInstalledOverlay.classList.add('confirm-installed-sheet-hidden');
+          if (confirmInstalledSheet) confirmInstalledSheet.classList.add('confirm-installed-sheet-hidden');
+        }, 320);
+      }
+      var confirmInstalledBtnOk = document.getElementById('confirm-installed-btn-ok');
+      var confirmInstalledBtnBack = document.getElementById('confirm-installed-btn-back');
+      if (confirmInstalledBtnOk) {
+        confirmInstalledBtnOk.addEventListener('click', function() {
+          closeConfirmInstalledSheet();
           setTimeout(function() { if (typeof openSetupSheet === 'function') openSetupSheet(); }, 320);
         });
       }
+      if (confirmInstalledBtnBack) {
+        confirmInstalledBtnBack.addEventListener('click', function() {
+          closeConfirmInstalledSheet();
+          setTimeout(function() { openPlatformAppSheet(); }, 320);
+        });
+      }
+      if (confirmInstalledOverlay) confirmInstalledOverlay.classList.add('confirm-installed-sheet-hidden');
+      if (confirmInstalledSheet) confirmInstalledSheet.classList.add('confirm-installed-sheet-hidden');
+      if (confirmInstalledOverlay) confirmInstalledOverlay.addEventListener('click', closeConfirmInstalledSheet);
+      if (confirmInstalledSheet) confirmInstalledSheet.addEventListener('click', function(e) { e.stopPropagation(); });
+      attachSwipeToClose(confirmInstalledSheet, confirmInstalledOverlay, 'confirm-installed-sheet-hidden');
       if (platformAppOverlay) platformAppOverlay.classList.add('platform-app-sheet-hidden');
       if (platformAppSheet) platformAppSheet.classList.add('platform-app-sheet-hidden');
       if (platformAppOverlay) platformAppOverlay.addEventListener('click', closePlatformAppSheet);
