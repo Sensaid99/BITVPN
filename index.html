@@ -259,21 +259,29 @@
       justify-content: center;
     }
     .main-action-btn .main-action-icon svg { width: 22px; height: 22px; fill: #b0b0b0; }
-    .main-action-btn .main-action-label { line-height: 1.2; }
-    .main-install-wrap { margin-top: 4px; }
+    .main-action-btn .main-action-label { line-height: 1.2; white-space: nowrap; }
+    .main-install-wrap { margin-top: 10px; display: block !important; }
     .main-install-btn {
       width: 100%;
-      padding: 12px 16px;
-      border-radius: 12px;
-      background: #252525;
-      border: 1px solid #333;
-      color: #c8c8c8;
-      font-size: 0.88rem;
+      padding: 14px 16px;
+      border-radius: 999px;
+      background: #fff;
+      border: none;
+      color: #1a1a1a;
+      font-size: 0.95rem;
       font-weight: 600;
       cursor: pointer;
-      transition: background 0.2s;
+      transition: background 0.2s, opacity 0.2s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
     }
-    .main-install-btn:active { background: #2e2e2e; }
+    .main-install-btn .main-install-label { flex: 1; text-align: center; }
+    .main-install-btn .main-install-icon { display: flex; align-items: center; justify-content: center; }
+    .main-install-btn .main-install-icon-left svg { width: 20px; height: 20px; color: #1a1a1a; }
+    .main-install-btn .main-install-icon-right svg { width: 22px; height: 22px; color: #888; }
+    .main-install-btn:active { background: #e8e8e8; }
     .speed-compact-row {
       display: flex; justify-content: space-between; align-items: center; gap: 12px;
       margin: 8px 0; padding: 10px 12px;
@@ -619,6 +627,18 @@
     .speed-sheet-val { font-size: 1.05rem; font-weight: 700; color: var(--accent); }
     .speed-sheet-val.speed-sheet-ping { color: #7dd3fc; }
     .setup-sheet-hidden { display: none !important; }
+    .install-intro-sheet-hidden { display: none !important; }
+    /* Экран «Установить подписку»: только выбор устройства + 2 кнопки (как на скриншоте) */
+    .install-intro-sheet .sheet-content { padding: 20px 20px 28px; text-align: center; }
+    .install-intro-sheet .install-intro-title { font-size: 1.35rem; font-weight: 700; color: var(--text); margin-bottom: 8px; line-height: 1.25; }
+    .install-intro-sheet .install-intro-desc { font-size: 0.9rem; color: var(--text-muted); margin-bottom: 24px; line-height: 1.4; }
+    .install-intro-sheet .install-intro-icon-wrap { width: 80px; height: 80px; margin: 0 auto 24px; border-radius: 50%; background: rgba(0,255,136,0.12); display: flex; align-items: center; justify-content: center; animation: install-icon-pulse 2.2s ease-in-out infinite; }
+    .install-intro-sheet .install-intro-icon-wrap svg { width: 40px; height: 40px; fill: var(--accent); stroke: var(--accent); animation: install-icon-wiggle 1.8s ease-in-out infinite; }
+    @keyframes install-icon-pulse { 0%, 100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(0,255,136,0.25); } 50% { transform: scale(1.06); box-shadow: 0 0 24px 4px rgba(0,255,136,0.2); } }
+    @keyframes install-icon-wiggle { 0%, 100% { transform: rotate(-3deg); } 50% { transform: rotate(3deg); } }
+    .install-intro-sheet .install-intro-btns { display: flex; flex-direction: column; gap: 12px; }
+    .install-intro-sheet .install-intro-btns .btn-install-this { width: 100%; padding: 16px 20px; border-radius: 999px; background: #fff; color: #0d0d0d; font-weight: 700; font-size: 0.95rem; border: none; cursor: pointer; text-align: center; box-shadow: 0 2px 12px rgba(0,0,0,0.2); }
+    .install-intro-sheet .install-intro-btns .btn-install-other { width: 100%; padding: 16px 20px; border-radius: 999px; background: rgba(0,255,136,0.18); color: #fff; font-weight: 600; font-size: 0.95rem; border: 1px solid rgba(0,255,136,0.5); cursor: pointer; text-align: center; }
     .sheet-setup-intro { font-size: 0.82rem; color: var(--text-muted); margin-bottom: 14px; line-height: 1.45; }
     .setup-devices { display: flex; flex-direction: column; gap: 12px; }
     .setup-device-block { padding: 12px; background: rgba(255,255,255,0.04); border: 1px solid var(--border); border-radius: 12px; }
@@ -752,8 +772,12 @@
           <span class="main-action-label">Помощь</span>
         </button>
       </div>
-      <div class="main-install-wrap" style="display:none;">
-        <button type="button" id="btn-install-sub" class="main-install-btn">Установить подписку на это устройство</button>
+      <div class="main-install-wrap">
+        <button type="button" id="btn-install-sub" class="main-install-btn">
+          <span class="main-install-icon main-install-icon-left"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="7" y="2" width="10" height="12" rx="1"/><path d="M10 14v4M14 14v4M9 18h6"/></svg></span>
+          <span class="main-install-label">Установить подписку</span>
+          <span class="main-install-icon main-install-icon-right"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/></svg></span>
+        </button>
       </div>
       <div id="help-inline" class="tariffs-inline" style="display:none;">
         <h3>Помощь</h3>
@@ -1040,13 +1064,13 @@
         <div class="sheet-current-device-top">
           <div class="sheet-current-device-icon" id="sheet-device-icon"></div>
           <div class="sheet-current-device-head">
-            <div class="sheet-current-device-title" id="sheet-device-title">Настройка на устройстве</div>
-            <div class="sheet-current-device-desc" id="sheet-device-desc">VPN в 3 шага. Вы заходите с этого устройства.</div>
+            <div class="sheet-current-device-title" id="sheet-device-title">Подключение на устройстве</div>
+            <div class="sheet-current-device-desc" id="sheet-device-desc">Подключение займёт 3 шага и пару минут.</div>
           </div>
         </div>
         <div class="sheet-current-device-btns">
-          <button type="button" id="sheet-btn-setup-this" class="btn-setup-this">Настроить здесь</button>
-          <button type="button" id="sheet-btn-setup-other" class="btn-setup-other">Другое устройство</button>
+          <button type="button" id="sheet-btn-setup-this" class="btn-setup-this">Подключить на этом устройстве</button>
+          <button type="button" id="sheet-btn-setup-other" class="btn-setup-other">Подключить на другом устройстве</button>
         </div>
       </div>
       <div class="sheet-devices">
@@ -1060,6 +1084,23 @@
         <button type="button" id="sheet-add-device" class="sheet-add-device">+ Добавить устройство</button>
       </div>
       <p class="sheet-tip">Конфиг и инструкция приходят в боте после оплаты</p>
+    </div>
+  </div>
+
+  <!-- Отдельный экран «Установить подписку»: определение устройства + 2 кнопки (не «Устройства») -->
+  <div id="install-intro-sheet-overlay" class="bottom-sheet-overlay install-intro-sheet-hidden" aria-hidden="true"></div>
+  <div id="install-intro-sheet" class="bottom-sheet install-intro-sheet install-intro-sheet-hidden" role="dialog" aria-label="Подключение подписки" style="max-height:70vh;">
+    <div class="bottom-sheet-handle"></div>
+    <div class="sheet-content">
+      <h2 id="install-intro-title" class="install-intro-title">Подключение на устройстве</h2>
+      <p id="install-intro-desc" class="install-intro-desc">Подключение займёт 3 шага и пару минут.</p>
+      <div id="install-intro-icon-wrap" class="install-intro-icon-wrap" aria-hidden="true">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="7" y="2" width="10" height="12" rx="1"/><path d="M10 14v4M14 14v4M9 18h6"/></svg>
+      </div>
+      <div class="install-intro-btns">
+        <button type="button" id="install-intro-btn-this" class="btn-install-this">Подключить на этом устройстве</button>
+        <button type="button" id="install-intro-btn-other" class="btn-install-other">Подключить на другом устройстве</button>
+      </div>
     </div>
   </div>
 
@@ -1650,7 +1691,7 @@
           mainStatusBadge.textContent = hasActiveSub ? 'Активна' : 'Загрузка…';
           mainStatusBadge.classList.toggle('active', !!hasActiveSub);
         }
-        if (mainInstallWrap) mainInstallWrap.style.display = hasActiveSub ? 'none' : '';
+        if (mainInstallWrap) mainInstallWrap.style.display = '';
         var listActive = document.getElementById('subs-list-active');
         var listInactive = document.getElementById('subs-list-inactive');
         var emptyActive = document.getElementById('subs-empty-active');
@@ -2159,7 +2200,7 @@
         buyBtn.addEventListener('click', function(e) { e.preventDefault(); openSubscribeSheet(); });
       }
       if (btnInstallSub) {
-        btnInstallSub.addEventListener('click', function() { openSubscribeSheet(); });
+        btnInstallSub.addEventListener('click', function() { openInstallIntroSheet(); });
       }
       var _lastGeo = { code: '', country: '' };
       function codeToFlagEmoji(cc) {
@@ -2385,8 +2426,8 @@
         var titleEl = document.getElementById('sheet-device-title');
         var descEl = document.getElementById('sheet-device-desc');
         var iconEl = document.getElementById('sheet-device-icon');
-        if (titleEl) titleEl.textContent = 'Настройка на ' + dev.name;
-        if (descEl) descEl.textContent = 'VPN в 3 шага. Вы заходите с этого устройства.';
+        if (titleEl) titleEl.textContent = 'Подключение на ' + dev.name;
+        if (descEl) descEl.textContent = 'Подключение займёт 3 шага и пару минут.';
         if (iconEl) iconEl.innerHTML = dev.icon;
         var subLink = (typeof API_ME !== 'undefined' && API_ME && API_ME.subscription && API_ME.subscription.subscription_link) ? API_ME.subscription.subscription_link : '';
         var hasActiveSub = !!(typeof API_ME !== 'undefined' && API_ME && (API_ME.subscription || (API_ME.subscriptions && API_ME.subscriptions.some(function(s) { return s.is_active; }))));
@@ -2417,6 +2458,48 @@
       if (devicesOverlay) devicesOverlay.addEventListener('click', closeDevicesSheet);
       if (devicesSheet) devicesSheet.addEventListener('click', function(e) { e.stopPropagation(); });
       attachSwipeToClose(devicesSheet, devicesOverlay, 'devices-sheet-hidden');
+
+      var installIntroSheet = document.getElementById('install-intro-sheet');
+      var installIntroOverlay = document.getElementById('install-intro-sheet-overlay');
+      var installIntroTitle = document.getElementById('install-intro-title');
+      var installIntroDesc = document.getElementById('install-intro-desc');
+      var installIntroIconWrap = document.getElementById('install-intro-icon-wrap');
+      function openInstallIntroSheet() {
+        var dev = detectDevice();
+        if (installIntroTitle) installIntroTitle.textContent = 'Подключение на ' + dev.name;
+        if (installIntroDesc) installIntroDesc.textContent = 'Подключение займёт 3 шага и пару минут.';
+        if (installIntroIconWrap) installIntroIconWrap.innerHTML = dev.icon;
+        if (installIntroOverlay) { installIntroOverlay.classList.remove('install-intro-sheet-hidden'); installIntroOverlay.classList.add('open'); installIntroOverlay.setAttribute('aria-hidden', 'false'); }
+        if (installIntroSheet) { installIntroSheet.style.transform = ''; installIntroSheet.style.transition = ''; installIntroSheet.classList.remove('install-intro-sheet-hidden'); installIntroSheet.classList.add('open'); }
+      }
+      function closeInstallIntroSheet() {
+        if (installIntroOverlay) { installIntroOverlay.classList.remove('open'); installIntroOverlay.setAttribute('aria-hidden', 'true'); }
+        if (installIntroSheet) { installIntroSheet.style.transition = ''; installIntroSheet.style.transform = ''; installIntroSheet.classList.remove('open'); }
+        setTimeout(function() {
+          if (installIntroOverlay) installIntroOverlay.classList.add('install-intro-sheet-hidden');
+          if (installIntroSheet) installIntroSheet.classList.add('install-intro-sheet-hidden');
+        }, 320);
+      }
+      if (installIntroOverlay) installIntroOverlay.classList.add('install-intro-sheet-hidden');
+      if (installIntroSheet) installIntroSheet.classList.add('install-intro-sheet-hidden');
+      if (installIntroOverlay) installIntroOverlay.addEventListener('click', closeInstallIntroSheet);
+      if (installIntroSheet) installIntroSheet.addEventListener('click', function(e) { e.stopPropagation(); });
+      attachSwipeToClose(installIntroSheet, installIntroOverlay, 'install-intro-sheet-hidden');
+      var installIntroBtnThis = document.getElementById('install-intro-btn-this');
+      var installIntroBtnOther = document.getElementById('install-intro-btn-other');
+      if (installIntroBtnThis) {
+        installIntroBtnThis.addEventListener('click', function() {
+          closeInstallIntroSheet();
+          setTimeout(function() { if (typeof openSetupSheet === 'function') openSetupSheet(); }, 350);
+        });
+      }
+      if (installIntroBtnOther) {
+        installIntroBtnOther.addEventListener('click', function() {
+          closeInstallIntroSheet();
+          setTimeout(function() { openDevicesSheet(); }, 350);
+        });
+      }
+
       if (sheetCopyId) {
         sheetCopyId.addEventListener('click', function() {
           var id = getClientId() || clientId;

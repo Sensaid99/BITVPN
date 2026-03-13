@@ -7,7 +7,7 @@ from http.server import BaseHTTPRequestHandler
 
 # Один раз встроенный HTML: загрузка + запрос полной страницы с /api/fullpage
 _BODY = b"""<!DOCTYPE html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Bit VPN</title></head><body><p>Загрузка...</p><script>
-fetch('/api/fullpage').then(function(r){return r.text();}).then(function(html){
+fetch('/api/fullpage?v=' + Date.now()).then(function(r){return r.text();}).then(function(html){
   document.open();document.write(html);document.close();
 }).catch(function(){
   document.body.innerHTML='<p>Не удалось загрузить. <a href="https://t.me/Bitvpnproxy_bot">@Bitvpnproxy_bot</a></p>';
