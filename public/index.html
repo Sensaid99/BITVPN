@@ -2697,8 +2697,15 @@
       var confirmInstalledBtnBack = document.getElementById('confirm-installed-btn-back');
       if (confirmInstalledBtnOk) {
         confirmInstalledBtnOk.addEventListener('click', function() {
+          var subLink = (typeof API_ME !== 'undefined' && API_ME && API_ME.subscription && API_ME.subscription.subscription_link) ? API_ME.subscription.subscription_link : '';
           closeConfirmInstalledSheet();
-          setTimeout(function() { if (typeof openSetupSheet === 'function') openSetupSheet(); }, 320);
+          if (subLink && (tg && tg.openLink)) {
+            tg.openLink(subLink);
+          } else if (subLink) {
+            window.open(subLink, '_blank');
+          } else {
+            setTimeout(function() { if (typeof openSetupSheet === 'function') openSetupSheet(); }, 320);
+          }
         });
       }
       if (confirmInstalledBtnBack) {
