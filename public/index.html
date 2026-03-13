@@ -2177,16 +2177,26 @@
         var pingEl = document.getElementById('speed-sheet-ping');
         var localNoteEl = document.getElementById('speed-sheet-local-note');
         var isLocal = (ip === '127.0.0.1' || ip === 'localhost');
+        var cc = (countryCode && countryCode.length >= 2) ? String(countryCode).toUpperCase() : '';
+        var emoji = '';
+        if (window._liveCountry && window._liveCountry.code && window._liveCountry.code.length === 2) {
+          emoji = codeToFlagEmoji(String(window._liveCountry.code).toUpperCase());
+        }
+        if (!emoji && cc) {
+          emoji = codeToFlagEmoji(cc);
+        }
+        if (flagEmojiEl) {
+          if (emoji) {
+            flagEmojiEl.textContent = emoji;
+            flagEmojiEl.style.display = 'inline';
+          } else {
+            flagEmojiEl.textContent = '';
+            flagEmojiEl.style.display = 'none';
+          }
+        }
         if (flagEl) {
-          var cc = (countryCode && countryCode.length >= 2) ? String(countryCode).toLowerCase() : '';
-          if (flagEmojiEl) { flagEmojiEl.style.display = 'none'; flagEmojiEl.textContent = ''; }
-          if (cc) {
-            flagEl.style.display = '';
-            flagEl.alt = country || cc.toUpperCase();
-            flagEl.setAttribute('data-fallback', codeToFlagEmoji(cc.toUpperCase()));
-            flagEl.onerror = function() { flagEl.style.display = 'none'; if (flagEmojiEl) { flagEmojiEl.textContent = flagEl.getAttribute('data-fallback') || ''; flagEmojiEl.style.display = 'inline'; } };
-            flagEl.src = 'https://flagcdn.com/w80/' + cc + '.png';
-          } else { flagEl.src = ''; flagEl.style.display = 'none'; if (flagEmojiEl) flagEmojiEl.style.display = 'none'; }
+          flagEl.src = '';
+          flagEl.style.display = 'none';
         }
         if (countryEl) countryEl.textContent = (country != null && country !== '') ? country : '—';
         if (ipEl) ipEl.textContent = (ip != null && ip !== '') ? ip : '—';
