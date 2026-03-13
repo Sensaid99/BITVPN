@@ -27,7 +27,7 @@ except Exception:
 
 from fastapi import FastAPI, HTTPException, Header, Request
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import Response
+from fastapi.responses import Response, StreamingResponse
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -228,14 +228,20 @@ def pricing_for_miniapp():
 
 
 def config_for_miniapp():
-    """Общие настройки для мини-апп (поддержка, рефералы, bot_username) — из того же .env, что и бот."""
+    """Общие настройки для мини-апп (поддержка, рефералы, bot_username, server_count) — из того же .env, что и бот."""
     try:
         from bot.config.settings import Config
+        sc = os.getenv("SERVER_COUNT", "")
+        try:
+            server_count = int(sc) if sc else 50
+        except ValueError:
+            server_count = 50
         return {
             "support_username": (getattr(Config, "SUPPORT_USERNAME", None) or os.getenv("SUPPORT_USERNAME") or "").strip() or None,
             "referral_bonus_percent": int(getattr(Config, "REFERRAL_BONUS_PERCENT", None) or os.getenv("REFERRAL_BONUS_PERCENT", "10") or "10"),
             "referral_min_payout": int(getattr(Config, "REFERRAL_MIN_PAYOUT", None) or os.getenv("REFERRAL_MIN_PAYOUT", "100") or "100"),
             "bot_username": (getattr(Config, "BOT_USERNAME", None) or os.getenv("BOT_USERNAME") or "").strip() or None,
+            "server_count": server_count,
         }
     except Exception:
         return {
@@ -243,6 +249,7 @@ def config_for_miniapp():
             "referral_bonus_percent": 10,
             "referral_min_payout": 100,
             "bot_username": (os.getenv("BOT_USERNAME") or "").strip() or None,
+            "server_count": 50,
         }
 
 
@@ -307,6 +314,114 @@ def check_happ_env():
     except Exception as e:
         logger.warning("check_happ_env: %s", e)
         return {"ok": False, "message": str(e), "env_set": {}}
+
+
+def _country_code_to_flag(code: str) -> str:
+    """RU -> 🇷🇺 (regional indicator symbols U+1F1E6..U+1F1FF)."""
+    if not code or len(code) != 2:
+        return ""
+    code = code.upper()
+    return "".join(chr(0x1F1E6 + ord(c) - ord("A")) for c in code if "A" <= c <= "Z")
+
+
+# Кэш для снижения нагрузки при большом числе пользователей (см. НАГРУЗКА_МИНИАПП.md)
+_my_ip_cache: dict = {}
+_my_ip_cache_ttl = 600  # 10 минут — один IP не дёргаем ip-api.com чаще
+_servers_status_cache: dict = {}
+_servers_status_cache_ttl = 60  # 1 минута — пинг списка серверов раз в минуту для всех
+
+
+@app.get("/api/miniapp/my-ip")
+async def miniapp_my_ip(request: Request):
+    """
+    Возвращает IP клиента и страну (по геолокации IP). Кэш по IP 10 мин — при 1000 пользователей
+    не бьём ip-api.com тысячу раз (лимит бесплатного тарифа ~45 req/min).
+    """
+    try:
+        forwarded = request.headers.get("x-forwarded-for") or request.headers.get("x-real-ip")
+        client_ip = forwarded.split(",")[0].strip() if forwarded else (request.client.host if request.client else "")
+        if not client_ip or client_ip == "127.0.0.1":
+            return {"ok": True, "ip": None, "country_code": None, "country_name": None, "flag": None}
+        now = datetime.utcnow()
+        if client_ip in _my_ip_cache:
+            entry = _my_ip_cache[client_ip]
+            if (now - entry["ts"]).total_seconds() < _my_ip_cache_ttl:
+                return {"ok": True, "ip": client_ip, "country_code": entry.get("cc"), "country_name": entry.get("cn"), "flag": entry.get("flag")}
+        r = requests.get(f"https://ip-api.com/json/{client_ip}?fields=country,countryCode", timeout=3)
+        if r.ok:
+            data = r.json()
+            cc = data.get("countryCode") or ""
+            cn = data.get("country") or ""
+            flag = _country_code_to_flag(cc)
+            _my_ip_cache[client_ip] = {"cc": cc, "cn": cn, "flag": flag, "ts": now}
+            return {"ok": True, "ip": client_ip, "country_code": cc, "country_name": cn, "flag": flag}
+        return {"ok": True, "ip": client_ip, "country_code": None, "country_name": None, "flag": None}
+    except Exception as e:
+        logger.debug("my-ip: %s", e)
+        return {"ok": False, "ip": None, "country_code": None, "country_name": None, "flag": None}
+
+
+@app.get("/api/miniapp/speed-test-file")
+async def miniapp_speed_test_file():
+    """
+    Отдаёт 1 МБ данных для замера скорости на клиенте. Клиент замеряет время загрузки и считает Мбит/с.
+    """
+    size = 1024 * 1024  # 1 MB
+    def chunk():
+        chunk_size = 64 * 1024
+        remaining = size
+        while remaining > 0:
+            n = min(chunk_size, remaining)
+            yield b"\x00" * n
+            remaining -= n
+    return StreamingResponse(
+        chunk(),
+        media_type="application/octet-stream",
+        headers={"Content-Length": str(size), "Cache-Control": "no-store"},
+    )
+
+
+@app.get("/api/miniapp/servers-status")
+async def miniapp_servers_status():
+    """
+    Проверяет список серверов из SERVER_LIST. Результат кэшируется на 60 сек — при 1000 пользователей
+    не пингуем 50 серверов × 1000 раз, а один раз в минуту для всех.
+    """
+    try:
+        now = datetime.utcnow()
+        if _servers_status_cache.get("ts") and (now - _servers_status_cache["ts"]).total_seconds() < _servers_status_cache_ttl:
+            return {"ok": True, "online": _servers_status_cache["online"], "total": _servers_status_cache["total"], "source": _servers_status_cache.get("source", "cache")}
+        raw = (os.getenv("SERVER_LIST") or "").strip()
+        if not raw:
+            total = int(os.getenv("SERVER_COUNT", "50") or "50")
+            try:
+                total = max(0, int(total))
+            except ValueError:
+                total = 50
+            _servers_status_cache.update({"online": total, "total": total, "source": "config", "ts": now})
+            return {"ok": True, "online": total, "total": total, "source": "config"}
+        urls = [u.strip() for u in raw.split(",") if u.strip()]
+        if not urls:
+            _servers_status_cache.update({"online": 0, "total": 0, "source": "list", "ts": now})
+            return {"ok": True, "online": 0, "total": 0, "source": "list"}
+        online = 0
+        for url in urls:
+            try:
+                r = requests.head(url, timeout=2)
+                if r.status_code < 400:
+                    online += 1
+            except Exception:
+                try:
+                    r = requests.get(url, timeout=2)
+                    if r.status_code < 400:
+                        online += 1
+                except Exception:
+                    pass
+        _servers_status_cache.update({"online": online, "total": len(urls), "source": "ping", "ts": now})
+        return {"ok": True, "online": online, "total": len(urls), "source": "ping"}
+    except Exception as e:
+        logger.warning("servers-status: %s", e)
+        return {"ok": False, "online": 0, "total": 0, "source": "error"}
 
 
 @app.post("/api/miniapp/me")
@@ -444,6 +559,7 @@ async def miniapp_me(request: Request):
                         logger.info("miniapp_me: Happ fallback skipped — HAPP_PROVIDER_CODE, HAPP_AUTH_KEY or HAPP_SUBSCRIPTION_URL missing in env (check .env on API server)")
                     elif use_happ:
                         devices = happ_client.devices_from_plan_type(sub.plan_type or "")
+                        logger.info("miniapp_me: Trying Happ fallback for user %s plan_type=%s devices=%s", user.telegram_id, sub.plan_type, devices)
                         _, happ_link = happ_client.create_happ_install_link(
                             getattr(Config, "HAPP_API_URL", "https://happ-proxy.com"),
                             Config.HAPP_PROVIDER_CODE,
@@ -458,25 +574,55 @@ async def miniapp_me(request: Request):
                             session.commit()
                             logger.info("miniapp_me: Happ link generated and saved for user %s", user.telegram_id)
                         else:
-                            logger.warning("miniapp_me: Happ API returned no link (check HAPP_* in .env and subscription URL; see HAPP_КАК_НАСТРОИТЬ_ССЫЛКУ.md)")
+                            logger.warning("miniapp_me: Happ API returned no link for user %s (see happ_client logs above; check HAPP_КАК_НАСТРОИТЬ_ССЫЛКУ.md)", user.telegram_id)
+                            # Пока API Happ недоступен — отдаём базовый URL подписки (тот же, что открывается в браузере)
+                            base_url = (getattr(Config, "HAPP_SUBSCRIPTION_URL", None) or "").strip()
+                            if base_url:
+                                subscription_link = base_url.rstrip("/")
+                                logger.info("miniapp_me: Using base HAPP_SUBSCRIPTION_URL as fallback for user %s", user.telegram_id)
                 except Exception as e:
                     logger.warning("miniapp_me: generate Happ link fallback: %s", e)
+                    if not subscription_link:
+                        import os
+                        base_url = (os.environ.get("HAPP_SUBSCRIPTION_URL") or "").strip()
+                        if base_url:
+                            subscription_link = base_url.rstrip("/")
+                            logger.info("miniapp_me: Using base HAPP_SUBSCRIPTION_URL as fallback after error for user %s", user.telegram_id)
+            devices_used, devices_limit = None, None
+            if subscription_link:
+                try:
+                    from bot.utils import happ_client
+                    install_code = happ_client.parse_install_code_from_happ_link(subscription_link)
+                    if install_code:
+                        from bot.config.settings import Config
+                        api_url = getattr(Config, "HAPP_API_URL", None) or os.environ.get("HAPP_API_URL", "")
+                        if api_url and getattr(Config, "HAPP_PROVIDER_CODE", None) and getattr(Config, "HAPP_AUTH_KEY", None):
+                            used, limit = happ_client.get_install_stats(
+                                api_url, Config.HAPP_PROVIDER_CODE, Config.HAPP_AUTH_KEY, install_code
+                            )
+                            if used is not None and limit is not None:
+                                devices_used, devices_limit = used, limit
+                except Exception as e:
+                    logger.debug("miniapp_me: get_install_stats: %s", e)
+            sub_payload = {
+                "plan_type": sub.plan_type,
+                "plan_name": plan_type_to_name(sub.plan_type, ctx),
+                "end_date": sub.end_date.isoformat() if sub.end_date else None,
+                "end_date_formatted": format_date(sub.end_date) if format_date and sub.end_date else (sub.end_date.isoformat() if sub.end_date else None),
+                "days_remaining": sub.days_remaining,
+                "server_location": sub.server_location or "",
+                "server_flag": get_server_flag(sub.server_location or "") if get_server_flag and sub.server_location else "🌍",
+                "subscription_link": subscription_link,
+                "devices_used": devices_used,
+                "devices_limit": devices_limit,
+            }
             return {
                 "ok": True,
                 "user": user_row(user),
                 "referral_invited_count": getattr(user, "total_referrals", 0) or 0,
                 "referral_balance": float(getattr(user, "referral_balance", 0) or 0),
                 "referral_bonus_days": 0,
-                "subscription": {
-                    "plan_type": sub.plan_type,
-                    "plan_name": plan_type_to_name(sub.plan_type, ctx),
-                    "end_date": sub.end_date.isoformat() if sub.end_date else None,
-                    "end_date_formatted": format_date(sub.end_date) if format_date and sub.end_date else (sub.end_date.isoformat() if sub.end_date else None),
-                    "days_remaining": sub.days_remaining,
-                    "server_location": sub.server_location or "",
-                    "server_flag": get_server_flag(sub.server_location or "") if get_server_flag and sub.server_location else "🌍",
-                    "subscription_link": subscription_link,
-                },
+                "subscription": sub_payload,
                 "subscription_status": status,
                 "subscriptions": subscriptions_list,
                 "payments": payments_list,

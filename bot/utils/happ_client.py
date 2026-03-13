@@ -96,20 +96,30 @@ def create_happ_install_link(
     }
     if note:
         params["note"] = note[:255]
+    url = f"{api_url.rstrip('/')}/api/add-install"
     try:
-        r = requests.get(
-            f"{api_url}/api/add-install",
-            params=params,
-            timeout=10,
-        )
-        data = r.json() if r.ok else {}
+        r = requests.get(url, params=params, timeout=10)
+        if r.status_code == 404:
+            logger.warning(
+                "Happ API 404: URL=%s (no /api/add-install here?). "
+                "Check HAPP_API_URL in .env; ask Happ support for the correct API base URL.",
+                url,
+            )
+            return None, None
+        try:
+            data = r.json()
+        except Exception:
+            data = {}
         if data.get("rc") == 1 and data.get("install_code"):
             code = data["install_code"]
             base = subscription_base_url.rstrip("/")
             sep = "&" if "?" in base else "?"
             full_url = f"{base}{sep}installid={code}"
             return code, full_url
-        logger.warning("Happ API add-install failed: %s", data.get("msg", r.text))
+        logger.warning(
+            "Happ API add-install failed: status=%s rc=%s msg=%s body=%s",
+            r.status_code, data.get("rc"), data.get("msg"), (r.text[:300] if not data else data),
+        )
         return None, None
     except Exception as e:
         logger.warning("Happ API request error: %s", e)

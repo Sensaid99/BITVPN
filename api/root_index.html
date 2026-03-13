@@ -654,20 +654,20 @@
           <svg viewBox="0 0 24 24"><path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4zm-2 10.99h4V12h-4v-.01zm4 4V16h-4v.01h4zm-4-8V8h4v.01h-4z"/></svg>
           Bit VPN
         </div>
-        <span id="status-badge" class="status-badge">Подписка не оформлена</span>
+        <span id="status-badge" class="status-badge">Загрузка…</span>
       </div>
       <div class="stats-row">
-        <div class="stat-item">
-          <svg viewBox="0 0 24 24"><path d="M13 2.05v2.02c3.95.49 7 3.85 7 7.93 0 3.95-2.94 7.17-6.77 7.43L15 20.05v2.02c5.05-.5 9-4.76 9-9.95 0-5.18-3.95-9.45-9-9.95z"/></svg>
-          <span>100 Мбит/с</span>
+        <div id="stat-speed-block" class="stat-item" role="button" tabindex="0" title="Нажмите для замера скорости">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M13 2.05v2.02c3.95.49 7 3.85 7 7.93 0 3.95-2.94 7.17-6.77 7.43L15 20.05v2.02c5.05-.5 9-4.76 9-9.95 0-5.18-3.95-9.45-9-9.95z"/></svg>
+          <span id="stat-speed-text">До 100 Мбит/с</span>
         </div>
         <div class="stat-item">
-          <svg viewBox="0 0 24 24"><path d="M20 18c1.1 0 1.99-.9 1.99-2L22 6c0-1.1-.9-2-2-2H4c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2H0v2h24v-2h-4zM4 6h16v10H4V6z"/></svg>
-          <span>1 устройство</span>
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 18c1.1 0 1.99-.9 1.99-2L22 6c0-1.1-.9-2-2-2H4c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2H0v2h24v-2h-4zM4 6h16v10H4V6z"/></svg>
+          <span id="stat-devices-text">1 устройство</span>
         </div>
         <div class="stat-item">
-          <svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 17.93c-3.95-.49-7-3.85-7-7.93 0-.62.08-1.21.21-1.79L9 15v1c0 1.1.9 2 2 2v1.93zm6.9-2.54c-.26-.81-1-1.39-1.9-1.39h-1v-3c0-.55-.45-1-1-1H8v-2h2c.55 0 1-.45 1-1V7h2c1.1 0 2-.9 2-2v-.41c2.93 1.19 5 4.06 5 7.41 0 2.08-.8 3.97-2.1 5.39z"/></svg>
-          <span>50+ серверов</span>
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 17.93c-3.95-.49-7-3.85-7-7.93 0-.62.08-1.21.21-1.79L9 15v1c0 1.1.9 2 2 2v1.93zm6.9-2.54c-.26-.81-1-1.39-1.9-1.39h-1v-3c0-.55-.45-1-1-1H8v-2h2c.55 0 1-.45 1-1V7h2c1.1 0 2-.9 2-2v-.41c2.93 1.19 5 4.06 5 7.41 0 2.08-.8 3.97-2.1 5.39z"/></svg>
+          <span id="stat-servers-text">50+ серверов</span>
         </div>
       </div>
       <a id="btn-buy" class="main-cta" href="#">
@@ -1381,13 +1381,23 @@
         sheet.addEventListener('touchend', onEnd, { passive: true });
       }
       var apiLoadPromise = null;
+      function mergeApiMeSubscriptionLink(prev, next) {
+        if (!next) return prev;
+        if (!prev || !prev.subscription || !prev.subscription.subscription_link) return next;
+        var newLink = next.subscription && next.subscription.subscription_link;
+        if (newLink) return next;
+        var out = JSON.parse(JSON.stringify(next));
+        if (!out.subscription) out.subscription = {};
+        out.subscription.subscription_link = prev.subscription.subscription_link;
+        return out;
+      }
       function loadMeFromApi(cb) {
         var initData = getInitData();
         if (!apiBase || !initData) { if (cb) cb(); return Promise.resolve(); }
         return fetch(apiBase + '/api/miniapp/me', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ initData: initData }) })
           .then(function(r) { return r.ok ? r.json() : null; }).catch(function() { return null; })
           .then(function(data) {
-            if (data) API_ME = data;
+            if (data) API_ME = mergeApiMeSubscriptionLink(API_ME, data);
             var refEl = document.getElementById('ref-sheet-link');
             if (refEl && API_ME && API_ME.user && API_ME.user.referral_code) {
               var bot = botUsername || (function() { var m = /[?&]bot=([^&]+)/.exec(location.search); return m ? m[1] : ''; })();
@@ -1412,7 +1422,7 @@
               if (res[0].config && res[0].config.bot_username) botUsername = res[0].config.bot_username;
             }
             if (!window.API_CONFIG) window.API_CONFIG = {};
-            if (res[1]) API_ME = res[1];
+            if (res[1]) API_ME = mergeApiMeSubscriptionLink(API_ME, res[1]);
             var refEl = document.getElementById('ref-sheet-link');
             if (refEl) {
               var link = '';
@@ -1493,10 +1503,48 @@
         var mainStatusBadge = document.getElementById('status-badge');
         var mainInstallWrap = document.querySelector('.main-install-wrap');
         if (mainStatusBadge) {
-          mainStatusBadge.textContent = hasActiveSub ? 'Активна' : 'Подписка не оформлена';
+          mainStatusBadge.textContent = hasActiveSub ? 'Активна' : 'Загрузка…';
           mainStatusBadge.classList.toggle('active', !!hasActiveSub);
         }
         if (mainInstallWrap) mainInstallWrap.style.display = hasActiveSub ? 'none' : '';
+        var statDevicesEl = document.getElementById('stat-devices-text');
+        var statServersEl = document.getElementById('stat-servers-text');
+        if (statDevicesEl) {
+          var sub = API_ME.subscription;
+          if (sub && sub.devices_used != null && sub.devices_limit != null) {
+            statDevicesEl.textContent = sub.devices_used + ' / ' + sub.devices_limit + ' устройств';
+          } else {
+            var limit = 1;
+            if (sub && sub.plan_type) {
+              var parts = (sub.plan_type + '').split('_');
+              if (parts.length && parts[parts.length - 1] && /^\d+$/.test(parts[parts.length - 1])) limit = Math.max(1, parseInt(parts[parts.length - 1], 10));
+            }
+            statDevicesEl.textContent = limit === 1 ? '1 устройство' : limit + ' устройств';
+          }
+        }
+        if (statServersEl) {
+          if (apiBase) {
+            fetch(apiBase + '/api/miniapp/servers-status').then(function(r) { return r.ok ? r.json() : null; }).catch(function() { return null; }).then(function(d) {
+              if (d && d.ok && statServersEl) statServersEl.textContent = d.online === d.total ? (d.online + ' серверов') : (d.online + ' / ' + d.total + ' серверов');
+            });
+          } else if (window.API_CONFIG && window.API_CONFIG.server_count != null) {
+            statServersEl.textContent = window.API_CONFIG.server_count + ' серверов';
+          }
+        }
+        if (apiBase) {
+          fetch(apiBase + '/api/miniapp/my-ip').then(function(r) { return r.ok ? r.json() : null; }).catch(function() { return null; }).then(function(d) {
+            var speedEl = document.getElementById('stat-speed-text');
+            if (!speedEl) return;
+            if (d && d.ok && d.flag && d.country_name) {
+              window._liveCountry = { flag: d.flag, name: d.country_name };
+              speedEl.textContent = d.flag + ' ' + d.country_name;
+              speedEl.title = 'Нажмите для замера скорости';
+            } else {
+              window._liveCountry = null;
+              speedEl.textContent = 'До 100 Мбит/с';
+            }
+          });
+        }
         var listActive = document.getElementById('subs-list-active');
         var listInactive = document.getElementById('subs-list-inactive');
         var emptyActive = document.getElementById('subs-empty-active');
@@ -1991,6 +2039,25 @@
       }
       if (btnInstallSub) {
         btnInstallSub.addEventListener('click', function() { openSubscribeSheet(); });
+      }
+      var speedBlock = document.getElementById('stat-speed-block');
+      if (speedBlock) {
+        speedBlock.addEventListener('click', function() {
+          var el = document.getElementById('stat-speed-text');
+          if (!apiBase || !el) return;
+          var base = window._liveCountry ? window._liveCountry.flag + ' ' + window._liveCountry.name + ' • ' : '';
+          el.textContent = base + 'Замер...';
+          var t0 = performance.now();
+          fetch(apiBase + '/api/miniapp/speed-test-file').then(function(r) { return r.blob(); }).then(function(blob) {
+            var t1 = performance.now();
+            var sec = (t1 - t0) / 1000;
+            var mb = blob.size / (1024 * 1024);
+            var mbps = (mb * 8) / sec;
+            el.textContent = base + Math.round(mbps) + ' Мбит/с';
+          }).catch(function() {
+            el.textContent = window._liveCountry ? window._liveCountry.flag + ' ' + window._liveCountry.name : 'До 100 Мбит/с';
+          });
+        });
       }
       loadFromApi(function() { renderSubsAndPayFromApi(); });
 

@@ -231,7 +231,7 @@ async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
     webapp_url = get_webapp_url()
     support_username = (Config.SUPPORT_USERNAME or "").strip()
     keyboard = [
-        [InlineKeyboardButton("📱 Открыть приложение", url=webapp_url)],
+        [InlineKeyboardButton("📱 Открыть приложение", web_app=WebAppInfo(url=webapp_url))],
         [InlineKeyboardButton("🌐 Канал BIT VPN", url="https://t.me/BitVpnProxy")],
     ]
     if support_username:
@@ -774,7 +774,7 @@ async def show_profile(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
     
     webapp_url = get_webapp_url()
     keyboard = [
-        [InlineKeyboardButton("📱 Открыть приложение", url=webapp_url)],
+        [InlineKeyboardButton("📱 Открыть приложение", web_app=WebAppInfo(url=webapp_url))],
         [InlineKeyboardButton(get_message('btn_main_menu'), callback_data='main_menu')]
     ]
     
@@ -801,7 +801,7 @@ def _get_setup_device_keyboard():
         [InlineKeyboardButton("🤖 Android", callback_data='setup_android')],
         [InlineKeyboardButton("🍎 iOS", callback_data='setup_ios')],
         [InlineKeyboardButton("🖥️ Windows", callback_data='setup_windows')],
-        [InlineKeyboardButton("📱 Открыть приложение", url=webapp_url)],
+        [InlineKeyboardButton("📱 Открыть приложение", web_app=WebAppInfo(url=webapp_url))],
     ])
 
 
@@ -817,17 +817,52 @@ async def send_setup_device_choice(bot, chat_id: int) -> None:
 
 
 async def setup_device_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    """Ответ на нажатие кнопки устройства: одно сообщение с инструкцией Happ для выбранной ОС."""
+    """Ответ на нажатие кнопки устройства: отправить ссылку подписки (если есть или удалось сгенерировать), затем инструкцию Happ."""
     query = update.callback_query
     await query.answer()
-    device = query.data  # setup_android, setup_ios, setup_windows
+    chat_id = update.effective_chat.id
+    user = get_or_create_user(update.effective_user)
+    if not user.has_active_subscription:
+        await context.bot.send_message(chat_id=chat_id, text=get_message('error_no_subscription'), parse_mode='HTML')
+        return
+    sub = user.active_subscription
+    happ_link = None
+    vpn_cfg = getattr(sub, 'vpn_config', None) or ''
+    if vpn_cfg and isinstance(vpn_cfg, str) and ('installid=' in vpn_cfg or vpn_cfg.strip().startswith('http')):
+        happ_link = vpn_cfg.strip()
+    if not happ_link and Config.HAPP_PROVIDER_CODE and Config.HAPP_AUTH_KEY and Config.HAPP_SUBSCRIPTION_URL:
+        try:
+            _, happ_link = happ_client.create_happ_install_link(
+                getattr(Config, 'HAPP_API_URL', 'https://happ-proxy.com'),
+                Config.HAPP_PROVIDER_CODE,
+                Config.HAPP_AUTH_KEY,
+                happ_client.devices_from_plan_type(sub.plan_type or ''),
+                Config.HAPP_SUBSCRIPTION_URL,
+                note=f'tg{user.telegram_id}',
+            )
+            if happ_link:
+                session = db_manager.get_session()
+                try:
+                    sub_row = session.query(Subscription).filter_by(id=sub.id).first()
+                    if sub_row:
+                        sub_row.vpn_config = happ_link
+                        session.commit()
+                finally:
+                    session.close()
+        except Exception as e:
+            logger.warning("setup_device_handler: generate Happ link: %s", e)
+    if happ_link:
+        await context.bot.send_message(
+            chat_id=chat_id,
+            text=get_message('happ_link_send_in_chat') + f"\n\n<code>{happ_link}</code>",
+            parse_mode='HTML',
+        )
+    device = query.data
     key = 'setup_android' if device == 'setup_android' else 'setup_ios' if device == 'setup_ios' else 'setup_windows'
     text = get_message(key)
-    await context.bot.send_message(
-        chat_id=update.effective_chat.id,
-        text=text,
-        parse_mode='HTML'
-    )
+    if not happ_link:
+        text = get_message('happ_link_not_available_hint') + "\n\n" + text
+    await context.bot.send_message(chat_id=chat_id, text=text, parse_mode='HTML')
 
 
 async def show_my_config(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
@@ -1020,7 +1055,7 @@ async def main_menu(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     webapp_url = get_webapp_url()
     support_username = (Config.SUPPORT_USERNAME or "").strip()
     keyboard = [
-        [InlineKeyboardButton("📱 Открыть приложение", url=webapp_url)],
+        [InlineKeyboardButton("📱 Открыть приложение", web_app=WebAppInfo(url=webapp_url))],
         [InlineKeyboardButton("🌐 Канал BIT VPN", url="https://t.me/BitVpnProxy")],
     ]
     if support_username:
