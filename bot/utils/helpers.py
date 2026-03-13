@@ -250,6 +250,17 @@ def get_plan_duration_key(plan_type: str) -> str:
     return _plan_type_to_duration_key(plan_type)
 
 
+def build_renew_start_param(plan_type: str) -> str:
+    """Строит start-параметр для ссылки продления подписки: pay_1month_1, pay_3month_1 и т.д."""
+    from bot.config.settings import SUBSCRIPTION_PLANS
+    from bot.utils import happ_client
+    key = get_plan_duration_key(plan_type)
+    plan = SUBSCRIPTION_PLANS.get(key)
+    months = plan['months'] if plan else 1
+    devices = happ_client.devices_from_plan_type(plan_type) if hasattr(happ_client, 'devices_from_plan_type') else 1
+    return f"pay_{months}month_{devices}"
+
+
 def get_plan_emoji(plan_type: str) -> str:
     """Get emoji for plan type"""
     emojis = {

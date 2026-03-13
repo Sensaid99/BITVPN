@@ -336,7 +336,7 @@
     .bottom-nav .nav-icon { width: 24px; height: 24px; display: flex; align-items: center; justify-content: center; }
     .bottom-nav .nav-icon svg { width: 20px; height: 20px; fill: currentColor; }
     .screens-viewport { flex: 1; min-height: 55vh; overflow: hidden; touch-action: pan-y pinch-zoom; position: relative; }
-    .screens-track { display: flex; width: 400%; min-height: 100%; transition: transform 0.38s cubic-bezier(0.32, 0.72, 0.2, 1); will-change: transform; }
+    .screens-track { display: flex; width: 400%; min-height: 100%; transition: transform 0.42s cubic-bezier(0.25, 0.46, 0.45, 0.94); will-change: transform; }
     .screens-track.dragging { transition: none; }
     .screens-track .screen { flex: 0 0 25%; width: 25%; min-height: 100%; display: flex; flex-direction: column; box-sizing: border-box; overflow: hidden; position: relative; z-index: 1; padding-left: 0.7cm; padding-right: 0.7cm; }
     .screens-track .screen:first-child { padding-left: 0.5cm; }
@@ -393,6 +393,47 @@
     .ref-how-text { font-size: 0.82rem; color: var(--text-muted); margin-bottom: 10px; line-height: 1.4; }
     .ref-how-list { margin: 0; padding-left: 1.2rem; font-size: 0.82rem; color: var(--text); line-height: 1.6; }
     .ref-actions-ref { margin-top: 8px; }
+    /* Всплывающее окно реферальной статистики — вне трека, чтобы не съезжало на любых устройствах */
+    .ref-stats-popup-overlay {
+      position: fixed;
+      left: 0;
+      right: 0;
+      top: 0;
+      bottom: 0;
+      z-index: 1000;
+      background: rgba(0,0,0,0.6);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+      padding-left: max(20px, env(safe-area-inset-left));
+      padding-right: max(20px, env(safe-area-inset-right));
+      padding-top: max(20px, env(safe-area-inset-top));
+      padding-bottom: max(20px, env(safe-area-inset-bottom));
+      opacity: 0;
+      visibility: hidden;
+      transition: opacity 0.25s ease, visibility 0.25s ease;
+    }
+    .ref-stats-popup-overlay.open {
+      opacity: 1;
+      visibility: visible;
+    }
+    .ref-stats-popup-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 20px;
+      max-width: 340px;
+      width: 100%;
+      box-sizing: border-box;
+      box-shadow: 0 24px 48px rgba(0,0,0,0.4);
+      margin: auto;
+    }
+    .ref-stats-popup-title { font-size: 1rem; font-weight: 600; margin-bottom: 14px; color: var(--text); }
+    .ref-stats-popup-list { list-style: none; margin: 0 0 18px 0; padding: 0; }
+    .ref-stats-popup-list li { font-size: 0.9rem; color: var(--text); padding: 8px 0; border-bottom: 1px solid var(--border); line-height: 1.4; }
+    .ref-stats-popup-list li:last-child { border-bottom: none; }
+    .ref-stats-popup-close-wrap { margin-top: 8px; text-align: right; }
     /* Subscribe sheet — фиксированное центрированное модальное окно, не дёргается при тапе */
     #subscribe-sheet.subscribe-sheet-modern {
       left: 50%;
@@ -763,7 +804,7 @@
         </div>
         <div class="ref-stat-card">
           <span class="ref-stat-num" id="ref-stat-days">0</span>
-          <span class="ref-stat-label">Получено дней</span>
+          <span class="ref-stat-label">Бонусов, ₽</span>
         </div>
       </div>
       <div class="ref-how-card">
@@ -777,12 +818,13 @@
       </div>
       <div class="ref-actions-ref">
         <button type="button" id="ref-screen-btn-invite" class="btn btn-primary">Пригласить друга</button>
+        <button type="button" id="ref-screen-btn-stats" class="btn btn-secondary" style="margin-top:8px;">Статистика</button>
       </div>
     </div>
   </div>
 
   <div id="screen-profile" class="screen">
-    <div class="profile-user-card profile-glass">
+      <div class="profile-user-card profile-glass">
       <div class="profile-user-inner">
         <div class="avatar" id="profile-avatar">B</div>
         <div class="info">
@@ -790,7 +832,6 @@
           <div class="user-id" id="profile-user-id">id: —</div>
           <div class="profile-level" id="profile-level-bonuses">
             <span id="profile-status-badge" class="profile-status-badge none">Без статуса</span>
-            <span class="profile-bonuses-inline"><span id="profile-bonuses-count">0</span> бонусов</span>
           </div>
         </div>
         <button type="button" id="profile-copy-id" class="btn-copy-id profile-glass" title="Копировать ID"><svg viewBox="0 0 24 24"><path d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z"/></svg></button>
@@ -842,6 +883,21 @@
     <a href="#" class="nav-item" data-nav="ref"><span class="nav-icon"><svg viewBox="0 0 24 24"><path d="M18 16.08c-.76 0-1.44.3-1.96.77L8.91 12.7c.05-.23.09-.46.09-.7s-.04-.47-.09-.7l7.05-4.11c.54.5 1.08.8 1.92.8 1.66 0 2.88-1.35 2.88-3.06S19.56 4 17.9 4c-1.66 0-2.88 1.35-2.88 3.06 0 .24.04.47.09.7L8.04 11.81C7.5 11.31 6.96 11 6.12 11c-1.66 0-2.88 1.35-2.88 3.06s1.22 3.06 2.88 3.06c.76 0 1.44-.3 1.96-.77l7.12 4.16c-.05.22-.08.45-.08.69 0 1.71 1.22 3.06 2.88 3.06s2.88-1.35 2.88-3.06-1.22-3.06-2.88-3.06z"/></svg></span><span>Рефералы</span></a>
     <a href="#" class="nav-item" data-nav="profile"><span class="nav-icon"><svg viewBox="0 0 24 24"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/></svg></span><span>Профиль</span></a>
   </nav>
+
+  <div id="ref-stats-popup-overlay" class="ref-stats-popup-overlay" aria-hidden="true">
+    <div class="ref-stats-popup-card" onclick="event.stopPropagation()">
+      <h3 class="ref-stats-popup-title">Реферальная статистика</h3>
+      <ul class="ref-stats-popup-list">
+        <li>Приглашено друзей: <strong id="ref-popup-invited">0</strong></li>
+        <li>Накоплено бонусов: <strong id="ref-popup-balance">0</strong> ₽</li>
+        <li>Бонус за оплату друга: <strong id="ref-popup-pct">10</strong>%</li>
+        <li>Минимум для вывода: <strong id="ref-popup-min">100</strong> ₽</li>
+      </ul>
+      <div class="ref-stats-popup-close-wrap">
+        <button type="button" id="ref-stats-popup-close" class="btn btn-primary">Закрыть</button>
+      </div>
+    </div>
+  </div>
 
   <div id="subscribe-sheet-overlay" class="bottom-sheet-overlay devices-sheet-hidden" aria-hidden="true"></div>
   <div id="subscribe-sheet" class="bottom-sheet devices-sheet-hidden subscribe-sheet-modern" role="dialog" aria-label="Оформление подписки" style="max-height:85vh;">
@@ -1477,7 +1533,7 @@
         currentTabIndex = idx;
         var track = document.getElementById('screens-track');
         if (track) {
-          track.style.transition = 'transform 0.38s cubic-bezier(0.32, 0.72, 0.2, 1)';
+          track.style.transition = 'transform 0.42s cubic-bezier(0.25, 0.46, 0.45, 0.94)';
           track.style.transform = 'translateX(-' + (idx * 25) + '%)';
         }
         document.querySelectorAll('.nav-item').forEach(function(a) {
@@ -1590,7 +1646,10 @@
         var refStatInvited = document.getElementById('ref-stat-invited');
         var refStatDays = document.getElementById('ref-stat-days');
         if (refStatInvited) refStatInvited.textContent = (API_ME.referral_invited_count != null ? API_ME.referral_invited_count : 0);
-        if (refStatDays) refStatDays.textContent = (API_ME.referral_bonus_days != null ? API_ME.referral_bonus_days : 0);
+        if (refStatDays) {
+          var rb = (API_ME.referral_balance != null ? API_ME.referral_balance : 0);
+          refStatDays.textContent = Math.floor(rb);
+        }
         var refLinkEl = document.getElementById('ref-sheet-link');
         if (refLinkEl && API_ME.user && API_ME.user.referral_code) {
           var refBot = botUsername || (function() { var m = /[?&]bot=([^&]+)/.exec(location.search); return m ? m[1] : ''; })();
@@ -1638,15 +1697,15 @@
         var SWIPE_THRESHOLD = 50;
         var HORIZONTAL_BIAS = 2.2;
         var MOVE_THRESHOLD = 6;
-        var MIN_DURATION = 0.32;
-        var MAX_DURATION = 0.5;
+        var MIN_DURATION = 0.35;
+        var MAX_DURATION = 0.55;
 
         function pxToPercent(vpW, dxPx) {
           return (dxPx / vpW) * 100;
         }
 
-        var trackEasing = 'cubic-bezier(0.32, 0.72, 0.2, 1)';
-        var TRACK_DURATION_MS = 380;
+        var trackEasing = 'cubic-bezier(0.25, 0.46, 0.45, 0.94)';
+        var TRACK_DURATION_MS = 420;
         function setTransitionDuration(ms) {
           track.style.transition = 'transform ' + (ms / 1000) + 's ' + trackEasing;
         }
@@ -1680,11 +1739,12 @@
             var vpW = vp.offsetWidth;
             var basePercent = currentTabIndex * 25;
             var offsetPercent = pxToPercent(vpW, -totalDx);
-            var maxDrag = 20;
-            offsetPercent = Math.max(-maxDrag, Math.min(maxDrag, offsetPercent));
             var targetPercent = basePercent + offsetPercent;
-            if (targetPercent < 0) targetPercent = 0;
-            if (targetPercent > 75) targetPercent = 75;
+            var minPercent = (currentTabIndex - 1) * 25;
+            if (minPercent < 0) minPercent = 0;
+            var maxPercent = (currentTabIndex + 1) * 25;
+            if (maxPercent > 75) maxPercent = 75;
+            targetPercent = Math.max(minPercent, Math.min(maxPercent, targetPercent));
             track.style.transform = 'translateX(-' + targetPercent + '%)';
           }
         }, { passive: false });
@@ -2294,6 +2354,37 @@
       var btnSubsExtendInactive = document.getElementById('btn-subs-extend-inactive');
       if (btnSubsExtend) { btnSubsExtend.href = '#'; btnSubsExtend.addEventListener('click', function(e) { e.preventDefault(); openSubscribeSheet(); }); }
       if (btnSubsExtendInactive) { btnSubsExtendInactive.href = '#'; btnSubsExtendInactive.addEventListener('click', function(e) { e.preventDefault(); openSubscribeSheet(); }); }
+
+      var refStatsBtn = document.getElementById('ref-screen-btn-stats');
+      var refStatsPopup = document.getElementById('ref-stats-popup-overlay');
+      var refStatsPopupClose = document.getElementById('ref-stats-popup-close');
+      if (refStatsBtn && refStatsPopup) {
+        refStatsBtn.addEventListener('click', function() {
+          var invited = (typeof API_ME !== 'undefined' && API_ME && API_ME.referral_invited_count != null) ? API_ME.referral_invited_count : 0;
+          var balance = (typeof API_ME !== 'undefined' && API_ME && API_ME.referral_balance != null) ? Math.floor(API_ME.referral_balance) : 0;
+          var cfg = window.API_CONFIG || {};
+          var pct = cfg.referral_bonus_percent != null ? cfg.referral_bonus_percent : 10;
+          var minPayout = cfg.referral_min_payout != null ? cfg.referral_min_payout : 100;
+          var elInv = document.getElementById('ref-popup-invited');
+          var elBal = document.getElementById('ref-popup-balance');
+          var elPct = document.getElementById('ref-popup-pct');
+          var elMin = document.getElementById('ref-popup-min');
+          if (elInv) elInv.textContent = invited;
+          if (elBal) elBal.textContent = balance;
+          if (elPct) elPct.textContent = pct;
+          if (elMin) elMin.textContent = minPayout;
+          refStatsPopup.classList.add('open');
+          refStatsPopup.setAttribute('aria-hidden', 'false');
+        });
+        function closeRefStatsPopup() {
+          refStatsPopup.classList.remove('open');
+          refStatsPopup.setAttribute('aria-hidden', 'true');
+        }
+        refStatsPopup.addEventListener('click', function(e) {
+          if (e.target === refStatsPopup) closeRefStatsPopup();
+        });
+        if (refStatsPopupClose) refStatsPopupClose.addEventListener('click', closeRefStatsPopup);
+      }
 
       var profileUserId = document.getElementById('profile-user-id');
       var profileName = document.getElementById('profile-name');

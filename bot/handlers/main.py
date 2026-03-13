@@ -202,7 +202,18 @@ async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
             return
         await send_setup_device_choice(context.bot, update.effective_chat.id)
         return
-    
+
+    # Ссылка из уведомления об истечении: pay_1month_1, pay_3month_1 и т.д. — открыть приложение для оплаты
+    if context.args and context.args[0].lower().startswith('pay_'):
+        webapp_url = get_webapp_url()
+        keyboard = [[InlineKeyboardButton(get_message('btn_pay_subscription'), web_app=WebAppInfo(url=webapp_url))]]
+        await update.message.reply_text(
+            get_message('renew_via_app'),
+            reply_markup=InlineKeyboardMarkup(keyboard),
+            parse_mode='HTML',
+        )
+        return
+
     # Handle referral code
     if context.args and user.referrer_id is None:
         referral_code = context.args[0]

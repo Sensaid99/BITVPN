@@ -150,8 +150,10 @@ async def error_handler(update: object, context) -> None:
 
 async def post_init(application: Application) -> None:
     """Post initialization tasks"""
+    from datetime import time as dt_time
+
     logger.info("🚀 VPN Bot initialization started")
-    
+
     # Initialize database
     from bot.models.database import DatabaseManager
     db_manager = DatabaseManager(Config.DATABASE_URL)
@@ -201,7 +203,15 @@ async def post_init(application: Application) -> None:
             )
         except Exception as e:
             logger.warning(f"Failed to send startup message to admin {admin_id}: {e}")
-    
+
+    # Ежедневная рассылка: истечение подписки (за 3 дня, за 1 день, после истечения)
+    try:
+        from bot.jobs.expiry_notifications import send_expiry_notifications
+        application.job_queue.run_daily(send_expiry_notifications, time=dt_time(10, 0, 0))
+        logger.info("✅ Job: expiry notifications (daily at 10:00 UTC)")
+    except Exception as e:
+        logger.warning("Could not schedule expiry notifications job: %s", e)
+
     logger.info("🎉 VPN Bot initialization completed successfully")
 
 

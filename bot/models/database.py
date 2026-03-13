@@ -78,6 +78,10 @@ class Subscription(Base):
     config_name = Column(String(255))  # Имя конфигурации
     server_location = Column(String(100))  # Локация сервера
     created_at = Column(DateTime, default=datetime.utcnow)
+    # Флаги одноразовых уведомлений об истечении (чтобы не слать повторно)
+    notified_3d = Column(Boolean, default=False)
+    notified_1d = Column(Boolean, default=False)
+    notified_expired = Column(Boolean, default=False)
     
     # Relationships
     user = relationship("User", back_populates="subscriptions")
@@ -249,7 +253,19 @@ class DatabaseManager:
                 conn.commit()
                 conn.execute(text("PRAGMA foreign_keys=ON"))
         Base.metadata.create_all(bind=self.engine)
-        
+
+        # Добавить колонки уведомлений об истечении в существующую таблицу subscriptions (SQLite)
+        if is_sqlite and "subscriptions" in inspect(self.engine).get_table_names():
+            cols = [c["name"] for c in inspect(self.engine).get_columns("subscriptions")]
+            with self.engine.connect() as conn:
+                for col in ("notified_3d", "notified_1d", "notified_expired"):
+                    if col not in cols:
+                        try:
+                            conn.execute(text(f"ALTER TABLE subscriptions ADD COLUMN {col} BOOLEAN DEFAULT 0"))
+                            conn.commit()
+                        except Exception:
+                            conn.rollback()
+
     def get_session(self):
         """Get database session"""
         return self.SessionLocal()

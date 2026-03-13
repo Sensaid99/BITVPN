@@ -1,5 +1,10 @@
 @echo off
 title Деплой на сервер
+REM Запуск в отдельном окне, которое не закроется после выполнения (удобно при двойном клике)
+if not "%~1"=="KEEPOPEN" (
+    start "Деплой на сервер" cmd /k "%~f0" KEEPOPEN
+    exit /b 0
+)
 chcp 65001 >nul 2>nul
 cd /d "%~dp0"
 if errorlevel 1 (
@@ -48,19 +53,21 @@ echo.
 
 echo 2. Пуш на GitHub...
 where git >nul 2>&1
-if not errorlevel 1 (
-    for /f "tokens=*" %%i in ('git rev-parse --abbrev-ref HEAD 2^>nul') do set GIT_BRANCH=%%i
-    if not defined GIT_BRANCH set GIT_BRANCH=main
-    git add -A
-    set MSG=Deploy %date% %time%
-    set MSG=%MSG: =_%
-    set MSG=%MSG::=-%
-    git commit -m "%MSG%" 2>nul
-    git push origin %GIT_BRANCH% 2>nul
-    if errorlevel 1 (echo    Пуш пропущен или не удался.) else (echo    Пуш выполнен.)
+if errorlevel 1 goto :git_skip
+git add -A
+git commit -m "Deploy" 2>nul
+if errorlevel 1 echo    Нет изменений для коммита или ошибка коммита.
+git push origin HEAD:master
+if errorlevel 1 (
+    echo    [ВНИМАНИЕ] Пуш не удался. Проверьте доступ к GitHub.
+    echo    Деплой на сервер продолжится.
 ) else (
-    echo    Git не найден — пуш пропущен.
+    echo    Пуш выполнен.
 )
+goto :git_done
+:git_skip
+echo    Git не найден — пуш пропущен.
+:git_done
 echo.
 
 echo 3. Копирование .env на сервер — ОТКЛЮЧЕНО (чтобы не затирать WEBAPP_URL с ?api= на сервере).
