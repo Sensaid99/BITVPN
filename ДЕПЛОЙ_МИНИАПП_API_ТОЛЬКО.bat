@@ -55,19 +55,18 @@ if errorlevel 1 (
 )
 echo.
 
-REM 2.5 Деплой мини-аппа на Vercel (чтобы bitvpn.vercel.app обновился)
+REM 2.5 Деплой мини-аппа на Vercel (bitvpn.vercel.app) — без ожидания сборки
 echo 2.5 Деплой мини-аппа на Vercel (bitvpn.vercel.app)...
-echo    Сборка на Vercel обычно 1-2 минуты — подождите.
 where npx >nul 2>&1
 if errorlevel 1 (
     echo    npx не найден - деплой Vercel пропущен. Установите Node.js или запустите ДЕПЛОЙ_МИНИАПП_VERCEL.bat отдельно.
 ) else (
     cd webapp
-    call npx vercel --prod
+    call npx vercel --prod --yes --no-wait
     if errorlevel 1 (
         echo    [ВНИМАНИЕ] Деплой Vercel не удался. Запустите ДЕПЛОЙ_МИНИАПП_VERCEL.bat вручную.
     ) else (
-        echo    Vercel: готово. Интерфейс обновится по ссылке из WEBAPP_URL.
+        echo    Vercel: деплой отправлен. Сайт обновится через 1-2 мин. Статус: vercel.com/dashboard
     )
     cd ..
 )
