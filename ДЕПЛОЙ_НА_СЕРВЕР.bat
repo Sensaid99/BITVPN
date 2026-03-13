@@ -77,9 +77,8 @@ REM if errorlevel 1 (echo    Не удалось.) else (echo    .env скопи
 echo.
 
 echo 4. На сервере: обновление из GitHub и перезапуск...
-echo    Локальные изменения на сервере будут заменены кодом из репозитория.
 echo    Введите пароль от сервера, если попросит.
-ssh %SERVER_USER%@%SERVER_IP% "cd %BOT_PATH% && git fetch origin && BRANCH=$(git rev-parse --abbrev-ref HEAD) && git reset --hard origin/$BRANCH && %RESTART_CMD% && (sudo systemctl restart miniapp-api 2>/dev/null || true) && echo Готово."
+ssh %SERVER_USER%@%SERVER_IP% "cd %BOT_PATH% && git pull --ff-only && %RESTART_CMD% && (sudo systemctl restart miniapp-api 2>/dev/null || true) && echo Готово."
 if errorlevel 1 (
     echo [ОШИБКА] Подключение к серверу не удалось. Проверьте deploy_config.cmd.
     goto :error
