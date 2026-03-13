@@ -2200,10 +2200,9 @@
           flagEl.style.display = 'none';
         }
         if (countryEl) {
-          if (country || cc || emoji) {
+          if (country || emoji) {
             var parts = [];
             if (emoji) parts.push(emoji);
-            if (cc) parts.push(cc);
             if (country) parts.push(country);
             countryEl.textContent = parts.join(' ');
           } else {

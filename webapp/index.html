@@ -2186,28 +2186,38 @@
         if (!emoji && cc) {
           emoji = codeToFlagEmoji(cc);
         }
+        // Один флаг на страну: либо картинка, либо emoji, но НЕ дублируем
+        if (flagEl) {
+          if (cc) {
+            var ccLower = cc.toLowerCase();
+            flagEl.style.display = '';
+            flagEl.alt = country || cc;
+            flagEl.setAttribute('data-fallback', emoji || '');
+            flagEl.onerror = function() {
+              flagEl.style.display = 'none';
+              if (flagEmojiEl) {
+                flagEmojiEl.textContent = flagEl.getAttribute('data-fallback') || '';
+                flagEmojiEl.style.display = flagEmojiEl.textContent ? 'inline' : 'none';
+              }
+            };
+            flagEl.src = 'https://flagcdn.com/w80/' + ccLower + '.png';
+          } else {
+            flagEl.src = '';
+            flagEl.style.display = 'none';
+          }
+        }
         if (flagEmojiEl) {
-          if (emoji) {
-            flagEmojiEl.textContent = emoji;
-            flagEmojiEl.style.display = 'inline';
+          // emoji показываем только как запасной вариант, а не дублируем картинку
+          if (!flagEl || flagEl.style.display === 'none') {
+            flagEmojiEl.textContent = emoji || '';
+            flagEmojiEl.style.display = emoji ? 'inline' : 'none';
           } else {
             flagEmojiEl.textContent = '';
             flagEmojiEl.style.display = 'none';
           }
         }
-        if (flagEl) {
-          flagEl.src = '';
-          flagEl.style.display = 'none';
-        }
         if (countryEl) {
-          if (country || emoji) {
-            var parts = [];
-            if (emoji) parts.push(emoji);
-            if (country) parts.push(country);
-            countryEl.textContent = parts.join(' ');
-          } else {
-            countryEl.textContent = '—';
-          }
+          countryEl.textContent = (country != null && country !== '') ? country : '—';
         }
         if (ipEl) ipEl.textContent = (ip != null && ip !== '') ? ip : '—';
         if (localNoteEl) {
