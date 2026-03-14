@@ -670,6 +670,15 @@ async def miniapp_me(request: Request):
                 }
                 for s in user.subscriptions
             ]
+            now = datetime.utcnow()
+            session.query(Payment).filter(
+                Payment.user_id == user.id,
+                Payment.status == "pending",
+                Payment.expires_at != None,
+                Payment.expires_at < now,
+            ).update({"status": "expired"}, synchronize_session="fetch")
+            session.commit()
+
             payments_rows = session.query(Payment).filter_by(user_id=user.id).order_by(Payment.completed_at.desc()).limit(20).all()
             payments_list = [
                 {
@@ -678,6 +687,7 @@ async def miniapp_me(request: Request):
                     "plan_type": pay.plan_type or "",
                     "plan_name": plan_type_to_name(pay.plan_type or "", ctx),
                     "status": pay.status or "",
+                    "status_reason": "Истёк срок оплаты (30 мин)" if (pay.status or "") == "expired" else ("Ошибка оплаты" if (pay.status or "") == "failed" else None),
                     "completed_at": pay.completed_at.isoformat() if pay.completed_at else None,
                 }
                 for pay in payments_rows
@@ -896,7 +906,7 @@ async def miniapp_create_payment(request: Request):
                 amount=amount_kop,
                 plan_type=plan_type,
                 payment_method=payment_method,
-                expires_at=datetime.utcnow() + timedelta(minutes=15),
+                expires_at=datetime.utcnow() + timedelta(minutes=30),
             )
             session.add(payment)
             session.commit()
@@ -976,6 +986,10 @@ def _complete_payment_and_send_link(payment_db_id: int) -> bool:
         payment = session.query(Payment).filter_by(id=payment_db_id).first()
         if not payment or payment.status == "completed":
             return True
+        if getattr(payment, "expires_at", None) and payment.expires_at < datetime.utcnow():
+            payment.status = "expired"
+            session.commit()
+            return False
         user = session.query(User).filter_by(id=payment.user_id).first()
         if not user:
             return False

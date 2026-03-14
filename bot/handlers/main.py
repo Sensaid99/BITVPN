@@ -490,7 +490,7 @@ async def process_payment(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
             amount=amount_rub * 100,  # Convert to kopecks
             plan_type=plan_type,
             payment_method=payment_method,
-            expires_at=datetime.utcnow() + timedelta(minutes=15)
+            expires_at=datetime.utcnow() + timedelta(minutes=30)
         )
         session.add(payment)
         session.commit()

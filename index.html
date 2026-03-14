@@ -400,6 +400,9 @@
     .pay-item-title svg { width: 18px; height: 18px; fill: var(--accent); }
     .pay-item-badge { font-size: 0.7rem; padding: 3px 8px; border-radius: 10px; background: rgba(0, 255, 136, 0.2); color: var(--accent); }
     .pay-item-badge.pending { background: rgba(255,193,7,0.2); color: #ffc107; }
+    .pay-item-badge.expired { background: rgba(255, 152, 0, 0.2); color: #ff9800; }
+    .pay-item-badge.failed { background: rgba(244, 67, 54, 0.2); color: #f44336; }
+    .pay-item-reason { font-size: 0.78rem; color: var(--text-muted); margin-top: 2px; }
     .pay-item-meta { font-size: 0.8rem; color: var(--text); margin-bottom: 8px; }
     .pay-item-row { display: flex; align-items: center; gap: 8px; font-size: 0.85rem; color: var(--text); margin: 4px 0; }
     .pay-item-row svg { width: 16px; height: 16px; fill: var(--text-muted); flex-shrink: 0; }
@@ -1913,7 +1916,8 @@
           } else { listInactive.innerHTML = ''; emptyInactive.style.display = 'block'; }
         }
         var paid = payments.filter(function(p) { return p.status === 'completed'; });
-        var pending = payments.filter(function(p) { return p.status !== 'completed' && p.status !== 'failed'; });
+        var pendingAll = payments.filter(function(p) { return p.status !== 'completed'; });
+        var pending = payments.filter(function(p) { return p.status === 'pending'; });
         var historyCountPaid = document.getElementById('history-count-paid');
         var historyCountPending = document.getElementById('history-count-pending');
         var historyListPaid = document.getElementById('history-list-paid');
@@ -1930,8 +1934,13 @@
         }
         var historyListPending = document.getElementById('history-list-pending');
         if (historyListPending) {
-          historyListPending.innerHTML = pending.length ? pending.slice(0, 10).map(function(p) {
-            return '<div class="pay-item"><div class="pay-item-head"><div class="pay-item-title"><svg viewBox="0 0 24 24"><path d="M20 4H4c-1.11 0-1.99.89-1.99 2L2 18c0 1.11.89 2 2 2h16c1.11 0 2-.89 2-2V6c0-1.11-.89-2-2-2zm0 14H4v-6h16v6zm0-10H4V6h16v2z"/></svg>Подписка Bit VPN</div><span class="pay-item-badge pending">В обработке</span></div><div class="pay-item-meta">' + (p.plan_name || p.plan_type || '') + '</div><div class="pay-item-row"><span>Сумма: ' + (p.amount_rubles || 0) + ' ₽</span></div></div>';
+          function pendingBadge(p) {
+            if (p.status === 'expired') return '<span class="pay-item-badge expired">Истёк срок оплаты</span>';
+            if (p.status === 'failed') return '<span class="pay-item-badge failed">Отклонён</span>';
+            return '<span class="pay-item-badge pending">В обработке</span>';
+          }
+          historyListPending.innerHTML = pendingAll.length ? pendingAll.slice(0, 15).map(function(p) {
+            return '<div class="pay-item"><div class="pay-item-head"><div class="pay-item-title"><svg viewBox="0 0 24 24"><path d="M20 4H4c-1.11 0-1.99.89-1.99 2L2 18c0 1.11.89 2 2 2h16c1.11 0 2-.89 2-2V6c0-1.11-.89-2-2-2zm0 14H4v-6h16v6zm0-10H4V6h16v2z"/></svg>Подписка Bit VPN</div>' + pendingBadge(p) + '</div><div class="pay-item-meta">' + (p.plan_name || p.plan_type || '') + '</div><div class="pay-item-row"><span>Сумма: ' + (p.amount_rubles || 0) + ' ₽</span></div>' + (p.status_reason ? '<div class="pay-item-row pay-item-reason">' + p.status_reason + '</div>' : '') + '</div>';
           }).join('') : '';
         }
         var refStatInvited = document.getElementById('ref-stat-invited');
