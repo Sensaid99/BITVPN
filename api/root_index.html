@@ -653,6 +653,11 @@
     .premium-phone-3d.phone-3d-ready::before,
     .premium-phone-3d.phone-3d-ready .phone-css-fallback,
     .premium-phone-3d.phone-3d-ready .phone-particles { display: none !important; }
+    .premium-phone-3d .phone-css-fallback,
+    .premium-phone-3d .phone-particles { display: none; }
+    .premium-phone-3d.phone-3d-failed .phone-css-fallback,
+    .premium-phone-3d.phone-3d-failed .phone-particles { display: block !important; }
+    .premium-phone-3d.phone-3d-failed::before { display: block !important; }
     .premium-phone-3d .phone-css-fallback {
       position: absolute;
       left: 50%;
@@ -3411,18 +3416,28 @@
           scene.add(rim);
           digitRing = addDigitRing(THREE);
           scene.add(digitRing);
+          var loadTimeout = setTimeout(function() {
+            if (!phoneGroup && container) container.classList.add('phone-3d-failed');
+          }, 3200);
           var loader = new GLTFLoader();
           loader.load(glbUrl, function(gltf) {
+            clearTimeout(loadTimeout);
             phoneGroup = gltf.scene;
             phoneGroup.traverse(function(o) {
               if (o.isMesh && o.material) {
-                if (o.material.color) o.material.color.setHex(0x1c1c1e);
-                if (o.material.emissive) o.material.emissive.setHex(0x000000);
-                o.material.metalness = 0.5;
-                o.material.roughness = 0.45;
+                if (o.material.color) {
+                  var c = o.material.color;
+                  c.r = c.r * 0.85 + 0.12;
+                  c.g = c.g * 0.85 + 0.12;
+                  c.b = c.b * 0.85 + 0.12;
+                }
+                if (o.material.emissive) o.material.emissive.multiplyScalar(0.3);
+                if (o.material.metalness !== undefined) o.material.metalness = 0.5;
+                if (o.material.roughness !== undefined) o.material.roughness = 0.45;
               }
             });
             phoneGroup.rotation.x = 25 * Math.PI / 180;
+            phoneGroup.rotation.y = Math.PI * 0.15;
             var box = new THREE.Box3().setFromObject(phoneGroup);
             var size = new THREE.Vector3();
             box.getSize(size);
@@ -3432,7 +3447,9 @@
             scene.add(phoneGroup);
             if (container) container.classList.add('phone-3d-ready');
           }, undefined, function() {
+            clearTimeout(loadTimeout);
             phoneGroup = null;
+            if (container) container.classList.add('phone-3d-failed');
           });
           var startTime = Date.now();
           var stopRequested = false;
