@@ -632,10 +632,124 @@
     .install-intro-sheet .sheet-content { padding: 20px 20px 28px; text-align: center; }
     .install-intro-sheet .install-intro-title { font-size: 1.35rem; font-weight: 700; color: var(--text); margin-bottom: 8px; line-height: 1.25; }
     .install-intro-sheet .install-intro-desc { font-size: 0.9rem; color: var(--text-muted); margin-bottom: 24px; line-height: 1.4; }
-    .install-intro-sheet .install-intro-icon-wrap { width: 80px; height: 80px; margin: 0 auto 24px; border-radius: 50%; background: rgba(0,255,136,0.12); display: flex; align-items: center; justify-content: center; animation: install-icon-pulse 2.2s ease-in-out infinite; }
-    .install-intro-sheet .install-intro-icon-wrap svg { width: 40px; height: 40px; fill: var(--accent); stroke: var(--accent); animation: install-icon-wiggle 1.8s ease-in-out infinite; }
-    @keyframes install-icon-pulse { 0%, 100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(0,255,136,0.25); } 50% { transform: scale(1.06); box-shadow: 0 0 24px 4px rgba(0,255,136,0.2); } }
-    @keyframes install-icon-wiggle { 0%, 100% { transform: rotate(-3deg); } 50% { transform: rotate(3deg); } }
+    .install-intro-sheet .install-intro-icon-wrap { width: 100%; height: 210px; margin: 0 auto 18px; border-radius: 24px; background: transparent; display: flex; align-items: center; justify-content: center; overflow: visible; }
+    .install-intro-sheet .install-intro-icon-wrap > svg { width: 54px; height: 54px; fill: var(--accent); stroke: var(--accent); opacity: 0.9; }
+    .premium-phone-3d { position: relative; width: 220px; height: 196px; perspective: 1200px; }
+    .premium-phone-3d::before {
+      content: "";
+      position: absolute;
+      left: 26px;
+      right: 26px;
+      bottom: 26px;
+      height: 72px;
+      border-radius: 50%;
+      background: radial-gradient(ellipse at center, rgba(0,180,110,0.24) 0%, rgba(0,180,110,0.08) 45%, rgba(0,180,110,0) 75%);
+      filter: blur(8px);
+      transform: translateZ(0);
+      pointer-events: none;
+    }
+    .premium-phone-3d .phone-rotor {
+      position: absolute;
+      left: 50%;
+      top: 50%;
+      width: 126px;
+      height: 182px;
+      transform-style: preserve-3d;
+      transform: translate(-50%, -50%);
+      animation: premiumPhoneSpin 6s linear infinite;
+    }
+    .premium-phone-3d .phone-shell {
+      position: relative;
+      width: 100%;
+      height: 100%;
+      border-radius: 30px;
+      background: linear-gradient(165deg, #1a1f1d 0%, #0e1312 62%, #0a0d0d 100%);
+      border: 1px solid rgba(126, 247, 177, 0.25);
+      box-shadow:
+        inset 0 0 0 1px rgba(168, 255, 214, 0.06),
+        inset -7px 0 18px rgba(18, 255, 144, 0.08),
+        0 20px 30px rgba(0, 0, 0, 0.42),
+        0 0 28px rgba(14, 200, 126, 0.16);
+      overflow: hidden;
+      transform: rotateX(9deg);
+    }
+    .premium-phone-3d .phone-shell::before,
+    .premium-phone-3d .phone-shell::after {
+      content: "";
+      position: absolute;
+      top: 14px;
+      bottom: 14px;
+      width: 2px;
+      border-radius: 3px;
+      background: linear-gradient(180deg, rgba(185,255,226,0.36), rgba(56,195,131,0.14));
+      opacity: 0.75;
+    }
+    .premium-phone-3d .phone-shell::before { left: 8px; }
+    .premium-phone-3d .phone-shell::after { right: 8px; }
+    .premium-phone-3d .phone-notch {
+      position: absolute;
+      top: 9px;
+      left: 50%;
+      width: 42px;
+      height: 9px;
+      transform: translateX(-50%);
+      border-radius: 0 0 9px 9px;
+      background: rgba(8, 10, 10, 0.85);
+      z-index: 2;
+    }
+    .premium-phone-3d .phone-screen {
+      position: absolute;
+      inset: 7px;
+      border-radius: 24px;
+      background:
+        radial-gradient(circle at 30% 24%, rgba(173,255,222,0.14), rgba(173,255,222,0) 34%),
+        linear-gradient(155deg, rgba(27, 46, 39, 0.88) 0%, rgba(18, 32, 28, 0.96) 52%, rgba(9, 17, 15, 1) 100%);
+      border: 1px solid rgba(154, 255, 214, 0.12);
+      box-shadow: inset 0 0 24px rgba(35, 216, 143, 0.1);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .premium-phone-3d .shield-outline {
+      width: 50px;
+      height: 58px;
+      opacity: 0.18;
+      animation: premiumShieldPulse 2.6s ease-in-out infinite;
+      filter: drop-shadow(0 0 8px rgba(88, 235, 166, 0.2));
+    }
+    .premium-phone-3d .shield-outline path {
+      fill: none;
+      stroke: rgba(126, 255, 201, 0.65);
+      stroke-width: 1.55;
+      stroke-linejoin: round;
+    }
+    .premium-phone-3d .phone-particles { position: absolute; inset: 0; pointer-events: none; }
+    .premium-phone-3d .phone-particles span {
+      position: absolute;
+      color: rgba(95, 231, 164, 0.58);
+      font-size: 9px;
+      font-weight: 600;
+      text-shadow: 0 0 5px rgba(68, 199, 137, 0.2);
+      animation: premiumParticlesDrift 3.4s ease-in-out infinite;
+    }
+    .premium-phone-3d .phone-particles span:nth-child(1) { left: 12px; top: 66px; animation-delay: -0.2s; }
+    .premium-phone-3d .phone-particles span:nth-child(2) { left: 28px; top: 44px; animation-delay: -1.3s; }
+    .premium-phone-3d .phone-particles span:nth-child(3) { left: 38px; top: 112px; animation-delay: -0.9s; }
+    .premium-phone-3d .phone-particles span:nth-child(4) { right: 22px; top: 48px; animation-delay: -0.6s; }
+    .premium-phone-3d .phone-particles span:nth-child(5) { right: 10px; top: 86px; animation-delay: -1.7s; }
+    .premium-phone-3d .phone-particles span:nth-child(6) { right: 38px; top: 122px; animation-delay: -2.2s; }
+    @keyframes premiumPhoneSpin {
+      0% { transform: translate(-50%, -50%) rotateY(0deg); }
+      100% { transform: translate(-50%, -50%) rotateY(360deg); }
+    }
+    @keyframes premiumShieldPulse {
+      0%, 100% { opacity: 0.12; transform: scale(0.97); }
+      50% { opacity: 0.26; transform: scale(1.02); }
+    }
+    @keyframes premiumParticlesDrift {
+      0%, 100% { transform: translateY(0) scale(1); opacity: 0.34; }
+      50% { transform: translateY(-4px) scale(1.03); opacity: 0.68; }
+    }
     .install-intro-sheet .install-intro-btns { display: flex; flex-direction: column; gap: 12px; }
     .install-intro-sheet .install-intro-btns .btn-install-this { width: 100%; padding: 16px 20px; border-radius: 999px; background: #fff; color: #0d0d0d; font-weight: 700; font-size: 0.95rem; border: none; cursor: pointer; text-align: center; box-shadow: 0 2px 12px rgba(0,0,0,0.2); }
     .install-intro-sheet .install-intro-btns .btn-install-other { width: 100%; padding: 16px 20px; border-radius: 999px; background: rgba(0,255,136,0.18); color: #fff; font-weight: 600; font-size: 0.95rem; border: 1px solid rgba(0,255,136,0.5); cursor: pointer; text-align: center; }
@@ -2564,11 +2678,28 @@
       var installIntroTitle = document.getElementById('install-intro-title');
       var installIntroDesc = document.getElementById('install-intro-desc');
       var installIntroIconWrap = document.getElementById('install-intro-icon-wrap');
+      function getInstallIntroIconMarkup(dev) {
+        var name = (dev && dev.name) ? String(dev.name).toLowerCase() : '';
+        if (name.indexOf('iphone') >= 0 || name.indexOf('ios') >= 0) {
+          return '<div class="premium-phone-3d" aria-hidden="true">' +
+            '<div class="phone-particles"><span>0</span><span>1</span><span>0</span><span>1</span><span>0</span><span>1</span></div>' +
+            '<div class="phone-rotor">' +
+              '<div class="phone-shell">' +
+                '<div class="phone-notch"></div>' +
+                '<div class="phone-screen">' +
+                  '<svg class="shield-outline" viewBox="0 0 24 24"><path d="M12 2.2L4.5 5.6v5.2c0 4.7 3.1 9.1 7.5 10.9 4.4-1.8 7.5-6.2 7.5-10.9V5.6L12 2.2z"/></svg>' +
+                '</div>' +
+              '</div>' +
+            '</div>' +
+          '</div>';
+        }
+        return dev && dev.icon ? dev.icon : '';
+      }
       function openInstallIntroSheet() {
         var dev = detectDevice();
         if (installIntroTitle) installIntroTitle.textContent = 'Подключение на ' + dev.name;
         if (installIntroDesc) installIntroDesc.textContent = 'Подключение займёт 3 шага и пару минут.';
-        if (installIntroIconWrap) installIntroIconWrap.innerHTML = dev.icon;
+        if (installIntroIconWrap) installIntroIconWrap.innerHTML = getInstallIntroIconMarkup(dev);
         if (installIntroOverlay) { installIntroOverlay.classList.remove('install-intro-sheet-hidden'); installIntroOverlay.classList.add('open'); installIntroOverlay.setAttribute('aria-hidden', 'false'); }
         if (installIntroSheet) { installIntroSheet.style.transform = ''; installIntroSheet.style.transition = ''; installIntroSheet.classList.remove('install-intro-sheet-hidden'); installIntroSheet.classList.add('open'); }
       }
