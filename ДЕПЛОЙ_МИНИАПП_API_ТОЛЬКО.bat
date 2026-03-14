@@ -26,10 +26,15 @@ if errorlevel 1 (
     goto :error
 )
 copy /Y "public\index.html" "index.html" >nul 2>nul
+if exist "webapp\iphone_15_pro_max.glb" (
+    copy /Y "webapp\iphone_15_pro_max.glb" "public\iphone_15_pro_max.glb" >nul 2>nul
+    copy /Y "webapp\iphone_15_pro_max.glb" "iphone_15_pro_max.glb" >nul 2>nul
+)
 if exist "api" (
     copy /Y "public\index.html" "api\root_index.html" >nul 2>nul
+    if exist "public\iphone_15_pro_max.glb" copy /Y "public\iphone_15_pro_max.glb" "api\iphone_15_pro_max.glb" >nul 2>nul
 )
-echo    Скопировано: webapp -^> public, index.html, api\root_index.html
+echo    Скопировано: webapp -^> public, index.html, api\root_index.html, iphone_15_pro_max.glb
 echo.
 
 REM 2. Пуш на GitHub (HEAD -> master)

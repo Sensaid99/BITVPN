@@ -3328,37 +3328,6 @@
   <script type="module">
     (function() {
       var scene, camera, renderer, phoneGroup, frameId;
-      function buildPhoneMesh(THREE, RoundedBoxGeometry) {
-        var group = new THREE.Group();
-        var bodyW = 2.2, bodyH = 4.8, bodyD = 0.38, radius = 0.18;
-        var bodyGeom = new RoundedBoxGeometry(bodyW, bodyH, bodyD, 3, radius);
-        var bodyMat = new THREE.MeshStandardMaterial({
-          color: 0x0a0f0c,
-          metalness: 0.7,
-          roughness: 0.35,
-          emissive: 0x00ff9d,
-          emissiveIntensity: 0.06
-        });
-        var body = new THREE.Mesh(bodyGeom, bodyMat);
-        body.position.z = -bodyD / 2;
-        group.add(body);
-        var screenW = bodyW - 0.2, screenH = bodyH - 0.22;
-        var screenGeom = new THREE.PlaneGeometry(screenW, screenH);
-        var screenMat = new THREE.MeshBasicMaterial({
-          color: 0x000000,
-          transparent: true,
-          opacity: 1
-        });
-        var screen = new THREE.Mesh(screenGeom, screenMat);
-        screen.position.set(0, 0, 0.001);
-        group.add(screen);
-        var notchGeom = new THREE.PlaneGeometry(bodyW * 0.28, 0.12);
-        var notchMat = new THREE.MeshBasicMaterial({ color: 0x000000 });
-        var notch = new THREE.Mesh(notchGeom, notchMat);
-        notch.position.set(0, screenH / 2 - 0.08, 0.002);
-        group.add(notch);
-        return group;
-      }
       window.initPremiumPhone3D = function(container) {
         var wrap = container && container.querySelector('.phone-3d-canvas-wrap');
         var canvas = wrap && wrap.querySelector('canvas');
@@ -3366,13 +3335,13 @@
         if (frameId) cancelAnimationFrame(frameId);
         var w = wrap.clientWidth || 290;
         var h = wrap.clientHeight || 260;
-        import('https://unpkg.com/three@0.160.0/build/three.module.js').then(function(THREE) {
-          return import('https://unpkg.com/three@0.160.0/examples/jsm/geometries/RoundedBoxGeometry.js').then(function(m) {
-            return { THREE: THREE, RoundedBoxGeometry: m.RoundedBoxGeometry };
-          });
-        }).then(function(lib) {
-          var THREE = lib.THREE;
-          var RoundedBoxGeometry = lib.RoundedBoxGeometry;
+        var glbUrl = new URL('iphone_15_pro_max.glb', window.location.href).href;
+        Promise.all([
+          import('https://unpkg.com/three@0.160.0/build/three.module.js'),
+          import('https://unpkg.com/three@0.160.0/examples/jsm/loaders/GLTFLoader.js')
+        ]).then(function(imports) {
+          var THREE = imports[0];
+          var GLTFLoader = imports[1].GLTFLoader;
           scene = new THREE.Scene();
           scene.background = null;
           camera = new THREE.PerspectiveCamera(52, w / h, 0.1, 100);
@@ -3382,17 +3351,28 @@
           renderer.setSize(w, h);
           renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
           renderer.setClearColor(0x000000, 0);
-          var amb = new THREE.AmbientLight(0x223322, 0.7);
+          var amb = new THREE.AmbientLight(0x445544, 0.8);
           scene.add(amb);
-          var dir = new THREE.DirectionalLight(0x00ff9d, 0.5);
+          var dir = new THREE.DirectionalLight(0x00ff9d, 0.6);
           dir.position.set(3, 2, 5);
           scene.add(dir);
-          var rim = new THREE.PointLight(0x00ff9d, 0.4, 15);
+          var rim = new THREE.PointLight(0x00ff9d, 0.5, 15);
           rim.position.set(-4, 0, 4);
           scene.add(rim);
-          phoneGroup = buildPhoneMesh(THREE, RoundedBoxGeometry);
-          phoneGroup.rotation.x = 4 * Math.PI / 180;
-          scene.add(phoneGroup);
+          var loader = new GLTFLoader();
+          loader.load(glbUrl, function(gltf) {
+            phoneGroup = gltf.scene;
+            phoneGroup.rotation.x = 4 * Math.PI / 180;
+            var box = new THREE.Box3().setFromObject(phoneGroup);
+            var size = new THREE.Vector3();
+            box.getSize(size);
+            var maxDim = Math.max(size.x, size.y, size.z);
+            var scale = (maxDim > 0) ? 5.5 / maxDim : 1;
+            phoneGroup.scale.setScalar(scale);
+            scene.add(phoneGroup);
+          }, undefined, function() {
+            phoneGroup = null;
+          });
           var startTime = Date.now();
           var stopRequested = false;
           window.stopPremiumPhone3D = function() { stopRequested = true; };
