@@ -677,6 +677,13 @@
     .confirm-installed-sheet .confirm-installed-text { font-size: 0.95rem; color: var(--text); line-height: 1.5; margin-bottom: 22px; padding: 0 8px; }
     .confirm-installed-sheet .btn-confirm-install { width: 100%; padding: 14px 20px; border-radius: 12px; background: #fff; color: #0d0d0d; font-weight: 700; font-size: 0.95rem; border: none; cursor: pointer; text-align: center; margin-bottom: 12px; }
     .confirm-installed-sheet .btn-confirm-back { width: 100%; padding: 12px 20px; border-radius: 12px; background: rgba(255,255,255,0.12); border: 1px solid var(--border); color: var(--text-muted); font-weight: 600; font-size: 0.9rem; cursor: pointer; text-align: center; }
+    /* Своё окно «Ссылка скопирована» — чёрное, без системного попапа */
+    .link-copied-toast-hidden { display: none !important; }
+    .link-copied-toast-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.7); z-index: 200; display: flex; align-items: center; justify-content: center; padding: 20px; box-sizing: border-box; }
+    .link-copied-toast-card { background: #0a0a0a; border: 1px solid rgba(255,255,255,0.12); border-radius: 16px; padding: 24px 22px; max-width: 320px; width: 100%; box-shadow: 0 12px 40px rgba(0,0,0,0.5); text-align: center; }
+    .link-copied-toast-card .link-copied-title { font-size: 0.95rem; font-weight: 600; color: #fff; margin-bottom: 6px; line-height: 1.4; }
+    .link-copied-toast-card .link-copied-path { font-size: 0.88rem; color: var(--accent); font-weight: 500; margin-bottom: 18px; }
+    .link-copied-toast-card .btn-link-copied-close { display: inline-block; padding: 12px 24px; border-radius: 12px; background: #fff; color: #0a0a0a; font-weight: 600; font-size: 0.9rem; border: none; cursor: pointer; }
     .sheet-setup-intro { font-size: 0.82rem; color: var(--text-muted); margin-bottom: 14px; line-height: 1.45; }
     .setup-devices { display: flex; flex-direction: column; gap: 12px; }
     .setup-device-block { padding: 12px; background: rgba(255,255,255,0.04); border: 1px solid var(--border); border-radius: 12px; }
@@ -1249,6 +1256,15 @@
           <button type="button" id="platform-btn-add-sub" class="btn-add-sub-platform">Добавить подписку</button>
         </div>
       </div>
+    </div>
+  </div>
+
+  <!-- Окно «Ссылка скопирована» — своё, чёрное -->
+  <div id="link-copied-toast-overlay" class="link-copied-toast-overlay link-copied-toast-hidden" aria-hidden="true" role="dialog" aria-label="Ссылка скопирована">
+    <div class="link-copied-toast-card">
+      <p class="link-copied-title">Ссылка скопирована. Вставьте в Happ:</p>
+      <p class="link-copied-path">Подписки → +</p>
+      <button type="button" id="btn-link-copied-close" class="btn-link-copied-close">Закрыть</button>
     </div>
   </div>
 
@@ -2762,21 +2778,40 @@
         var ua = typeof navigator !== 'undefined' ? navigator.userAgent || '' : '';
         return /Android/i.test(ua);
       }
+      var linkCopiedToastOverlay = document.getElementById('link-copied-toast-overlay');
+      var btnLinkCopiedClose = document.getElementById('btn-link-copied-close');
+      function showLinkCopiedModal() {
+        if (linkCopiedToastOverlay) {
+          linkCopiedToastOverlay.classList.remove('link-copied-toast-hidden');
+          linkCopiedToastOverlay.setAttribute('aria-hidden', 'false');
+        }
+      }
+      function closeLinkCopiedModal() {
+        if (linkCopiedToastOverlay) {
+          linkCopiedToastOverlay.classList.add('link-copied-toast-hidden');
+          linkCopiedToastOverlay.setAttribute('aria-hidden', 'true');
+        }
+      }
+      if (btnLinkCopiedClose) btnLinkCopiedClose.addEventListener('click', closeLinkCopiedModal);
+      if (linkCopiedToastOverlay) linkCopiedToastOverlay.addEventListener('click', function(e) { if (e.target === linkCopiedToastOverlay) closeLinkCopiedModal(); });
+      if (linkCopiedToastOverlay) linkCopiedToastOverlay.classList.add('link-copied-toast-hidden');
       function openHappLink(url) {
         if (!url) return;
-        var msg = 'Ссылка скопирована. Вставьте в Happ: Подписки → +';
         if (navigator.clipboard && navigator.clipboard.writeText) {
           navigator.clipboard.writeText(url).then(function() {
-            if (tg && tg.showPopup) tg.showPopup({ title: '', message: msg });
-            else if (tg && tg.showAlert) tg.showAlert(msg);
-          }).catch(function() {});
+            showLinkCopiedModal();
+          }).catch(function() {
+            if (tg && tg.showAlert) tg.showAlert('Ссылка скопирована. Вставьте в Happ: Подписки → +');
+          });
+        } else {
+          showLinkCopiedModal();
         }
         if (isAndroid()) {
           try {
             if (tg && tg.openLink) tg.openLink(HAPP_ANDROID_INTENT);
             else window.location.href = HAPP_ANDROID_INTENT;
           } catch (e) {
-            if (tg && tg.showAlert) tg.showAlert(msg);
+            showLinkCopiedModal();
           }
         }
       }
