@@ -549,9 +549,11 @@
     .subscribe-payment-methods-block { margin-top: 12px; }
     .subscribe-payment-methods-title { font-weight: 600; margin: 0 0 12px 0; color: var(--text); font-size: 1rem; }
     .subscribe-payment-methods-list { display: flex; flex-direction: column; gap: 10px; margin-bottom: 14px; }
-    .btn-payment-method { padding: 14px 18px; border-radius: 14px; border: 1px solid var(--border); background: rgba(255,255,255,0.08); color: var(--text); font-weight: 600; font-size: 0.95rem; cursor: pointer; transition: background 0.2s; text-align: left; }
+    .btn-payment-method { display: flex; align-items: center; gap: 12px; padding: 14px 18px; border-radius: 14px; border: 1px solid var(--border); background: rgba(255,255,255,0.08); color: var(--text); font-weight: 600; font-size: 0.95rem; cursor: pointer; transition: background 0.2s; text-align: left; }
     .btn-payment-method:disabled { opacity: 0.7; cursor: not-allowed; }
     .btn-payment-method:active:not(:disabled) { background: rgba(255,255,255,0.14); }
+    .btn-payment-method .payment-method-icon { width: 24px; height: 24px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; }
+    .btn-payment-method .payment-method-icon svg { width: 24px; height: 24px; fill: rgba(255,255,255,0.9); }
     .subscribe-pay-no-methods { margin: 0 0 12px 0; color: var(--text-muted); font-size: 0.9rem; }
     .profile-user-card .avatar { overflow: hidden; }
     .profile-user-card .avatar img { width: 100%; height: 100%; object-fit: cover; }
@@ -1035,7 +1037,7 @@
       <span class="row-arrow">→</span>
     </a>
     <a href="#" id="profile-link-speed" class="profile-row profile-glass">
-      <span class="row-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 14a8 8 0 0 1 16 0"/><path d="M12 14V6"/><path d="M12 14l4 4"/></svg></span>
+      <span class="row-icon"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 2a8 8 0 1 1 0 16 8 8 0 0 1 0-16z"/><path d="M12 12l-1.5-6L12 5l1.5 1-1.5 6z"/></svg></span>
       <span class="row-text"><span class="row-title">Проверить скорость</span><span class="row-sub">Тест скорости подключения</span></span>
       <span class="row-arrow">→</span>
     </a>
@@ -2290,10 +2292,14 @@
           block.style.display = 'block';
           var list = document.getElementById('subscribe-payment-methods-list');
           if (list) {
-            var methods = (window.API_PAYMENT_METHODS && window.API_PAYMENT_METHODS.length) ? window.API_PAYMENT_METHODS : [{ id: 'sbp', name: 'СБП', emoji: '📱' }, { id: 'yookassa', name: 'Банковская карта', emoji: '💳' }];
+            function getPaymentMethodIcon(id) {
+              if (id === 'sbp') return '<svg viewBox="0 0 24 24"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></svg>';
+              return '<svg viewBox="0 0 24 24"><path d="M20 4H4c-1.11 0-2 .89-2 2v12c0 1.11.89 2 2 2h16c1.11 0 2-.89 2-2V6c0-1.11-.89-2-2-2zm0 14H4v-6h16v6zm0-10H4V6h16v2z"/></svg>';
+            }
+            var methods = (window.API_PAYMENT_METHODS && window.API_PAYMENT_METHODS.length) ? window.API_PAYMENT_METHODS : [{ id: 'sbp', name: 'СБП' }, { id: 'yookassa', name: 'Банковская карта' }];
             var hasApi = !!apiBase;
             if (!hasApi) {
-              list.innerHTML = '<p class="subscribe-pay-no-methods">Откройте приложение из меню бота для оплаты по ссылке.</p><button type="button" class="btn-payment-method" data-method="bot">💳 Оплатить в боте</button>';
+              list.innerHTML = '<p class="subscribe-pay-no-methods">Откройте приложение из меню бота для оплаты по ссылке.</p><button type="button" class="btn-payment-method" data-method="bot"><span class="payment-method-icon">' + getPaymentMethodIcon('card') + '</span>Оплатить в боте</button>';
               var botBtn = list.querySelector('.btn-payment-method[data-method="bot"]');
               if (botBtn) botBtn.addEventListener('click', function() {
                 closeSubscribeSheet();
@@ -2301,7 +2307,8 @@
               });
             } else {
               list.innerHTML = methods.map(function(m) {
-                return '<button type="button" class="btn-payment-method" data-method="' + (m.id || '') + '">' + (m.emoji || '💳') + ' ' + (m.name || m.id) + '</button>';
+                var id = m.id || '';
+                return '<button type="button" class="btn-payment-method" data-method="' + id + '"><span class="payment-method-icon">' + getPaymentMethodIcon(id) + '</span>' + (m.name || id) + '</button>';
               }).join('');
               list.querySelectorAll('.btn-payment-method').forEach(function(btn) {
                 btn.addEventListener('click', function() {
