@@ -27,7 +27,7 @@ except Exception:
 
 from fastapi import FastAPI, HTTPException, Header, Request
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import Response, StreamingResponse
+from fastapi.responses import Response, StreamingResponse, HTMLResponse
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -297,6 +297,43 @@ def serve_webapp():
 def health():
     """Проверка работы сервиса (для Render и мониторинга)."""
     return {"service": "Bit VPN Mini App API", "status": "ok"}
+
+
+REDIRECT_TO_APP_HTML = """<!DOCTYPE html>
+<html lang="ru"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Открытие приложения</title>
+<style>body{font-family:system-ui,sans-serif;background:#0f172a;color:#fff;margin:0;min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:20px;box-sizing:border-box;}
+.text{margin-bottom:20px;text-align:center;max-width:320px;}
+.btn{display:inline-block;padding:14px 28px;background:#3b82f6;color:#fff;text-decoration:none;border-radius:12px;font-weight:600;margin-top:12px;}
+.fallback{display:none;}</style></head>
+<body>
+<p class="text" id="msg">Перенаправление в приложение…</p>
+<div class="text fallback" id="fallback">
+  <p>Автоматическое открытие не сработало. Нажмите кнопку ниже для открытия приложения.</p>
+  <a id="openBtn" class="btn" href="#">Открыть вручную</a>
+</div>
+<script>
+(function(){
+  var p = new URLSearchParams(location.search).get("url");
+  if (!p) { document.getElementById("msg").textContent = "Нет ссылки для открытия."; return; }
+  var target = decodeURIComponent(p);
+  try { window.location.replace(target); } catch (e) {}
+  setTimeout(function(){
+    document.getElementById("msg").style.display = "none";
+    document.getElementById("fallback").style.display = "block";
+    document.getElementById("openBtn").href = target;
+  }, 2500);
+})();
+</script></body></html>"""
+
+
+@app.get("/api/miniapp/redirect-to-app", response_class=HTMLResponse)
+def redirect_to_app(url: str = ""):
+    """
+    Страница перенаправления: открывает ссылку подписки (как ASB).
+    Браузер переходит по ссылке — на мобильном может предложить «Открыть в Happ».
+    Если не сработало — показывается кнопка «Открыть вручную».
+    """
+    return HTMLResponse(content=REDIRECT_TO_APP_HTML)
 
 
 @app.get("/api/miniapp/check-happ-env")
