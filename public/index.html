@@ -650,6 +650,9 @@
       transform: translateZ(0);
       pointer-events: none;
     }
+    .premium-phone-3d.phone-3d-ready::before,
+    .premium-phone-3d.phone-3d-ready .phone-css-fallback,
+    .premium-phone-3d.phone-3d-ready .phone-particles { display: none !important; }
     .premium-phone-3d .phone-css-fallback {
       position: absolute;
       left: 50%;
@@ -3327,7 +3330,44 @@
   </script>
   <script type="module">
     (function() {
-      var scene, camera, renderer, phoneGroup, frameId;
+      var scene, camera, renderer, phoneGroup, digitRing, frameId;
+      function makeDigitTexture(THREE, digit) {
+        var c = document.createElement('canvas');
+        c.width = 64;
+        c.height = 64;
+        var ctx = c.getContext('2d');
+        ctx.fillStyle = 'transparent';
+        ctx.fillRect(0, 0, 64, 64);
+        ctx.fillStyle = '#00FF9D';
+        ctx.font = 'bold 48px "Courier New", monospace';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(digit, 32, 32);
+        var tex = new THREE.CanvasTexture(c);
+        tex.needsUpdate = true;
+        return tex;
+      }
+      function addDigitRing(THREE) {
+        var group = new THREE.Group();
+        var radius = 3.8;
+        var digits = ['0','1','0','1','1','0','0','1','0','1','1','0','1','0','0','1'];
+        for (var i = 0; i < digits.length; i++) {
+          var angle = (i / digits.length) * Math.PI * 2;
+          var geom = new THREE.PlaneGeometry(0.5, 0.6);
+          var mat = new THREE.MeshBasicMaterial({
+            map: makeDigitTexture(THREE, digits[i]),
+            transparent: true,
+            opacity: 0.9,
+            side: THREE.DoubleSide,
+            depthWrite: false
+          });
+          var mesh = new THREE.Mesh(geom, mat);
+          mesh.position.set(Math.cos(angle) * radius, Math.sin(angle) * radius * 0.4, 0);
+          mesh.lookAt(0, 0, 10);
+          group.add(mesh);
+        }
+        return group;
+      }
       window.initPremiumPhone3D = function(container) {
         var wrap = container && container.querySelector('.phone-3d-canvas-wrap');
         var canvas = wrap && wrap.querySelector('canvas');
@@ -3361,25 +3401,36 @@
           renderer.setSize(w, h);
           renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
           renderer.setClearColor(0x000000, 0);
-          var amb = new THREE.AmbientLight(0x445544, 0.8);
+          var amb = new THREE.AmbientLight(0x888888, 0.9);
           scene.add(amb);
-          var dir = new THREE.DirectionalLight(0x00ff9d, 0.6);
+          var dir = new THREE.DirectionalLight(0xffffff, 0.6);
           dir.position.set(3, 2, 5);
           scene.add(dir);
-          var rim = new THREE.PointLight(0x00ff9d, 0.5, 15);
+          var rim = new THREE.PointLight(0x00ff9d, 0.25, 15);
           rim.position.set(-4, 0, 4);
           scene.add(rim);
+          digitRing = addDigitRing(THREE);
+          scene.add(digitRing);
           var loader = new GLTFLoader();
           loader.load(glbUrl, function(gltf) {
             phoneGroup = gltf.scene;
-            phoneGroup.rotation.x = 4 * Math.PI / 180;
+            phoneGroup.traverse(function(o) {
+              if (o.isMesh && o.material) {
+                if (o.material.color) o.material.color.setHex(0x1c1c1e);
+                if (o.material.emissive) o.material.emissive.setHex(0x000000);
+                o.material.metalness = 0.5;
+                o.material.roughness = 0.45;
+              }
+            });
+            phoneGroup.rotation.x = 25 * Math.PI / 180;
             var box = new THREE.Box3().setFromObject(phoneGroup);
             var size = new THREE.Vector3();
             box.getSize(size);
             var maxDim = Math.max(size.x, size.y, size.z);
-            var scale = (maxDim > 0) ? 5.5 / maxDim : 1;
+            var scale = (maxDim > 0) ? (5.5 / maxDim) * 1.4 : 1;
             phoneGroup.scale.setScalar(scale);
             scene.add(phoneGroup);
+            if (container) container.classList.add('phone-3d-ready');
           }, undefined, function() {
             phoneGroup = null;
           });
@@ -3391,6 +3442,7 @@
             frameId = requestAnimationFrame(animate);
             var t = (Date.now() - startTime) / 6000;
             if (phoneGroup) phoneGroup.rotation.y = t * Math.PI * 2;
+            if (digitRing) digitRing.rotation.z += 0.012;
             renderer.render(scene, camera);
           }
           stopRequested = false;
