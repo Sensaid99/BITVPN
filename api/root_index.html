@@ -900,14 +900,6 @@
           </div>
         </div>
         <div id="subs-empty-active" class="subs-empty" style="display:none;">Нет активных подписок. Оформите подписку на главном экране.</div>
-        <div id="subs-happ-block" class="subs-happ-block" style="display:none;">
-          <p class="subs-happ-title">🔗 Ссылка для приложения Happ</p>
-          <div class="subs-happ-btns">
-            <button type="button" id="subs-happ-open" class="btn-open-happ">Открыть в Happ</button>
-            <button type="button" id="subs-happ-copy" class="btn-copy" title="Скопировать"><svg viewBox="0 0 24 24"><path d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z"/></svg></button>
-          </div>
-          <p class="subs-happ-tip">Нажмите «Открыть в Happ» — приложение откроется и подписка добавится. Или скопируйте и вставьте в меню «+» Happ.</p>
-        </div>
         <div class="subs-extend">
           <a href="#" id="btn-subs-extend" class="btn btn-primary">Продлить подписку</a>
         </div>
@@ -1857,17 +1849,6 @@
             return '<div class="pay-item"><div class="pay-item-head"><div class="pay-item-title"><svg viewBox="0 0 24 24"><path d="M20 4H4c-1.11 0-1.99.89-1.99 2L2 18c0 1.11.89 2 2 2h16c1.11 0 2-.89 2-2V6c0-1.11-.89-2-2-2zm0 14H4v-6h16v6zm0-10H4V6h16v2z"/></svg>Подписка Bit VPN</div><span class="pay-item-badge pending">В обработке</span></div><div class="pay-item-meta">' + (p.plan_name || p.plan_type || '') + '</div><div class="pay-item-row"><span>Сумма: ' + (p.amount_rubles || 0) + ' ₽</span></div></div>';
           }).join('') : '';
         }
-        var subsHappBlock = document.getElementById('subs-happ-block');
-        var subLinkForSubs = (API_ME.subscription && API_ME.subscription.subscription_link) ? API_ME.subscription.subscription_link : '';
-        if (subsHappBlock) {
-          if (hasActiveSub && subLinkForSubs) {
-            subsHappBlock.style.display = '';
-            subsHappBlock.setAttribute('data-subscription-link', subLinkForSubs);
-          } else {
-            subsHappBlock.style.display = 'none';
-            subsHappBlock.removeAttribute('data-subscription-link');
-          }
-        }
         var refStatInvited = document.getElementById('ref-stat-invited');
         var refStatDays = document.getElementById('ref-stat-days');
         if (refStatInvited) refStatInvited.textContent = (API_ME.referral_invited_count != null ? API_ME.referral_invited_count : 0);
@@ -2542,6 +2523,8 @@
         return { name: name, icon: icon };
       }
       function openDevicesSheet() {
+        if (devicesOverlay) { devicesOverlay.classList.remove('devices-sheet-hidden'); devicesOverlay.classList.add('open'); devicesOverlay.setAttribute('aria-hidden', 'false'); }
+        if (devicesSheet) { devicesSheet.style.transform = ''; devicesSheet.style.transition = ''; devicesSheet.classList.remove('devices-sheet-hidden'); devicesSheet.classList.add('open'); }
         function fillDevicesFromApi() {
           var subLink = (typeof API_ME !== 'undefined' && API_ME && API_ME.subscription && API_ME.subscription.subscription_link) ? API_ME.subscription.subscription_link : '';
           var hasActiveSub = !!(typeof API_ME !== 'undefined' && API_ME && (API_ME.subscription || (API_ME.subscriptions && API_ME.subscriptions.some(function(s) { return s.is_active; }))));
@@ -2578,10 +2561,10 @@
             }
           }
         }
-        fillDevicesFromApi();
-        if (devicesOverlay) { devicesOverlay.classList.remove('devices-sheet-hidden'); devicesOverlay.classList.add('open'); devicesOverlay.setAttribute('aria-hidden', 'false'); }
-        if (devicesSheet) { devicesSheet.style.transform = ''; devicesSheet.style.transition = ''; devicesSheet.classList.remove('devices-sheet-hidden'); devicesSheet.classList.add('open'); }
-        if (typeof loadMeFromApi === 'function') loadMeFromApi(fillDevicesFromApi);
+        requestAnimationFrame(function() {
+          fillDevicesFromApi();
+          if (typeof loadMeFromApi === 'function') loadMeFromApi(fillDevicesFromApi);
+        });
       }
       function closeDevicesSheet() {
         if (devicesOverlay) { devicesOverlay.classList.remove('open'); devicesOverlay.setAttribute('aria-hidden', 'true'); }
@@ -2614,13 +2597,7 @@
         var dev = detectDevice();
         if (installIntroTitle) installIntroTitle.textContent = 'Подключение на ' + dev.name;
         if (installIntroDesc) installIntroDesc.textContent = 'Подключение займёт 3 шага и пару минут.';
-        if (installIntroIconWrap) {
-          installIntroIconWrap.innerHTML = getInstallIntroIconMarkup(dev);
-          var phone3d = installIntroIconWrap.querySelector('.premium-phone-3d');
-          if (phone3d && window.initPremiumPhone3D) {
-            requestAnimationFrame(function() { window.initPremiumPhone3D(phone3d); });
-          }
-        }
+        /* Иконка телефона не заменяется на 3D при открытии — остаётся встроенная SVG, экран открывается мгновенно без загрузки модели */
       }
       function closeInstallIntroSheet() {
         if (window.stopPremiumPhone3D) window.stopPremiumPhone3D();
@@ -2877,27 +2854,6 @@
           } else {
             if (tg && tg.showAlert) tg.showAlert(link);
           }
-        });
-      }
-      var subsHappOpen = document.getElementById('subs-happ-open');
-      var subsHappCopy = document.getElementById('subs-happ-copy');
-      var subsHappBlockEl = document.getElementById('subs-happ-block');
-      if (subsHappOpen && subsHappBlockEl) {
-        subsHappOpen.addEventListener('click', function() {
-          var link = subsHappBlockEl.getAttribute('data-subscription-link');
-          openHappLink(link);
-        });
-      }
-      if (subsHappCopy && subsHappBlockEl) {
-        subsHappCopy.addEventListener('click', function() {
-          var link = subsHappBlockEl.getAttribute('data-subscription-link');
-          if (!link) return;
-          if (navigator.clipboard && navigator.clipboard.writeText) {
-            navigator.clipboard.writeText(link).then(function() {
-              if (tg && tg.showPopup) tg.showPopup({ title: '', message: 'Ссылка скопирована' });
-              else if (tg && tg.showAlert) tg.showAlert('Ссылка скопирована');
-            }).catch(function() { if (tg && tg.showAlert) tg.showAlert(link); });
-          } else if (tg && tg.showAlert) tg.showAlert(link);
         });
       }
       var setupSheet = document.getElementById('setup-sheet');
