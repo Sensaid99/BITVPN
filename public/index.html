@@ -588,9 +588,14 @@
     .subs-happ-btns .btn-copy { width: 48px; padding: 0; border-radius: 10px; background: rgba(0,255,136,0.2); border: 1px solid var(--accent); color: var(--accent); display: flex; align-items: center; justify-content: center; cursor: pointer; flex-shrink: 0; }
     .subs-happ-btns .btn-copy svg { width: 20px; height: 20px; fill: currentColor; }
     .subs-happ-tip { font-size: 0.75rem; color: var(--text-muted); margin: 0; line-height: 1.35; }
-    .sheet-happ-no-link-hint { margin-bottom: 12px; padding: 10px 12px; background: rgba(255,193,7,0.08); border: 1px solid rgba(255,193,7,0.3); border-radius: 10px; font-size: 0.8rem; color: var(--text-muted); line-height: 1.4; }
+    .sheet-happ-no-link-hint { margin-bottom: 10px; padding: 8px 10px; background: rgba(255,193,7,0.08); border: 1px solid rgba(255,193,7,0.3); border-radius: 10px; font-size: 0.78rem; color: var(--text-muted); line-height: 1.35; }
     .sheet-happ-no-link-hint p { margin: 0; }
-    .sheet-current-device { padding: 14px; margin-bottom: 12px; background: linear-gradient(135deg, rgba(0,255,136,0.06), rgba(0,255,136,0.02)); border: 1px solid rgba(0,255,136,0.2); border-radius: 14px; }
+    .sheet-devices-link-compact { margin-bottom: 10px; }
+    .sheet-devices-link-btns { display: flex; gap: 8px; margin-bottom: 6px; }
+    .sheet-devices-link-btns .btn-link-action { flex: 1; padding: 10px 12px; border-radius: 10px; font-size: 0.85rem; font-weight: 600; cursor: pointer; border: 1px solid rgba(0,255,136,0.5); background: rgba(0,255,136,0.12); color: var(--accent); }
+    .sheet-devices-link-btns .btn-link-replace { background: transparent; color: var(--accent); }
+    .sheet-devices-link-explain { font-size: 0.72rem; color: var(--text-muted); line-height: 1.35; margin: 0 0 10px 0; }
+    .sheet-tun-tip { font-size: 0.72rem; color: var(--text-muted); margin: 0 0 12px 0; padding: 8px 10px; background: rgba(255,255,255,0.03); border-radius: 10px; line-height: 1.4; }
     .sheet-current-device-top { display: flex; align-items: center; gap: 12px; margin-bottom: 12px; }
     .sheet-current-device-icon { width: 44px; height: 44px; border-radius: 12px; background: rgba(0,255,136,0.12); display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
     .sheet-current-device-icon svg { width: 26px; height: 26px; fill: var(--accent); }
@@ -1124,36 +1129,18 @@
     <div class="bottom-sheet-handle"></div>
     <div class="sheet-content sheet-content-scrollable">
       <h2 class="sheet-title">Устройства</h2>
-      <div class="sheet-client-id">
-        <span class="client-id-label">ID клиента</span>
-        <span id="sheet-client-id-value" class="client-id-value">—</span>
-        <button type="button" id="sheet-copy-id" class="btn-copy" title="Копировать"><svg viewBox="0 0 24 24"><path d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z"/></svg></button>
-      </div>
-      <div id="sheet-happ-link-block" class="sheet-happ-link-block" style="display:none;">
+      <div id="sheet-happ-link-block" class="sheet-devices-link-compact" style="display:none;">
         <input type="hidden" id="sheet-happ-link-value" />
-        <p class="sheet-happ-link-label">🔗 Ссылка для приложения Happ</p>
-        <div class="sheet-happ-link-row">
-          <button type="button" id="sheet-happ-link-open" class="btn-open-happ">Открыть в Happ</button>
-          <button type="button" id="sheet-happ-link-copy" class="btn-copy" title="Скопировать"><svg viewBox="0 0 24 24"><path d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z"/></svg></button>
+        <div class="sheet-devices-link-btns">
+          <button type="button" id="sheet-happ-link-copy" class="btn-link-action">Скопировать ссылку</button>
+          <button type="button" id="sheet-happ-link-replace" class="btn-link-action btn-link-replace">Заменить ссылку</button>
         </div>
-        <p class="sheet-happ-link-tip">Нажмите «Открыть в Happ» — приложение откроется и подписка добавится. Или скопируйте и вставьте в меню «+» Happ.</p>
+        <p class="sheet-devices-link-explain">Если VPN глючит или не подключается — нажмите «Заменить ссылку», вставьте новую в Happ (Подписки → +). Обновятся настройки только на этом устройстве; у остальных ничего не изменится.</p>
       </div>
       <div id="sheet-happ-no-link-hint" class="sheet-happ-no-link-hint" style="display:none;">
-        <p>У вас есть подписка. Если ссылка выше не отображается — откройте приложение из меню бота и обновите страницу, или в боте нажмите «Мой конфиг» — ссылка придёт в чат.</p>
+        <p>У вас есть подписка. Если ссылка не отображается — откройте приложение из меню бота и обновите страницу, или в боте нажмите «Мой конфиг».</p>
       </div>
-      <div id="sheet-current-device-block" class="sheet-current-device">
-        <div class="sheet-current-device-top">
-          <div class="sheet-current-device-icon" id="sheet-device-icon"></div>
-          <div class="sheet-current-device-head">
-            <div class="sheet-current-device-title" id="sheet-device-title">Подключение на устройстве</div>
-            <div class="sheet-current-device-desc" id="sheet-device-desc">Подключение займёт 3 шага и пару минут.</div>
-          </div>
-        </div>
-        <div class="sheet-current-device-btns">
-          <button type="button" id="sheet-btn-setup-this" class="btn-setup-this">Подключить на этом устройстве</button>
-          <button type="button" id="sheet-btn-setup-other" class="btn-setup-other">Подключить на другом устройстве</button>
-        </div>
-      </div>
+      <p class="sheet-tun-tip">Если после установки VPN не работает: откройте настройки Happ (иконка слева), включите режим TUN и подключитесь заново.</p>
       <div class="sheet-devices">
         <div class="sheet-devices-head">
           <span class="sheet-devices-title">Подключено</span>
@@ -2507,11 +2494,10 @@
       var devicesSheet = document.getElementById('devices-sheet');
       var devicesOverlay = document.getElementById('devices-sheet-overlay');
       var btnDevices = document.getElementById('btn-devices');
-      var sheetClientIdValue = document.getElementById('sheet-client-id-value');
-      var sheetCopyId = document.getElementById('sheet-copy-id');
       var sheetHappLinkBlock = document.getElementById('sheet-happ-link-block');
       var sheetHappLinkValue = document.getElementById('sheet-happ-link-value');
       var sheetHappLinkCopy = document.getElementById('sheet-happ-link-copy');
+      var sheetHappLinkReplace = document.getElementById('sheet-happ-link-replace');
       var sheetDevicesList = document.getElementById('sheet-devices-list');
       var sheetDevicesCount = document.getElementById('sheet-devices-count');
       var sheetAddDevice = document.getElementById('sheet-add-device');
@@ -2556,29 +2542,49 @@
         return { name: name, icon: icon };
       }
       function openDevicesSheet() {
-        clientId = getClientId();
-        if (sheetClientIdValue) sheetClientIdValue.textContent = clientId || '—';
-        var dev = detectDevice();
-        var titleEl = document.getElementById('sheet-device-title');
-        var descEl = document.getElementById('sheet-device-desc');
-        var iconEl = document.getElementById('sheet-device-icon');
-        if (titleEl) titleEl.textContent = 'Подключение на ' + dev.name;
-        if (descEl) descEl.textContent = 'Подключение займёт 3 шага и пару минут.';
-        if (iconEl) iconEl.innerHTML = dev.icon;
-        var subLink = (typeof API_ME !== 'undefined' && API_ME && API_ME.subscription && API_ME.subscription.subscription_link) ? API_ME.subscription.subscription_link : '';
-        var hasActiveSub = !!(typeof API_ME !== 'undefined' && API_ME && (API_ME.subscription || (API_ME.subscriptions && API_ME.subscriptions.some(function(s) { return s.is_active; }))));
-        if (sheetHappLinkBlock && sheetHappLinkValue) {
-          if (subLink) {
-            sheetHappLinkBlock.style.display = '';
-            sheetHappLinkValue.value = subLink;
-          } else {
-            sheetHappLinkBlock.style.display = 'none';
+        var onOpen = function() {
+          var subLink = (typeof API_ME !== 'undefined' && API_ME && API_ME.subscription && API_ME.subscription.subscription_link) ? API_ME.subscription.subscription_link : '';
+          var hasActiveSub = !!(typeof API_ME !== 'undefined' && API_ME && (API_ME.subscription || (API_ME.subscriptions && API_ME.subscriptions.some(function(s) { return s.is_active; }))));
+          if (sheetHappLinkBlock && sheetHappLinkValue) {
+            if (subLink) {
+              sheetHappLinkBlock.style.display = '';
+              sheetHappLinkValue.value = subLink;
+            } else {
+              sheetHappLinkBlock.style.display = 'none';
+            }
           }
+          var noLinkHint = document.getElementById('sheet-happ-no-link-hint');
+          if (noLinkHint) noLinkHint.style.display = (hasActiveSub && !subLink) ? '' : 'none';
+          var used = (API_ME && API_ME.subscription && API_ME.subscription.devices_used != null) ? API_ME.subscription.devices_used : 0;
+          var limit = (API_ME && API_ME.subscription && API_ME.subscription.devices_limit != null) ? API_ME.subscription.devices_limit : 0;
+          if (sheetDevicesCount) sheetDevicesCount.textContent = limit ? (used + ' / ' + limit) : (used || '0');
+          if (sheetDevicesList) {
+            var empty = sheetDevicesList.querySelector('.sheet-devices-empty');
+            var items = sheetDevicesList.querySelectorAll('.device-item');
+            items.forEach(function(el) { el.remove(); });
+            if (empty) empty.remove();
+            if (used > 0) {
+              for (var i = 0; i < used; i++) {
+                var div = document.createElement('div');
+                div.className = 'device-item';
+                div.innerHTML = '<svg viewBox="0 0 24 24"><path d="M20 18c1.1 0 1.99-.9 1.99-2L22 6c0-1.1-.9-2-2-2H4c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2H0v2h24v-2h-4zM4 6h16v10H4V6z"/></svg><span>Устройство ' + (i + 1) + '</span>';
+                sheetDevicesList.appendChild(div);
+              }
+            } else {
+              var emptyEl = document.createElement('div');
+              emptyEl.className = 'sheet-devices-empty';
+              emptyEl.textContent = 'Нет устройств';
+              sheetDevicesList.appendChild(emptyEl);
+            }
+          }
+          if (devicesOverlay) { devicesOverlay.classList.remove('devices-sheet-hidden'); devicesOverlay.classList.add('open'); devicesOverlay.setAttribute('aria-hidden', 'false'); }
+          if (devicesSheet) { devicesSheet.style.transform = ''; devicesSheet.style.transition = ''; devicesSheet.classList.remove('devices-sheet-hidden'); devicesSheet.classList.add('open'); }
+        };
+        if (typeof loadMeFromApi === 'function') {
+          loadMeFromApi(function() { onOpen(); });
+        } else {
+          onOpen();
         }
-        var noLinkHint = document.getElementById('sheet-happ-no-link-hint');
-        if (noLinkHint) noLinkHint.style.display = (hasActiveSub && !subLink) ? '' : 'none';
-        if (devicesOverlay) { devicesOverlay.classList.remove('devices-sheet-hidden'); devicesOverlay.classList.add('open'); devicesOverlay.setAttribute('aria-hidden', 'false'); }
-        if (devicesSheet) { devicesSheet.style.transform = ''; devicesSheet.style.transition = ''; devicesSheet.classList.remove('devices-sheet-hidden'); devicesSheet.classList.add('open'); }
       }
       function closeDevicesSheet() {
         if (devicesOverlay) { devicesOverlay.classList.remove('open'); devicesOverlay.setAttribute('aria-hidden', 'true'); }
@@ -2798,27 +2804,6 @@
       if (platformAppSheet) platformAppSheet.addEventListener('click', function(e) { e.stopPropagation(); });
       attachSwipeToClose(platformAppSheet, platformAppOverlay, 'platform-app-sheet-hidden');
 
-      if (sheetCopyId) {
-        sheetCopyId.addEventListener('click', function() {
-          var id = getClientId() || clientId;
-          if (!id) {
-            if (tg && tg.showAlert) tg.showAlert('ID недоступен. Откройте приложение из меню бота в Telegram.');
-            return;
-          }
-          if (navigator.clipboard && navigator.clipboard.writeText) {
-            navigator.clipboard.writeText(id).then(function() {
-              if (tg && tg.showPopup) tg.showPopup({ title: '', message: 'ID скопирован' });
-              else if (tg && tg.showAlert) tg.showAlert('ID скопирован');
-              else sheetCopyId.textContent = 'Скопировано';
-            }).catch(function() {
-              if (tg && tg.showAlert) tg.showAlert('ID: ' + id);
-            });
-          } else {
-            if (tg && tg.showAlert) tg.showAlert('ID: ' + id);
-            else sheetCopyId.textContent = 'Скопировано';
-          }
-        });
-      }
       var HAPP_ANDROID_INTENT = 'intent://#Intent;package=com.happproxy;action=android.intent.action.MAIN;category=android.intent.category.LAUNCHER;end';
       function isAndroid() {
         var ua = typeof navigator !== 'undefined' ? navigator.userAgent || '' : '';
@@ -2861,12 +2846,6 @@
           }
         }
       }
-      var sheetHappLinkOpen = document.getElementById('sheet-happ-link-open');
-      if (sheetHappLinkOpen && sheetHappLinkValue) {
-        sheetHappLinkOpen.addEventListener('click', function() {
-          openHappLink(sheetHappLinkValue.value);
-        });
-      }
       if (sheetHappLinkCopy && sheetHappLinkValue) {
         sheetHappLinkCopy.addEventListener('click', function() {
           var link = sheetHappLinkValue.value;
@@ -2876,6 +2855,23 @@
               if (tg && tg.showPopup) tg.showPopup({ title: '', message: 'Ссылка скопирована' });
               else if (tg && tg.showAlert) tg.showAlert('Ссылка скопирована');
               else sheetHappLinkCopy.textContent = 'Скопировано';
+            }).catch(function() {
+              if (tg && tg.showAlert) tg.showAlert(link);
+            });
+          } else {
+            if (tg && tg.showAlert) tg.showAlert(link);
+          }
+        });
+      }
+      if (sheetHappLinkReplace && sheetHappLinkValue) {
+        sheetHappLinkReplace.addEventListener('click', function() {
+          var link = sheetHappLinkValue.value;
+          if (!link) return;
+          if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(link).then(function() {
+              var msg = 'Ссылка скопирована. Вставьте в Happ (Подписки → +) — настройки обновятся только на этом устройстве, у остальных ничего не изменится.';
+              if (tg && tg.showAlert) tg.showAlert(msg);
+              else alert(msg);
             }).catch(function() {
               if (tg && tg.showAlert) tg.showAlert(link);
             });
@@ -2905,8 +2901,6 @@
           } else if (tg && tg.showAlert) tg.showAlert(link);
         });
       }
-      var sheetBtnSetupThis = document.getElementById('sheet-btn-setup-this');
-      var sheetBtnSetupOther = document.getElementById('sheet-btn-setup-other');
       var setupSheet = document.getElementById('setup-sheet');
       var setupOverlay = document.getElementById('setup-sheet-overlay');
       var setupHappLinkBlock = document.getElementById('setup-happ-link-block');
@@ -2934,11 +2928,6 @@
       }
       if (setupOverlay) setupOverlay.addEventListener('click', closeSetupSheet);
       attachSwipeToClose(setupSheet, setupOverlay, 'setup-sheet-hidden');
-      if (sheetBtnSetupThis) {
-        sheetBtnSetupThis.addEventListener('click', function() {
-          openSetupSheet();
-        });
-      }
       var setupHappLinkOpen = document.getElementById('setup-happ-link-open');
       if (setupHappLinkOpen && setupHappLinkValue) {
         setupHappLinkOpen.addEventListener('click', function() {
@@ -2960,12 +2949,6 @@
           } else {
             if (tg && tg.showAlert) tg.showAlert(link);
           }
-        });
-      }
-      if (sheetBtnSetupOther) {
-        sheetBtnSetupOther.addEventListener('click', function() {
-          if (tg && tg.showAlert) tg.showAlert('Откройте бота на том устройстве, где нужно подключить VPN, и нажмите «Мой конфиг» — конфигурация и QR придут туда.');
-          else alert('Откройте бота на другом устройстве и нажмите «Мой конфиг».');
         });
       }
       if (sheetAddDevice) {
