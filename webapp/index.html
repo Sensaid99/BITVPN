@@ -715,8 +715,8 @@
     .platform-app-sheet .btn-add-sub-platform { flex: 1; padding: 10px 12px; border-radius: 10px; background: #fff; color: #0d0d0d; font-weight: 600; font-size: 0.82rem; border: none; cursor: pointer; text-align: center; white-space: nowrap; }
     /* Полноэкранный QR для «Подключить на другом устройстве» */
     .other-device-qr-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.92); z-index: 200; display: none; align-items: center; justify-content: center; padding: 20px; box-sizing: border-box; }
-    .other-device-qr-overlay.open { display: flex; }
-    .other-device-qr-sheet { position: relative; width: 100%; max-width: 340px; background: var(--bg-card); border-radius: 24px; padding: 24px 20px 20px; border: 1px solid var(--border); box-shadow: 0 16px 48px rgba(0,0,0,0.5); }
+    .other-device-qr-overlay.open { display: flex; overflow-y: auto; -webkit-overflow-scrolling: touch; align-items: flex-start; padding: 20px 20px 40px; }
+    .other-device-qr-sheet { position: relative; width: 100%; max-width: 340px; max-height: none; background: var(--bg-card); border-radius: 24px; padding: 24px 20px 20px; border: 1px solid var(--border); box-shadow: 0 16px 48px rgba(0,0,0,0.5); flex-shrink: 0; margin: auto; }
     .other-device-qr-close { position: absolute; top: 12px; right: 12px; width: 40px; height: 40px; border: none; background: rgba(255,255,255,0.08); color: var(--text-muted); border-radius: 50%; cursor: pointer; display: flex; align-items: center; justify-content: center; }
     .other-device-qr-close:hover, .other-device-qr-close:active { background: rgba(255,255,255,0.12); color: var(--text); }
     .other-device-qr-close svg { width: 22px; height: 22px; }
@@ -733,7 +733,6 @@
     .other-device-qr-share-bar .share-telegram { width: 44px; height: 44px; border: none; background: rgba(0,136,204,0.15); border-radius: 12px; cursor: pointer; display: flex; align-items: center; justify-content: center; color: #0088cc; }
     .other-device-qr-share-bar .share-telegram:active { background: rgba(0,136,204,0.25); }
     .other-device-qr-share-bar .share-telegram svg { width: 22px; height: 22px; fill: currentColor; }
-    .other-device-qr-hint { font-size: 0.8rem; color: var(--text-muted); text-align: center; margin-top: -8px; margin-bottom: 12px; line-height: 1.35; }
     .other-device-qr-how-wrap { margin-top: 14px; }
     .other-device-qr-how-btn { width: 100%; padding: 12px 16px; border-radius: 12px; background: rgba(0,255,136,0.12); border: 1px solid rgba(0,255,136,0.35); color: var(--accent); font-weight: 600; font-size: 0.9rem; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; }
     .other-device-qr-how-btn:active { background: rgba(0,255,136,0.2); }
@@ -1210,7 +1209,6 @@
     <div class="other-device-qr-sheet" onclick="event.stopPropagation()">
       <button type="button" id="other-device-qr-close" class="other-device-qr-close" aria-label="Закрыть"><svg viewBox="0 0 24 24"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg></button>
       <h2 class="other-device-qr-title">Пусть другой человек отсканирует QR</h2>
-      <p class="other-device-qr-hint">В Happ нажмите «+» → выберите «Сканировать QR», наведите камеру на код — подписка добавится. Или вставьте ссылку из поля ниже.</p>
       <div id="other-device-qrcode-wrap" class="other-device-qrcode-wrap"></div>
       <div class="other-device-qr-share-bar">
         <span class="share-label">Поделиться ссылкой</span>
