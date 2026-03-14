@@ -2700,15 +2700,19 @@
           var subLink = (typeof API_ME !== 'undefined' && API_ME && API_ME.subscription && API_ME.subscription.subscription_link) ? API_ME.subscription.subscription_link : '';
           closeConfirmInstalledSheet();
           if (subLink) {
-            var redirectUrl = (typeof window.MINIAPP_API_BASE !== 'undefined' && window.MINIAPP_API_BASE)
-              ? (window.MINIAPP_API_BASE.replace(/\/$/, '') + '/api/miniapp/redirect-to-app?url=' + encodeURIComponent(subLink))
-              : '';
-            if (redirectUrl && tg && tg.openLink) {
-              tg.openLink(redirectUrl);
-            } else if (typeof openHappLink === 'function') {
+            if (typeof openHappLink === 'function') {
               openHappLink(subLink);
             } else {
-              if (tg && tg.openLink) tg.openLink(subLink);
+              if (navigator.clipboard && navigator.clipboard.writeText) {
+                navigator.clipboard.writeText(subLink).then(function() {
+                  if (tg && tg.showPopup) tg.showPopup({ title: '', message: 'Ссылка скопирована. Откройте Happ → Подписки → + → Вставьте.' });
+                  else if (tg && tg.showAlert) tg.showAlert('Ссылка скопирована. Откройте Happ и вставьте в Подписки → +');
+                }).catch(function() {});
+              }
+              if (tg && tg.openLink) {
+                var ua = typeof navigator !== 'undefined' ? (navigator.userAgent || '') : '';
+                if (/Android/i.test(ua)) tg.openLink('intent://#Intent;package=com.happproxy;action=android.intent.action.MAIN;category=android.intent.category.LAUNCHER;end');
+              }
             }
           } else {
             setTimeout(function() { if (typeof openSetupSheet === 'function') openSetupSheet(); }, 320);
