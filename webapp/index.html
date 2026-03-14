@@ -1400,6 +1400,8 @@
     </div>
   </div>
 
+  <!-- ========== ОБХОД ПО СВОЕМУ ID (для теста): замените 0 на свой Telegram ID (число), например [123456789]. Или в .env: MINIAPP_BYPASS_USER_IDS=123456789 ========== -->
+  <script>window.MINIAPP_BYPASS_USER_IDS_EDITABLE = [1076883600];</script>
   <script>
     (function() {
       var canvas = document.getElementById('binary-canvas');
@@ -1676,7 +1678,8 @@
       var apiBase = (function() { var m = /[?&]api=([^&]+)/.exec(location.search); if (m) return decodeURIComponent(m[1]).replace(/\/+$/, ''); return (window.location && window.location.origin) ? window.location.origin : ''; })();
       var API_PLANS = null;
       var API_ME = null;
-      var MINIAPP_BYPASS_USER_IDS = (window.API_CONFIG && Array.isArray(window.API_CONFIG.miniapp_bypass_user_ids)) ? window.API_CONFIG.miniapp_bypass_user_ids : (window.MINIAPP_BYPASS_USER_IDS_EDITABLE || []);
+      window.MINIAPP_BYPASS_USER_IDS_EDITABLE = window.MINIAPP_BYPASS_USER_IDS_EDITABLE || [];
+      var MINIAPP_BYPASS_USER_IDS = (window.API_CONFIG && Array.isArray(window.API_CONFIG.miniapp_bypass_user_ids)) ? window.API_CONFIG.miniapp_bypass_user_ids : window.MINIAPP_BYPASS_USER_IDS_EDITABLE;
       var initDataFromHash = (function() { try { var h = (window.location && window.location.hash) ? window.location.hash.slice(1) : ''; if (!h) return ''; var p = new URLSearchParams(h); return p.get('tgWebAppData') || ''; } catch (e) { return ''; } })();
       function getInitData() { return (tg && tg.initData) ? tg.initData : (initDataFromHash || ''); }
       function attachSwipeToClose(sheet, overlay, hiddenClass, closeCallback) {

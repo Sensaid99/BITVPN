@@ -245,20 +245,31 @@ def config_for_miniapp():
             server_count = int(sc) if sc else 50
         except ValueError:
             server_count = 50
+        bypass_raw = os.getenv("MINIAPP_BYPASS_USER_IDS", "").strip()
+        bypass_ids = []
+        if bypass_raw:
+            for part in bypass_raw.replace(",", " ").split():
+                part = part.strip()
+                if part.isdigit():
+                    bypass_ids.append(int(part))
         return {
             "support_username": (getattr(Config, "SUPPORT_USERNAME", None) or os.getenv("SUPPORT_USERNAME") or "").strip() or None,
             "referral_bonus_percent": int(getattr(Config, "REFERRAL_BONUS_PERCENT", None) or os.getenv("REFERRAL_BONUS_PERCENT", "10") or "10"),
             "referral_min_payout": int(getattr(Config, "REFERRAL_MIN_PAYOUT", None) or os.getenv("REFERRAL_MIN_PAYOUT", "100") or "100"),
             "bot_username": (getattr(Config, "BOT_USERNAME", None) or os.getenv("BOT_USERNAME") or "").strip() or None,
             "server_count": server_count,
+            "miniapp_bypass_user_ids": bypass_ids,
         }
     except Exception:
+        bypass_raw = os.getenv("MINIAPP_BYPASS_USER_IDS", "").strip()
+        bypass_ids = [int(x) for x in bypass_raw.replace(",", " ").split() if x.strip().isdigit()] if bypass_raw else []
         return {
             "support_username": (os.getenv("SUPPORT_USERNAME") or "").strip() or None,
             "referral_bonus_percent": 10,
             "referral_min_payout": 100,
             "bot_username": (os.getenv("BOT_USERNAME") or "").strip() or None,
             "server_count": 50,
+            "miniapp_bypass_user_ids": bypass_ids,
         }
 
 
