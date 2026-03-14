@@ -2586,25 +2586,33 @@
         var platform = (tg && tg.platform) ? tg.platform : '';
         var ua = navigator.userAgent || '';
         var name = 'Устройство';
+        var platformKey = 'other';
         var icon = '<svg viewBox="0 0 24 24"><path d="M20 18c1.1 0 1.99-.9 1.99-2L22 6c0-1.1-.9-2-2-2H4c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2H0v2h24v-2h-4zM4 6h16v10H4V6z"/></svg>';
         if (/android/i.test(ua) || platform === 'android') {
           name = 'Android';
+          platformKey = 'android';
           icon = '<svg viewBox="0 0 24 24"><path d="M17.6 9.48l1.84-3.18c.16-.31.04-.69-.26-.85-.29-.15-.65-.06-.83.22l-1.88 3.24C14.86 8.87 13.49 8.25 12 8.25s-2.86.62-3.77 1.66L6.35 6.67c-.18-.28-.54-.37-.83-.22-.3.16-.42.54-.26.85l1.84 3.18C4.18 10.72 3 12.62 3 14.75c0 2.86 2.24 5.25 5 5.25h8c2.76 0 5-2.39 5-5.25 0-2.13-1.18-4.03-3.4-5.27zM12 17.25c-.69 0-1.25-.56-1.25-1.25s.56-1.25 1.25-1.25 1.25.56 1.25 1.25-.56 1.25-1.25 1.25z"/></svg>';
         } else if (/iPhone|iPad|iPod/i.test(ua) || platform === 'ios') {
           name = 'iPhone';
+          platformKey = 'ios';
           icon = '<svg viewBox="0 0 24 24"><path d="M17 1.01L7 1c-1.1 0-2 .9-2 2v18c0 1.1.9 2 2 2h10c1.1 0 2-.9 2-2V3c0-1.1-.9-1.99-2-1.99zM17 19H7V5h10v14z"/></svg>';
         } else if (/Windows|Win32|Win64/i.test(ua) || platform === 'tdesktop') {
           name = 'Windows';
+          platformKey = 'windows';
           icon = '<svg viewBox="0 0 24 24"><path d="M20 18c1.1 0 1.99-.9 1.99-2L22 6c0-1.1-.9-2-2-2H4c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2H0v2h24v-2h-4zM4 6h16v10H4V6z"/></svg>';
         } else if (/Mac OS X|Macintosh/i.test(ua)) {
           name = 'macOS';
+          platformKey = 'macos';
           icon = '<svg viewBox="0 0 24 24"><path d="M20 18c1.1 0 1.99-.9 1.99-2L22 6c0-1.1-.9-2-2-2H4c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2H0v2h24v-2h-4zM4 6h16v10H4V6z"/></svg>';
         } else if (/Linux/i.test(ua)) {
           name = 'Linux';
+          platformKey = 'linux';
           icon = '<svg viewBox="0 0 24 24"><path d="M20 18c1.1 0 1.99-.9 1.99-2L22 6c0-1.1-.9-2-2-2H4c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2H0v2h24v-2h-4zM4 6h16v10H4V6z"/></svg>';
         }
-        return { name: name, icon: icon };
+        return { name: name, icon: icon, platform: platformKey };
       }
+      var INSTALL_INTRO_GLB = { ios: 'apple_iphone_15_pro_max_black.glb', windows: 'gaming_laptop.glb', macos: 'macbook_pro_14-inch_m5.glb', android: 'samsung_galaxy_s22_ultra.glb', linux: 'tux.glb', other: 'samsung_galaxy_s22_ultra.glb' };
+      window.getInstallIntroGlbFilename = function() { var d = detectDevice(); return INSTALL_INTRO_GLB[d.platform] || INSTALL_INTRO_GLB.other; };
       function openDevicesSheet() {
         if (devicesOverlay) { devicesOverlay.classList.remove('devices-sheet-hidden'); devicesOverlay.classList.add('open'); devicesOverlay.setAttribute('aria-hidden', 'false'); }
         if (devicesSheet) { devicesSheet.style.transform = ''; devicesSheet.style.transition = ''; devicesSheet.classList.remove('devices-sheet-hidden'); devicesSheet.classList.add('open'); }
@@ -2671,7 +2679,8 @@
       var installIntroDesc = document.getElementById('install-intro-desc');
       var installIntroIconWrap = document.getElementById('install-intro-icon-wrap');
       function getInstallIntroIconMarkup(dev) {
-        return '<div class="premium-phone-3d" aria-hidden="true">' +
+        var glbFile = INSTALL_INTRO_GLB[dev.platform] || INSTALL_INTRO_GLB.other;
+        return '<div class="premium-phone-3d" aria-hidden="true" data-glb="' + glbFile + '">' +
           '<div class="phone-3d-canvas-wrap"><canvas></canvas></div>' +
         '</div>';
       }
@@ -3410,10 +3419,11 @@
   <script type="module">
     (function() {
       var scene, camera, renderer, phoneGroup, frameId;
-      function getGlbUrl() {
+      function getGlbUrl(filename) {
         var base = (typeof window !== 'undefined' && window.location) ? window.location.href.split('#')[0].split('?')[0] : '';
         var path = base.lastIndexOf('/') >= 0 ? base.slice(0, base.lastIndexOf('/') + 1) : '';
-        return (path && path !== 'https://' && path !== 'http://') ? (path + 'apple_iphone_15_pro_max_black.glb') : ((window.location && window.location.origin) ? window.location.origin + '/apple_iphone_15_pro_max_black.glb' : '');
+        var file = filename || (typeof window.getInstallIntroGlbFilename === 'function' ? window.getInstallIntroGlbFilename() : 'apple_iphone_15_pro_max_black.glb');
+        return (path && path !== 'https://' && path !== 'http://') ? (path + file) : ((window.location && window.location.origin) ? window.location.origin + '/' + file : '');
       }
       window.addEventListener('load', function() {
         setTimeout(function() {
@@ -3435,7 +3445,8 @@
         var h = wrap.clientHeight || 260;
         var base = window.location.href.split('#')[0].split('?')[0];
         var path = base.lastIndexOf('/') >= 0 ? base.slice(0, base.lastIndexOf('/') + 1) : '';
-        var glbUrl = (path && path !== 'https://' && path !== 'http://') ? (path + 'apple_iphone_15_pro_max_black.glb') : (window.location.origin + '/apple_iphone_15_pro_max_black.glb');
+        var glbFile = (container && container.getAttribute('data-glb')) || 'apple_iphone_15_pro_max_black.glb';
+        var glbUrl = (path && path !== 'https://' && path !== 'http://') ? (path + glbFile) : ((window.location && window.location.origin) ? window.location.origin + '/' + glbFile : '');
         function loadThree() {
           return Promise.all([
             import('https://unpkg.com/three@0.160.0/build/three.module.js'),
