@@ -3354,7 +3354,7 @@
       }
       function addDigitRing(THREE) {
         var group = new THREE.Group();
-        var radius = 3.8;
+        var radius = 5.2;
         var digits = ['0','1','0','1','1','0','0','1','0','1','1','0','1','0','0','1'];
         for (var i = 0; i < digits.length; i++) {
           var angle = (i / digits.length) * Math.PI * 2;
@@ -3364,10 +3364,10 @@
             transparent: true,
             opacity: 0.9,
             side: THREE.DoubleSide,
-            depthWrite: false
+            depthWrite: true
           });
           var mesh = new THREE.Mesh(geom, mat);
-          mesh.position.set(Math.cos(angle) * radius, Math.sin(angle) * radius * 0.4, 0);
+          mesh.position.set(Math.cos(angle) * radius, Math.sin(angle) * radius * 0.4, -1.2);
           mesh.lookAt(0, 0, 10);
           group.add(mesh);
         }
@@ -3442,7 +3442,7 @@
             var size = new THREE.Vector3();
             box.getSize(size);
             var maxDim = Math.max(size.x, size.y, size.z);
-            var scale = (maxDim > 0) ? (5.5 / maxDim) * 1.4 : 1;
+            var scale = (maxDim > 0) ? 5.5 / maxDim : 1;
             phoneGroup.scale.setScalar(scale);
             scene.add(phoneGroup);
             if (container) container.classList.add('phone-3d-ready');
