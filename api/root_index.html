@@ -2542,7 +2542,7 @@
         return { name: name, icon: icon };
       }
       function openDevicesSheet() {
-        var onOpen = function() {
+        function fillDevicesFromApi() {
           var subLink = (typeof API_ME !== 'undefined' && API_ME && API_ME.subscription && API_ME.subscription.subscription_link) ? API_ME.subscription.subscription_link : '';
           var hasActiveSub = !!(typeof API_ME !== 'undefined' && API_ME && (API_ME.subscription || (API_ME.subscriptions && API_ME.subscriptions.some(function(s) { return s.is_active; }))));
           if (sheetHappLinkBlock && sheetHappLinkValue) {
@@ -2577,14 +2577,11 @@
               sheetDevicesList.appendChild(emptyEl);
             }
           }
-          if (devicesOverlay) { devicesOverlay.classList.remove('devices-sheet-hidden'); devicesOverlay.classList.add('open'); devicesOverlay.setAttribute('aria-hidden', 'false'); }
-          if (devicesSheet) { devicesSheet.style.transform = ''; devicesSheet.style.transition = ''; devicesSheet.classList.remove('devices-sheet-hidden'); devicesSheet.classList.add('open'); }
-        };
-        if (typeof loadMeFromApi === 'function') {
-          loadMeFromApi(function() { onOpen(); });
-        } else {
-          onOpen();
         }
+        fillDevicesFromApi();
+        if (devicesOverlay) { devicesOverlay.classList.remove('devices-sheet-hidden'); devicesOverlay.classList.add('open'); devicesOverlay.setAttribute('aria-hidden', 'false'); }
+        if (devicesSheet) { devicesSheet.style.transform = ''; devicesSheet.style.transition = ''; devicesSheet.classList.remove('devices-sheet-hidden'); devicesSheet.classList.add('open'); }
+        if (typeof loadMeFromApi === 'function') loadMeFromApi(fillDevicesFromApi);
       }
       function closeDevicesSheet() {
         if (devicesOverlay) { devicesOverlay.classList.remove('open'); devicesOverlay.setAttribute('aria-hidden', 'true'); }
@@ -2612,16 +2609,18 @@
         '</div>';
       }
       function openInstallIntroSheet() {
+        if (installIntroOverlay) { installIntroOverlay.classList.remove('install-intro-sheet-hidden'); installIntroOverlay.classList.add('open'); installIntroOverlay.setAttribute('aria-hidden', 'false'); }
+        if (installIntroSheet) { installIntroSheet.style.transform = ''; installIntroSheet.style.transition = ''; installIntroSheet.classList.remove('install-intro-sheet-hidden'); installIntroSheet.classList.add('open'); }
         var dev = detectDevice();
         if (installIntroTitle) installIntroTitle.textContent = 'Подключение на ' + dev.name;
         if (installIntroDesc) installIntroDesc.textContent = 'Подключение займёт 3 шага и пару минут.';
         if (installIntroIconWrap) {
           installIntroIconWrap.innerHTML = getInstallIntroIconMarkup(dev);
           var phone3d = installIntroIconWrap.querySelector('.premium-phone-3d');
-          if (phone3d && window.initPremiumPhone3D) window.initPremiumPhone3D(phone3d);
+          if (phone3d && window.initPremiumPhone3D) {
+            requestAnimationFrame(function() { window.initPremiumPhone3D(phone3d); });
+          }
         }
-        if (installIntroOverlay) { installIntroOverlay.classList.remove('install-intro-sheet-hidden'); installIntroOverlay.classList.add('open'); installIntroOverlay.setAttribute('aria-hidden', 'false'); }
-        if (installIntroSheet) { installIntroSheet.style.transform = ''; installIntroSheet.style.transition = ''; installIntroSheet.classList.remove('install-intro-sheet-hidden'); installIntroSheet.classList.add('open'); }
       }
       function closeInstallIntroSheet() {
         if (window.stopPremiumPhone3D) window.stopPremiumPhone3D();
