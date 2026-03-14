@@ -2612,7 +2612,7 @@
         if (installIntroIconWrap) {
           installIntroIconWrap.innerHTML = getInstallIntroIconMarkup(dev);
           var phone3d = installIntroIconWrap.querySelector('.premium-phone-3d');
-          if (phone3d && window.initPremiumPhone3D) setTimeout(function() { window.initPremiumPhone3D(phone3d); }, 50);
+          if (phone3d && window.initPremiumPhone3D) window.initPremiumPhone3D(phone3d);
         }
         if (installIntroOverlay) { installIntroOverlay.classList.remove('install-intro-sheet-hidden'); installIntroOverlay.classList.add('open'); installIntroOverlay.setAttribute('aria-hidden', 'false'); }
         if (installIntroSheet) { installIntroSheet.style.transform = ''; installIntroSheet.style.transition = ''; installIntroSheet.classList.remove('install-intro-sheet-hidden'); installIntroSheet.classList.add('open'); }
@@ -3243,6 +3243,22 @@
   <script type="module">
     (function() {
       var scene, camera, renderer, phoneGroup, frameId;
+      function getGlbUrl() {
+        var base = (typeof window !== 'undefined' && window.location) ? window.location.href.split('#')[0].split('?')[0] : '';
+        var path = base.lastIndexOf('/') >= 0 ? base.slice(0, base.lastIndexOf('/') + 1) : '';
+        return (path && path !== 'https://' && path !== 'http://') ? (path + 'apple_iphone_15_pro_max_black.glb') : ((window.location && window.location.origin) ? window.location.origin + '/apple_iphone_15_pro_max_black.glb' : '');
+      }
+      window.addEventListener('load', function() {
+        setTimeout(function() {
+          var glbUrl = getGlbUrl();
+          if (!glbUrl) return;
+          Promise.all([
+            import('https://unpkg.com/three@0.160.0/build/three.module.js'),
+            import('https://unpkg.com/three@0.160.0/examples/jsm/loaders/GLTFLoader.js'),
+            fetch(glbUrl, { mode: 'cors' }).catch(function() {})
+          ]).catch(function() {});
+        }, 300);
+      });
       window.initPremiumPhone3D = function(container) {
         var wrap = container && container.querySelector('.phone-3d-canvas-wrap');
         var canvas = wrap && wrap.querySelector('canvas');
