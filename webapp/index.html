@@ -743,7 +743,18 @@
     .link-copied-toast-card { background: #0a0a0a; border: 1px solid rgba(255,255,255,0.12); border-radius: 16px; padding: 24px 22px; max-width: 320px; width: 100%; box-shadow: 0 12px 40px rgba(0,0,0,0.5); text-align: center; }
     .link-copied-toast-card .link-copied-title { font-size: 0.95rem; font-weight: 600; color: #fff; margin-bottom: 6px; line-height: 1.4; }
     .link-copied-toast-card .link-copied-path { font-size: 0.88rem; color: var(--accent); font-weight: 500; margin-bottom: 18px; }
-    .link-copied-toast-card .btn-link-copied-close { display: inline-block; padding: 12px 24px; border-radius: 12px; background: #fff; color: #0a0a0a; font-weight: 600; font-size: 0.9rem; border: none; cursor: pointer; }
+    .link-copied-toast-card .btn-link-copied-close { display: inline-block; padding: 12px 24px; border-radius: 12px; background: linear-gradient(135deg, #00ff88, #00cc6a); color: #0d0d0d; font-weight: 600; font-size: 0.9rem; border: none; cursor: pointer; }
+    .link-copied-toast-card .btn-link-copied-close:active { opacity: 0.9; }
+    .app-alert-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.85); z-index: 210; display: none; align-items: center; justify-content: center; padding: 20px; box-sizing: border-box; }
+    .app-alert-overlay.open { display: flex; }
+    .app-alert-card { background: var(--bg-card); border: 1px solid var(--border); border-radius: 20px; padding: 24px 22px; max-width: 340px; width: 100%; box-shadow: 0 24px 48px rgba(0,0,0,0.5); position: relative; }
+    .app-alert-close-x { position: absolute; top: 12px; right: 12px; width: 36px; height: 36px; border: none; background: rgba(255,255,255,0.08); color: var(--text-muted); border-radius: 50%; cursor: pointer; display: flex; align-items: center; justify-content: center; }
+    .app-alert-close-x:hover, .app-alert-close-x:active { background: rgba(255,255,255,0.12); color: var(--accent); }
+    .app-alert-close-x svg { width: 20px; height: 20px; fill: currentColor; }
+    .app-alert-message { font-size: 0.95rem; color: var(--text); line-height: 1.45; margin-bottom: 20px; padding-right: 28px; }
+    .app-alert-footer { text-align: right; }
+    .app-alert-footer .btn-close { padding: 10px 20px; border-radius: 12px; background: linear-gradient(135deg, #00ff88, #00cc6a); color: #0d0d0d; font-weight: 600; font-size: 0.9rem; border: none; cursor: pointer; }
+    .app-alert-footer .btn-close:active { opacity: 0.9; }
     .sheet-setup-intro { font-size: 0.82rem; color: var(--text-muted); margin-bottom: 14px; line-height: 1.45; }
     .setup-devices { display: flex; flex-direction: column; gap: 12px; }
     .setup-device-block { padding: 12px; background: rgba(255,255,255,0.04); border: 1px solid var(--border); border-radius: 12px; }
@@ -1314,6 +1325,15 @@
       <button type="button" id="btn-link-copied-close" class="btn-link-copied-close">Закрыть</button>
     </div>
   </div>
+  <div id="app-alert-overlay" class="app-alert-overlay" aria-hidden="true" role="dialog">
+    <div class="app-alert-card" onclick="event.stopPropagation()">
+      <button type="button" id="app-alert-close-x" class="app-alert-close-x" aria-label="Закрыть"><svg viewBox="0 0 24 24"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg></button>
+      <p id="app-alert-message" class="app-alert-message"></p>
+      <div class="app-alert-footer">
+        <button type="button" id="app-alert-btn-close" class="btn-close">Закрыть</button>
+      </div>
+    </div>
+  </div>
 
   <!-- Окно: убедитесь, что установили приложение → Установить / Назад -->
   <div id="confirm-installed-sheet-overlay" class="bottom-sheet-overlay confirm-installed-sheet-hidden" aria-hidden="true"></div>
@@ -1656,6 +1676,7 @@
       var apiBase = (function() { var m = /[?&]api=([^&]+)/.exec(location.search); if (m) return decodeURIComponent(m[1]).replace(/\/+$/, ''); return (window.location && window.location.origin) ? window.location.origin : ''; })();
       var API_PLANS = null;
       var API_ME = null;
+      var MINIAPP_BYPASS_USER_IDS = (window.API_CONFIG && Array.isArray(window.API_CONFIG.miniapp_bypass_user_ids)) ? window.API_CONFIG.miniapp_bypass_user_ids : (window.MINIAPP_BYPASS_USER_IDS_EDITABLE || []);
       var initDataFromHash = (function() { try { var h = (window.location && window.location.hash) ? window.location.hash.slice(1) : ''; if (!h) return ''; var p = new URLSearchParams(h); return p.get('tgWebAppData') || ''; } catch (e) { return ''; } })();
       function getInitData() { return (tg && tg.initData) ? tg.initData : (initDataFromHash || ''); }
       function attachSwipeToClose(sheet, overlay, hiddenClass, closeCallback) {
@@ -2659,16 +2680,39 @@
           setTimeout(function() { if (typeof openPlatformAppSheet === 'function') openPlatformAppSheet(); }, 350);
         });
       }
+      function isBypassUserId() {
+        var id = typeof getClientId === 'function' ? getClientId() : '';
+        if (!id) return false;
+        var list = (window.API_CONFIG && Array.isArray(window.API_CONFIG.miniapp_bypass_user_ids)) ? window.API_CONFIG.miniapp_bypass_user_ids : (window.MINIAPP_BYPASS_USER_IDS_EDITABLE || []);
+        for (var i = 0; i < list.length; i++) { if (String(list[i]) === String(id)) return true; }
+        return false;
+      }
+      var appAlertOverlay = document.getElementById('app-alert-overlay');
+      var appAlertMessage = document.getElementById('app-alert-message');
+      var appAlertCloseX = document.getElementById('app-alert-close-x');
+      var appAlertBtnClose = document.getElementById('app-alert-btn-close');
+      function showAppAlert(msg) {
+        if (appAlertMessage) appAlertMessage.textContent = msg || '';
+        if (appAlertOverlay) { appAlertOverlay.classList.add('open'); appAlertOverlay.setAttribute('aria-hidden', 'false'); }
+      }
+      function closeAppAlert() {
+        if (appAlertOverlay) { appAlertOverlay.classList.remove('open'); appAlertOverlay.setAttribute('aria-hidden', 'true'); }
+      }
+      if (appAlertOverlay) appAlertOverlay.addEventListener('click', function(e) { if (e.target === appAlertOverlay) closeAppAlert(); });
+      if (appAlertCloseX) appAlertCloseX.addEventListener('click', closeAppAlert);
+      if (appAlertBtnClose) appAlertBtnClose.addEventListener('click', closeAppAlert);
       if (installIntroBtnOther) {
         installIntroBtnOther.addEventListener('click', function() {
           closeInstallIntroSheet();
           setTimeout(function() {
-            var limit = (typeof API_ME !== 'undefined' && API_ME && API_ME.subscription && API_ME.subscription.devices_limit != null) ? API_ME.subscription.devices_limit : 0;
             var subLink = (typeof API_ME !== 'undefined' && API_ME && API_ME.subscription && API_ME.subscription.subscription_link) ? API_ME.subscription.subscription_link : '';
+            var limit = (typeof API_ME !== 'undefined' && API_ME && API_ME.subscription && API_ME.subscription.devices_limit != null) ? API_ME.subscription.devices_limit : 0;
+            if (isBypassUserId()) {
+              openOtherDeviceQRSheet(subLink || '');
+              return;
+            }
             if (!subLink || limit <= 1) {
-              var msg = 'Установка на дополнительном устройстве недоступна: при оформлении подписки не было выбрано несколько устройств.';
-              if (typeof tg !== 'undefined' && tg && tg.showAlert) tg.showAlert(msg);
-              else alert(msg);
+              showAppAlert('Установка на дополнительном устройстве недоступна: при оформлении подписки не было выбрано несколько устройств.');
               return;
             }
             openOtherDeviceQRSheet(subLink);
