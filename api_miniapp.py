@@ -738,6 +738,21 @@ async def miniapp_me(request: Request):
             # Если в БД сохранён только базовый URL (без installid и без /sub/CODE) — считаем, что ссылки нет
             if subscription_link and "installid=" not in subscription_link and "/sub/" not in subscription_link:
                 subscription_link = None
+            # Если включён редирект, но в БД ещё старая ссылка с installid= — перезаписать в формат /sub/CODE
+            if subscription_link and "installid=" in subscription_link and "/sub/" not in subscription_link:
+                try:
+                    from bot.config.settings import Config
+                    from bot.utils import happ_client
+                    _code = happ_client.parse_install_code_from_happ_link(subscription_link)
+                    redirect_base = getattr(Config, "HAPP_SUBSCRIPTION_REDIRECT_BASE", None) or os.environ.get("HAPP_SUBSCRIPTION_REDIRECT_BASE", "").strip()
+                    if _code and redirect_base:
+                        new_link = redirect_base.rstrip("/") + "/sub/" + _code
+                        subscription_link = new_link
+                        sub.vpn_config = new_link
+                        session.commit()
+                        logger.info("miniapp_me: Rewrote subscription link to redirect format for user %s", user.telegram_id)
+                except Exception as e:
+                    logger.debug("miniapp_me: rewrite to redirect link: %s", e)
             # Если подписка активна, но ссылки нет — пробуем сгенерировать Happ-ссылку (и сохранить в подписку)
             if not subscription_link and sub.end_date and sub.end_date > datetime.utcnow():
                 try:
@@ -770,7 +785,7 @@ async def miniapp_me(request: Request):
                             session.commit()
                             logger.info("miniapp_me: Happ link generated and saved for user %s", user.telegram_id)
                         else:
-                            logger.warning("miniapp_me: Happ API returned no link for user %s (see happ_client logs above; check HAPP_КАК_НАСТРОИТЬ_ССЫЛКУ.md)", user.telegram_id)
+                            logger.warning("miniapp_me: Happ API returned no link for user %s (see happ_client logs above; check HAPP_НАСТРОЙКА.md)", user.telegram_id)
                             # Пока API Happ недоступен — отдаём базовый URL подписки (тот же, что открывается в браузере)
                             base_url = (getattr(Config, "HAPP_SUBSCRIPTION_URL", None) or "").strip()
                             if base_url:
@@ -791,18 +806,24 @@ async def miniapp_me(request: Request):
                     install_code = happ_client.parse_install_code_from_happ_link(subscription_link)
                     if install_code:
                         from bot.config.settings import Config
-                        api_url = getattr(Config, "HAPP_API_URL", None) or os.environ.get("HAPP_API_URL", "")
+                        api_url = (getattr(Config, "HAPP_API_URL", None) or os.environ.get("HAPP_API_URL", "") or "").strip().rstrip("/")
                         if api_url and getattr(Config, "HAPP_PROVIDER_CODE", None) and getattr(Config, "HAPP_AUTH_KEY", None):
                             used, limit = happ_client.get_install_stats(
                                 api_url, Config.HAPP_PROVIDER_CODE, Config.HAPP_AUTH_KEY, install_code
                             )
                             if used is not None and limit is not None:
                                 devices_used, devices_limit = used, limit
+                                logger.info("miniapp_me: get_install_stats api=%s install_code=%s*** -> used=%s limit=%s", api_url[:30], install_code[:6], used, limit)
                             elif used is not None:
                                 devices_used = used
                                 devices_limit = limit if limit is not None else happ_client.devices_from_plan_type(sub.plan_type or "")
+                                logger.info("miniapp_me: get_install_stats api=%s install_code=%s*** -> used=%s limit=%s", api_url[:30], install_code[:6], used, devices_limit)
+                            else:
+                                logger.info("miniapp_me: get_install_stats api=%s install_code=%s*** -> not_found or error (check HAPP_API_URL=https://api.happ-proxy.com)", api_url[:30] if api_url else "?", install_code[:6])
+                        else:
+                            logger.info("miniapp_me: get_install_stats skipped (api_url=%s or missing provider/auth)", "set" if api_url else "empty")
                 except Exception as e:
-                    logger.debug("miniapp_me: get_install_stats: %s", e)
+                    logger.warning("miniapp_me: get_install_stats: %s", e)
             # Если Happ не вернул счётчик, но ссылка с installid есть — показываем лимит из тарифа и 0 подключено
             if subscription_link and devices_used is None and devices_limit is None:
                 try:
