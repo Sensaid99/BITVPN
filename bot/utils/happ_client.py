@@ -45,9 +45,9 @@ def get_install_stats(
             items = []
         install_code_clean = (install_code or "").strip()
         for item in (items or []):
-            # Happ может вернуть install_code или installCode
-            item_code = (item.get("install_code") or item.get("installCode") or "").strip()
-            if item_code.lower() == install_code_clean.lower():
+            # Happ может вернуть install_code, installCode или install_id
+            item_code = (item.get("install_code") or item.get("installCode") or item.get("install_id") or "").strip()
+            if item_code and item_code.lower() == install_code_clean.lower():
                 count = item.get("install_count") if item.get("install_count") is not None else item.get("installCount")
                 limit = item.get("install_limit") if item.get("install_limit") is not None else item.get("installLimit")
                 if count is not None and limit is not None:
@@ -61,7 +61,11 @@ def get_install_stats(
                     logger.debug("Happ list-install: install_code %s -> count=0 limit=%s (count missing in response)", install_code_clean[:6] + "***", limit)
                     return 0, int(limit)
                 return 0, 0
-        logger.debug("Happ list-install: install_code %s not found in list (%s items)", (install_code or "")[:6] + "***", len(items or []))
+        logger.info(
+            "Happ list-install: install_code %s not found in list (total %s items). Add in Happ the link from the app (Copy link), not the direct server URL.",
+            (install_code or "")[:6] + "***",
+            len(items or []),
+        )
         return None, None
     except Exception as e:
         logger.warning("Happ API list-install error: %s", e)
@@ -92,17 +96,21 @@ def get_install_stats_debug(
         data = r.json() if r.ok else {}
         out["rc"] = data.get("rc")
         out["msg"] = data.get("msg")
+        out["raw_keys"] = list(data.keys())[:20]  # какие ключи вернул Happ
         items = data.get("data") or data.get("obj") or data.get("list") or []
         if isinstance(items, dict):
             items = items.get("list") or []
         if not isinstance(items, list):
             items = []
         out["list_total"] = len(items)
-        out["sample_codes"] = [(item.get("install_code") or item.get("installCode") or "")[:6] for item in items[:10]]
+        out["sample_codes"] = [(item.get("install_code") or item.get("installCode") or item.get("install_id") or "")[:6] for item in items[:10]]
+        if items:
+            first = items[0]
+            out["first_item_keys"] = list(first.keys())[:15] if isinstance(first, dict) else []
         install_code_clean = (install_code or "").strip()
         for item in items:
-            item_code = (item.get("install_code") or item.get("installCode") or "").strip()
-            if item_code.lower() == install_code_clean.lower():
+            item_code = (item.get("install_code") or item.get("installCode") or item.get("install_id") or "").strip()
+            if item_code and item_code.lower() == install_code_clean.lower():
                 out["found"] = True
                 out["install_count"] = item.get("install_count") if item.get("install_count") is not None else item.get("installCount")
                 out["install_limit"] = item.get("install_limit") if item.get("install_limit") is not None else item.get("installLimit")

@@ -817,6 +817,8 @@ def debug_install_stats(install_code: str = ""):
             "install_limit": info.get("install_limit"),
             "list_total": info.get("list_total"),
             "rc": info.get("rc"),
+            "raw_keys": info.get("raw_keys"),
+            "first_item_keys": info.get("first_item_keys"),
             "hint": hint,
         }
     except Exception as e:
@@ -1047,18 +1049,31 @@ async def miniapp_me(request: Request):
                                 devices_limit = limit if limit is not None else happ_client.devices_from_plan_type(sub.plan_type or "")
                                 logger.info("miniapp_me: get_install_stats api=%s install_code=%s*** -> used=%s limit=%s", api_url[:30], install_code[:6], used, devices_limit)
                             else:
-                                logger.info("miniapp_me: get_install_stats api=%s install_code=%s*** -> not_found or error (check HAPP_API_URL=https://happ-proxy.com)", api_url[:30] if api_url else "?", install_code[:6])
+                                debug_info = happ_client.get_install_stats_debug(
+                                    api_url, Config.HAPP_PROVIDER_CODE, Config.HAPP_AUTH_KEY, install_code
+                                )
+                                logger.info(
+                                    "miniapp_me: get_install_stats not_found/error install_code=%s*** rc=%s list_total=%s sample_codes=%s raw_keys=%s first_item_keys=%s",
+                                    install_code[:6],
+                                    debug_info.get("rc"),
+                                    debug_info.get("list_total"),
+                                    debug_info.get("sample_codes"),
+                                    debug_info.get("raw_keys"),
+                                    debug_info.get("first_item_keys"),
+                                )
                         else:
                             logger.info("miniapp_me: get_install_stats skipped (api_url=%s or missing provider/auth)", "set" if api_url else "empty")
                 except Exception as e:
                     logger.warning("miniapp_me: get_install_stats: %s", e)
             # Если Happ не вернул счётчик, но ссылка с installid есть — показываем лимит из тарифа и 0 подключено
+            devices_hint = None
             if subscription_link and devices_used is None and devices_limit is None:
                 try:
                     from bot.utils import happ_client
                     if happ_client.parse_install_code_from_happ_link(subscription_link):
                         devices_limit = happ_client.devices_from_plan_type(sub.plan_type or "") or 1
                         devices_used = 0
+                        devices_hint = "В Happ добавьте ссылку из приложения (кнопка «Скопировать ссылку»), а не прямую ссылку на сервер. Затем нажмите ↻."
                 except Exception:
                     pass
             sub_payload = {
@@ -1079,6 +1094,7 @@ async def miniapp_me(request: Request):
                 ),
                 "devices_used": devices_used,
                 "devices_limit": devices_limit,
+                "devices_hint": devices_hint,
             }
             return {
                 "ok": True,
