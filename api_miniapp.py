@@ -348,10 +348,11 @@ def redirect_to_app(url: str = ""):
 
 
 @app.get("/sub/{install_code:path}")
-def sub_redirect(install_code: str):
+def sub_redirect(install_code: str, request: Request):
     """
-    Редирект на реальную подписку с installid. Пользователь получает ссылку вида
-    https://ваш-домен/sub/XXXXXXXXXXXX — реальный URL подписки не светится; без кода не работает.
+    Отдаёт контент подписки по ссылке без installid в адресе: https://ваш-домен/sub/КОД.
+    Сначала пробуем вернуть контент подписки напрямую (чтобы работало в Happ и других клиентах,
+    которые не переходят по редиректу). Если не удалось — редирект 302.
     """
     import re
     code = (install_code or "").strip().split("/")[0]
@@ -363,6 +364,13 @@ def sub_redirect(install_code: str):
         if not base:
             raise HTTPException(status_code=503, detail="Subscription URL not configured")
         target = f"{base}?installid={code}" if "?" not in base else f"{base}&installid={code}"
+        # Проксируем контент подписки, чтобы клиенты (Happ и др.) получали конфиг без перехода по редиректу
+        try:
+            r = requests.get(target, timeout=15, headers={"User-Agent": request.headers.get("User-Agent", "BitVPN-MiniApp/1.0")})
+            if r.status_code == 200 and r.content:
+                return Response(content=r.content, status_code=200, media_type=r.headers.get("Content-Type", "text/plain"))
+        except Exception as e:
+            logger.debug("sub proxy fetch failed, fallback to redirect: %s", e)
         return RedirectResponse(url=target, status_code=302)
     except HTTPException:
         raise
