@@ -397,6 +397,32 @@ def check_happ_env():
         return {"ok": False, "message": str(e), "env_set": {}}
 
 
+@app.get("/api/miniapp/debug-link-format")
+async def debug_link_format(request: Request):
+    """
+    Отладка: какой redirect_base использует API для ссылок /sub/CODE.
+    Откройте в браузере: https://ваш-домен-api/api/miniapp/debug-link-format
+    Если redirect_base пустой или http://127.0.0.1 — на сервере задайте HAPP_SUBSCRIPTION_REDIRECT_BASE в .env
+    или настройте nginx: proxy_set_header X-Forwarded-Host $host; proxy_set_header X-Forwarded-Proto $scheme;
+    """
+    try:
+        base = _redirect_base_from_request(request)
+        host = request.headers.get("Host") or ""
+        x_host = request.headers.get("X-Forwarded-Host") or ""
+        x_proto = request.headers.get("X-Forwarded-Proto") or ""
+        return {
+            "ok": True,
+            "rewrite_version": "redirect_v2",
+            "redirect_base": base or "(пусто — ссылка не переведётся в формат /sub/CODE)",
+            "redirect_base_ok": bool(base and "127.0.0.1" not in base and "localhost" not in base),
+            "headers_seen": {"Host": host, "X-Forwarded-Host": x_host, "X-Forwarded-Proto": x_proto},
+            "hint": "Если redirect_base пустой или внутренний — задайте на сервере в .env: HAPP_SUBSCRIPTION_REDIRECT_BASE=https://ваш-домен и перезапустите miniapp-api. Мини-апп дергает API по адресу из ?api= (ваш сервер), не Vercel.",
+        }
+    except Exception as e:
+        logger.warning("debug_link_format: %s", e)
+        return {"ok": False, "error": str(e)}
+
+
 def _country_code_to_flag(code: str) -> str:
     """RU -> 🇷🇺 (regional indicator symbols U+1F1E6..U+1F1FF)."""
     if not code or len(code) != 2:
