@@ -115,7 +115,12 @@ def create_happ_install_link(
     """
     Создаёт лимитированную ссылку через API Happ.
     Возвращает (install_code, full_url) или (None, None) при ошибке.
+    Если subscription_base_url — ссылка happ:// (прямая ссылка из кабинета Happ),
+    возвращает (None, subscription_base_url) без вызова API (выдаём ссылку как есть).
     """
+    base = (subscription_base_url or "").strip()
+    if base.lower().startswith("happ://"):
+        return None, base
     if install_limit < 1 or install_limit > 100:
         install_limit = 1
     params = {

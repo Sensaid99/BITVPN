@@ -71,9 +71,9 @@ def ensure_admin_unlimited_subscription(telegram_id: int) -> None:
                 Config.HAPP_SUBSCRIPTION_URL,
                 note=f"adm{telegram_id}",
             )
-            if _link and install_code:
+            if _link:
                 redirect_base = getattr(Config, 'HAPP_SUBSCRIPTION_REDIRECT_BASE', None) or ''
-                vpn_config_content = (redirect_base.strip().rstrip('/') + '/sub/' + install_code) if (redirect_base and isinstance(redirect_base, str) and redirect_base.strip()) else _link
+                vpn_config_content = (redirect_base.strip().rstrip('/') + '/sub/' + install_code) if (redirect_base and isinstance(redirect_base, str) and redirect_base.strip() and install_code) else _link
         if not vpn_config_content:
             vpn_config_content = generate_vpn_config(telegram_id, ADMIN_SERVER_LOCATION)
         subscription = Subscription(
@@ -618,9 +618,9 @@ async def verify_payment(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
                     Config.HAPP_SUBSCRIPTION_URL,
                     note=f"tg{user.telegram_id}",
                 )
-                if _happ_link and install_code:
+                if _happ_link:
                     redirect_base = getattr(Config, 'HAPP_SUBSCRIPTION_REDIRECT_BASE', None) or ''
-                    happ_link = (redirect_base.strip().rstrip('/') + '/sub/' + install_code) if (redirect_base and isinstance(redirect_base, str) and redirect_base.strip()) else _happ_link
+                    happ_link = (redirect_base.strip().rstrip('/') + '/sub/' + install_code) if (redirect_base and isinstance(redirect_base, str) and redirect_base.strip() and install_code) else _happ_link
                 if not happ_link:
                     use_happ = False
             vpn_config_content = (
@@ -845,7 +845,7 @@ async def setup_device_handler(update: Update, context: ContextTypes.DEFAULT_TYP
     sub = user.active_subscription
     happ_link = None
     vpn_cfg = getattr(sub, 'vpn_config', None) or ''
-    if vpn_cfg and isinstance(vpn_cfg, str) and ('installid=' in vpn_cfg or '/sub/' in vpn_cfg or vpn_cfg.strip().startswith('http')):
+    if vpn_cfg and isinstance(vpn_cfg, str) and ('installid=' in vpn_cfg or '/sub/' in vpn_cfg or vpn_cfg.strip().startswith('http') or vpn_cfg.strip().lower().startswith('happ://')):
         happ_link = vpn_cfg.strip()
         # В чат отдаём ссылку в формате редиректа (не прямую с installid=)
         if happ_link and 'installid=' in happ_link and '/sub/' not in happ_link:
@@ -863,9 +863,9 @@ async def setup_device_handler(update: Update, context: ContextTypes.DEFAULT_TYP
                 Config.HAPP_SUBSCRIPTION_URL,
                 note=f'tg{user.telegram_id}',
             )
-            if _happ_link and install_code:
+            if _happ_link:
                 redirect_base = getattr(Config, 'HAPP_SUBSCRIPTION_REDIRECT_BASE', None) or ''
-                if (redirect_base and isinstance(redirect_base, str) and redirect_base.strip()):
+                if (redirect_base and isinstance(redirect_base, str) and redirect_base.strip() and install_code):
                     happ_link = redirect_base.strip().rstrip('/') + '/sub/' + install_code
                 else:
                     happ_link = _happ_link
