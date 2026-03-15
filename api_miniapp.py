@@ -768,8 +768,20 @@ async def miniapp_me(request: Request):
                             )
                             if used is not None and limit is not None:
                                 devices_used, devices_limit = used, limit
+                            elif used is not None:
+                                devices_used = used
+                                devices_limit = limit if limit is not None else happ_client.devices_from_plan_type(sub.plan_type or "")
                 except Exception as e:
                     logger.debug("miniapp_me: get_install_stats: %s", e)
+            # Если Happ не вернул счётчик, но ссылка с installid есть — показываем лимит из тарифа и 0 подключено
+            if subscription_link and devices_used is None and devices_limit is None:
+                try:
+                    from bot.utils import happ_client
+                    if happ_client.parse_install_code_from_happ_link(subscription_link):
+                        devices_limit = happ_client.devices_from_plan_type(sub.plan_type or "") or 1
+                        devices_used = 0
+                except Exception:
+                    pass
             sub_payload = {
                 "plan_type": sub.plan_type,
                 "plan_name": plan_type_to_name(sub.plan_type, ctx),

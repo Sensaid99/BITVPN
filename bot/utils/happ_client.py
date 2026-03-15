@@ -46,6 +46,7 @@ def get_install_stats(
                 if count is not None:
                     return int(count), int(limit) if limit is not None else count
                 break
+        logger.debug("Happ list-install: install_code %s not found in list (%s items)", install_code[:6] + "***", len(items or []))
         return None, None
     except Exception as e:
         logger.warning("Happ API list-install error: %s", e)
