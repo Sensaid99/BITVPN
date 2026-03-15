@@ -62,7 +62,7 @@ if errorlevel 1 (
         git push origin %GIT_BRANCH% 2>nul
         if errorlevel 1 ( git push origin HEAD:%GIT_BRANCH% 2>nul )
         if errorlevel 1 (
-            echo    [ВНИМАНИЕ] Пуш не удался. Проверьте deploy_config.cmd (GIT_BRANCH=main) и доступ к GitHub.
+            echo    [ВНИМАНИЕ] Пуш не удался. Проверьте deploy_config.cmd GIT_BRANCH=main и доступ к GitHub.
         ) else (
             echo    Пуш выполнен.
         )

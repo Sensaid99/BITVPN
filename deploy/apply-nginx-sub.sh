@@ -6,13 +6,19 @@
 set -e
 SITES="/etc/nginx/sites-available"
 CONF=""
-for f in "$SITES"/default "$SITES"/vpn-api "$SITES"/*; do
+# Ищем любой конфиг, где уже есть location /api/
+for f in "$SITES"/default "$SITES"/vpn-api; do
+    [ -f "$f" ] && grep -q "location /api/" "$f" 2>/dev/null && CONF="$f" && break
+done
+[ -z "$CONF" ] && for f in "$SITES"/*; do
     [ -f "$f" ] && grep -q "location /api/" "$f" 2>/dev/null && CONF="$f" && break
 done
 if [ -z "$CONF" ]; then
     echo "Не найден конфиг nginx с location /api/. Добавьте /sub/ вручную."
+    echo "Проверьте: grep -l 'location /api/' $SITES/*"
     exit 1
 fi
+echo "Используется конфиг: $CONF"
 if grep -q "location /sub/" "$CONF"; then
     echo "location /sub/ уже есть в $CONF."
     sudo nginx -t && sudo systemctl reload nginx
