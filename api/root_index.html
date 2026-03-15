@@ -614,7 +614,8 @@
     .bottom-sheet .sheet-devices { padding: 12px 0 0; border-top: 1px solid var(--border); }
     .bottom-sheet .sheet-devices-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
     .bottom-sheet .sheet-devices-title { font-size: 0.85rem; font-weight: 600; color: var(--text); }
-    .bottom-sheet .sheet-devices-count { font-size: 0.75rem; font-weight: 700; color: var(--accent); background: rgba(0,255,136,0.15); padding: 2px 8px; border-radius: 10px; }
+    .bottom-sheet .sheet-devices-count { font-size: 1rem; font-weight: 700; color: var(--accent); background: rgba(0,255,136,0.15); padding: 4px 10px; border-radius: 10px; min-width: 2.5em; text-align: center; }
+    .bottom-sheet .sheet-devices-refresh-btn { width: 32px; height: 32px; border-radius: 8px; border: 1px solid var(--accent); background: rgba(0,255,136,0.1); color: var(--accent); font-size: 1.1rem; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; padding: 0; }
     .bottom-sheet .sheet-devices-list { font-size: 0.82rem; color: var(--text); min-height: 0; max-height: 80px; overflow-y: auto; margin-bottom: 10px; }
     .bottom-sheet .sheet-devices-list .device-item { display: flex; align-items: center; gap: 8px; padding: 8px 10px; background: rgba(255,255,255,0.04); border-radius: 10px; margin-bottom: 6px; }
     .bottom-sheet .sheet-devices-list .device-item:last-child { margin-bottom: 0; }
@@ -1183,7 +1184,10 @@
       <div class="sheet-devices">
         <div class="sheet-devices-head">
           <span class="sheet-devices-title">Подключено</span>
-          <span id="sheet-devices-count" class="sheet-devices-count">0</span>
+          <span style="display:flex;align-items:center;gap:8px;">
+            <span id="sheet-devices-count" class="sheet-devices-count">0</span>
+            <button type="button" id="sheet-devices-refresh" class="sheet-devices-refresh-btn" title="Обновить счётчик">↻</button>
+          </span>
         </div>
         <div id="sheet-devices-list" class="sheet-devices-list">
           <div class="sheet-devices-empty">Нет устройств</div>
@@ -2656,6 +2660,7 @@
       function openDevicesSheet() {
         if (devicesOverlay) { devicesOverlay.classList.remove('devices-sheet-hidden'); devicesOverlay.classList.add('open'); devicesOverlay.setAttribute('aria-hidden', 'false'); }
         if (devicesSheet) { devicesSheet.style.transform = ''; devicesSheet.style.transition = ''; devicesSheet.classList.remove('devices-sheet-hidden'); devicesSheet.classList.add('open'); }
+        if (sheetDevicesCount) sheetDevicesCount.textContent = '…';
         function fillDevicesFromApi() {
           var subLink = (typeof API_ME !== 'undefined' && API_ME && API_ME.subscription && API_ME.subscription.subscription_link) ? API_ME.subscription.subscription_link : '';
           var hasActiveSub = !!(typeof API_ME !== 'undefined' && API_ME && (API_ME.subscription || (API_ME.subscriptions && API_ME.subscriptions.some(function(s) { return s.is_active; }))));
@@ -2671,7 +2676,7 @@
           if (noLinkHint) noLinkHint.style.display = (hasActiveSub && !subLink) ? '' : 'none';
           var used = (API_ME && API_ME.subscription && API_ME.subscription.devices_used != null) ? API_ME.subscription.devices_used : (API_ME && API_ME.devices_used != null ? API_ME.devices_used : 0);
           var limit = (API_ME && API_ME.subscription && API_ME.subscription.devices_limit != null) ? API_ME.subscription.devices_limit : (API_ME && API_ME.devices_limit != null ? API_ME.devices_limit : 0);
-          if (sheetDevicesCount) sheetDevicesCount.textContent = limit ? (used + ' / ' + limit) : (used || '0');
+          if (sheetDevicesCount) sheetDevicesCount.textContent = (limit != null && limit > 0) ? (used + ' / ' + limit) : (used != null ? String(used) : '0');
           if (sheetDevicesList) {
             var empty = sheetDevicesList.querySelector('.sheet-devices-empty');
             var items = sheetDevicesList.querySelectorAll('.device-item');
@@ -2702,11 +2707,13 @@
           }
           if (subLink && typeof pregenOtherDeviceQR === 'function') pregenOtherDeviceQR(subLink);
         }
+        _devicesSheetFill = fillDevicesFromApi;
         requestAnimationFrame(function() {
           fillDevicesFromApi();
           if (typeof loadMeFromApi === 'function') loadMeFromApi(fillDevicesFromApi);
         });
       }
+      var _devicesSheetFill = null;
       function closeDevicesSheet() {
         if (devicesOverlay) { devicesOverlay.classList.remove('open'); devicesOverlay.setAttribute('aria-hidden', 'true'); }
         if (devicesSheet) { devicesSheet.style.transition = ''; devicesSheet.style.transform = ''; devicesSheet.classList.remove('open'); }
@@ -2718,6 +2725,11 @@
       if (devicesOverlay) devicesOverlay.classList.add('devices-sheet-hidden');
       if (devicesSheet) devicesSheet.classList.add('devices-sheet-hidden');
       if (btnDevices) btnDevices.addEventListener('click', openDevicesSheet);
+      var sheetDevicesRefresh = document.getElementById('sheet-devices-refresh');
+      if (sheetDevicesRefresh) sheetDevicesRefresh.addEventListener('click', function() {
+        if (sheetDevicesCount) sheetDevicesCount.textContent = '…';
+        if (typeof loadMeFromApi === 'function') loadMeFromApi(function() { if (_devicesSheetFill) _devicesSheetFill(); });
+      });
       if (devicesOverlay) devicesOverlay.addEventListener('click', closeDevicesSheet);
       if (devicesSheet) devicesSheet.addEventListener('click', function(e) { e.stopPropagation(); });
       attachSwipeToClose(devicesSheet, devicesOverlay, 'devices-sheet-hidden');
