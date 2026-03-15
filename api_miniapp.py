@@ -375,8 +375,8 @@ def _rewrite_subscription_remark(raw: bytes, display_name: str, description: str
                 continue
             if "vless://" in line or "trojan://" in line or line.startswith("ss://"):
                 parsed = urlparse(line)
-                # Fragment обычно содержит ps=Remark (vless, trojan)
-                new_frag = "ps=" + quote(remark, safe="")
+                # Фрагмент после # — только текст названия (без "ps="), иначе Happ показывает "ps=BIT VPN" буквально
+                new_frag = quote(remark, safe="")
                 new = urlunparse((parsed.scheme, parsed.netloc, parsed.path, parsed.params, parsed.query, new_frag))
                 out.append(new)
                 continue
