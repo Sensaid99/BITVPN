@@ -847,6 +847,12 @@ async def setup_device_handler(update: Update, context: ContextTypes.DEFAULT_TYP
     vpn_cfg = getattr(sub, 'vpn_config', None) or ''
     if vpn_cfg and isinstance(vpn_cfg, str) and ('installid=' in vpn_cfg or '/sub/' in vpn_cfg or vpn_cfg.strip().startswith('http')):
         happ_link = vpn_cfg.strip()
+        # В чат отдаём ссылку в формате редиректа (не прямую с installid=)
+        if happ_link and 'installid=' in happ_link and '/sub/' not in happ_link:
+            _code = happ_client.parse_install_code_from_happ_link(happ_link)
+            redirect_base = getattr(Config, 'HAPP_SUBSCRIPTION_REDIRECT_BASE', None) or getattr(Config, 'MINIAPP_API_URL', None) or ''
+            if _code and redirect_base and isinstance(redirect_base, str) and redirect_base.strip():
+                happ_link = redirect_base.strip().rstrip('/') + '/sub/' + _code
     if not happ_link and Config.HAPP_PROVIDER_CODE and Config.HAPP_AUTH_KEY and Config.HAPP_SUBSCRIPTION_URL:
         try:
             install_code, _happ_link = happ_client.create_happ_install_link(

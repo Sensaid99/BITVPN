@@ -604,6 +604,31 @@ async def miniapp_servers_status():
         return {"ok": False, "online": 0, "total": 0, "source": "error"}
 
 
+def _redirect_base_from_request(request: Request) -> str:
+    """Базовый URL для редиректа /sub/CODE: из переменных окружения или из запроса (Host / X-Forwarded-*)."""
+    try:
+        from bot.config.settings import Config
+        base = (
+            getattr(Config, "HAPP_SUBSCRIPTION_REDIRECT_BASE", None)
+            or os.environ.get("HAPP_SUBSCRIPTION_REDIRECT_BASE", "").strip()
+        )
+        if base:
+            return base.rstrip("/")
+    except Exception:
+        pass
+    base = os.environ.get("HAPP_SUBSCRIPTION_REDIRECT_BASE", "").strip()
+    if base:
+        return base.rstrip("/")
+    try:
+        host = request.headers.get("X-Forwarded-Host") or request.headers.get("Host") or ""
+        proto = request.headers.get("X-Forwarded-Proto") or "https"
+        if host:
+            return (proto or "https").strip().lower() + "://" + host.split(",")[0].strip()
+        return str(request.base_url).rstrip("/")
+    except Exception:
+        return str(request.base_url).rstrip("/") if request else ""
+
+
 @app.post("/api/miniapp/me")
 async def miniapp_me(request: Request):
     """
@@ -738,22 +763,12 @@ async def miniapp_me(request: Request):
             # Если в БД сохранён только базовый URL (без installid и без /sub/CODE) — считаем, что ссылки нет
             if subscription_link and "installid=" not in subscription_link and "/sub/" not in subscription_link:
                 subscription_link = None
-            # Если в БД старая ссылка с installid= — всегда перезаписать в формат /sub/CODE (редирект)
+            # Если в БД старая ссылка с installid= — перезаписать в формат /sub/CODE (редирект) и сохранить в БД
             if subscription_link and "installid=" in subscription_link and "/sub/" not in subscription_link:
                 try:
-                    from bot.config.settings import Config
                     from bot.utils import happ_client
                     _code = happ_client.parse_install_code_from_happ_link(subscription_link)
-                    redirect_base = (
-                        getattr(Config, "HAPP_SUBSCRIPTION_REDIRECT_BASE", None)
-                        or os.environ.get("HAPP_SUBSCRIPTION_REDIRECT_BASE", "").strip()
-                    )
-                    # Fallback: если переменная не задана на сервере — берём хост из запроса (тот же домен API)
-                    if not redirect_base and request:
-                        try:
-                            redirect_base = str(request.base_url).rstrip("/")
-                        except Exception:
-                            pass
+                    redirect_base = _redirect_base_from_request(request)
                     if _code and redirect_base:
                         new_link = redirect_base.rstrip("/") + "/sub/" + _code
                         subscription_link = new_link
@@ -762,6 +777,17 @@ async def miniapp_me(request: Request):
                         logger.info("miniapp_me: Rewrote subscription link to redirect format for user %s -> %s/sub/***", user.telegram_id, redirect_base[:40])
                 except Exception as e:
                     logger.warning("miniapp_me: rewrite to redirect link failed: %s", e)
+            # Гарантированно отдать в ответе ссылку в формате редиректа (если ещё осталась старая — подменяем только в ответе)
+            if subscription_link and "installid=" in subscription_link and "/sub/" not in subscription_link:
+                try:
+                    from bot.utils import happ_client
+                    _code = happ_client.parse_install_code_from_happ_link(subscription_link)
+                    redirect_base = _redirect_base_from_request(request)
+                    if _code and redirect_base:
+                        subscription_link = redirect_base.rstrip("/") + "/sub/" + _code
+                        logger.info("miniapp_me: Response link forced to redirect format for user %s", user.telegram_id)
+                except Exception:
+                    pass
             # Если подписка активна, но ссылки нет — пробуем сгенерировать Happ-ссылку (и сохранить в подписку)
             if not subscription_link and sub.end_date and sub.end_date > datetime.utcnow():
                 try:
@@ -786,15 +812,7 @@ async def miniapp_me(request: Request):
                             note=f"tg{user.telegram_id}",
                         )
                         if happ_link and install_code:
-                            redirect_base = (
-                                getattr(Config, "HAPP_SUBSCRIPTION_REDIRECT_BASE", None)
-                                or os.environ.get("HAPP_SUBSCRIPTION_REDIRECT_BASE", "").strip()
-                            )
-                            if not redirect_base and request:
-                                try:
-                                    redirect_base = str(request.base_url).rstrip("/")
-                                except Exception:
-                                    pass
+                            redirect_base = _redirect_base_from_request(request)
                             if redirect_base:
                                 happ_link = redirect_base.rstrip("/") + "/sub/" + install_code
                             subscription_link = happ_link
