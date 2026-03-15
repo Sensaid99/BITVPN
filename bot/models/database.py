@@ -254,14 +254,18 @@ class DatabaseManager:
                 conn.execute(text("PRAGMA foreign_keys=ON"))
         Base.metadata.create_all(bind=self.engine)
 
-        # Добавить колонки уведомлений об истечении в существующую таблицу subscriptions (SQLite)
-        if is_sqlite and "subscriptions" in inspect(self.engine).get_table_names():
-            cols = [c["name"] for c in inspect(self.engine).get_columns("subscriptions")]
+        # Добавить колонки уведомлений об истечении в существующую таблицу subscriptions
+        insp = inspect(self.engine)
+        if "subscriptions" in insp.get_table_names():
+            cols = [c["name"] for c in insp.get_columns("subscriptions")]
             with self.engine.connect() as conn:
                 for col in ("notified_3d", "notified_1d", "notified_expired"):
                     if col not in cols:
                         try:
-                            conn.execute(text(f"ALTER TABLE subscriptions ADD COLUMN {col} BOOLEAN DEFAULT 0"))
+                            if is_sqlite:
+                                conn.execute(text(f"ALTER TABLE subscriptions ADD COLUMN {col} BOOLEAN DEFAULT 0"))
+                            else:
+                                conn.execute(text(f"ALTER TABLE subscriptions ADD COLUMN IF NOT EXISTS {col} BOOLEAN DEFAULT FALSE"))
                             conn.commit()
                         except Exception:
                             conn.rollback()

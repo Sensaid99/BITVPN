@@ -1,5 +1,10 @@
 @echo off
 title Деплой только miniapp-API на сервер
+REM При двойном клике открываем новое окно, которое не закроется после выполнения
+if not "%~1"=="KEEPOPEN" (
+    start "Деплой miniapp-API" cmd /k "%~f0" KEEPOPEN
+    exit /b 0
+)
 chcp 65001 >nul 2>nul
 cd /d "%~dp0"
 if errorlevel 1 (
