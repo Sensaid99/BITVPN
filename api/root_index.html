@@ -1784,8 +1784,9 @@
       function loadMeFromApi(cb) {
         var initData = getInitData();
         if (!apiBase || !initData) { if (cb) cb(); return Promise.resolve(); }
+        window._apiMeLastStatus = null;
         return fetch(apiBase + '/api/miniapp/me', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ initData: initData }) })
-          .then(function(r) { return r.ok ? r.json() : null; }).catch(function() { return null; })
+          .then(function(r) { window._apiMeLastStatus = r.status; return r.ok ? r.json() : null; }).catch(function() { return null; })
           .then(function(data) {
             window._apiMeLoadAttempted = true;
             if (data) API_ME = mergeApiMeSubscriptionLink(API_ME, data);
@@ -1803,7 +1804,7 @@
           var initData = getInitData();
           apiLoadPromise = Promise.all([
             fetch(apiBase + '/api/miniapp/plans').then(function(r) { return r.ok ? r.json() : null; }).catch(function() { return null; }),
-            initData ? fetch(apiBase + '/api/miniapp/me', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ initData: initData }) }).then(function(r) { return r.ok ? r.json() : null; }).catch(function() { return null; }) : Promise.resolve(null)
+            initData ? fetch(apiBase + '/api/miniapp/me', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ initData: initData }) }).then(function(r) { window._apiMeLastStatus = r.status; return r.ok ? r.json() : null; }).catch(function() { return null; }) : Promise.resolve(null)
           ]).then(function(res) {
             if (res[0]) {
               if (res[0].plans) API_PLANS = res[0].plans;
@@ -1892,7 +1893,8 @@
           if (mainStatusBadge && window._apiMeLoadAttempted) {
             mainStatusBadge.textContent = 'Ошибка загрузки';
             mainStatusBadge.classList.remove('active');
-            mainStatusBadge.title = 'Нажмите, чтобы повторить';
+            var code = (typeof window._apiMeLastStatus !== 'undefined' && window._apiMeLastStatus) ? ' Код ' + window._apiMeLastStatus + '.' : '';
+            mainStatusBadge.title = 'Нажмите, чтобы повторить.' + code + ' Откройте приложение из меню бота; проверьте WEBAPP_URL с ?api= и BOT_TOKEN на сервере.';
             mainStatusBadge.style.cursor = 'pointer';
             mainStatusBadge.onclick = function() {
               mainStatusBadge.textContent = 'Загрузка…';
