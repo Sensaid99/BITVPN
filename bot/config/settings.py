@@ -44,7 +44,9 @@ class Config:
     HAPP_PROVIDER_CODE = (os.getenv('HAPP_PROVIDER_CODE') or '').strip() or None
     HAPP_AUTH_KEY = (os.getenv('HAPP_AUTH_KEY') or '').strip() or None
     HAPP_SUBSCRIPTION_URL = (os.getenv('HAPP_SUBSCRIPTION_URL') or '').strip() or None
-    
+    # Если задан — пользователь получает ссылку вида https://этот-домен/sub/КОД (редирект), реальный URL подписки не светится
+    HAPP_SUBSCRIPTION_REDIRECT_BASE = (os.getenv('HAPP_SUBSCRIPTION_REDIRECT_BASE') or '').strip() or None
+
     # Bot Settings
     DEFAULT_LANGUAGE = os.getenv('DEFAULT_LANGUAGE', 'ru')
     DEBUG = os.getenv('DEBUG', 'False').lower() == 'true'

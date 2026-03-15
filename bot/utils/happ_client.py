@@ -66,16 +66,32 @@ def get_install_stats(
 
 
 def parse_install_code_from_happ_link(happ_link: str | None) -> str | None:
-    """Из ссылки вида ...?installid=ABC123 или ...&installid=ABC123 извлекает install_code."""
-    if not happ_link or "installid=" not in happ_link:
+    """
+    Извлекает install_code из ссылки:
+    - ...?installid=ABC123 или ...&installid=ABC123
+    - или .../sub/XXXXXXXXXXXX (редирект-ссылка, 12 символов)
+    """
+    if not happ_link:
         return None
     try:
-        parsed = urllib.parse.urlparse(happ_link)
-        qs = urllib.parse.parse_qs(parsed.query)
-        codes = qs.get("installid") or qs.get("install_id") or []
-        return (codes[0] or "").strip() or None
+        if "installid=" in happ_link:
+            parsed = urllib.parse.urlparse(happ_link)
+            qs = urllib.parse.parse_qs(parsed.query)
+            codes = qs.get("installid") or qs.get("install_id") or []
+            return (codes[0] or "").strip() or None
+        if "/sub/" in happ_link:
+            parsed = urllib.parse.urlparse(happ_link)
+            path = (parsed.path or "").strip("/")
+            parts = path.split("/")
+            for i, part in enumerate(parts):
+                if part == "sub" and i + 1 < len(parts):
+                    code = (parts[i + 1] or "").strip().split("/")[0]
+                    if len(code) == 12 and code.isalnum():
+                        return code
+            return None
     except Exception:
-        return None
+        pass
+    return None
 
 
 def _devices_from_plan_type(plan_type: str) -> int:

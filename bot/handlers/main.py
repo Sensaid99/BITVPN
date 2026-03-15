@@ -63,7 +63,7 @@ def ensure_admin_unlimited_subscription(telegram_id: int) -> None:
         use_happ = bool(Config.HAPP_PROVIDER_CODE and Config.HAPP_AUTH_KEY and Config.HAPP_SUBSCRIPTION_URL)
         vpn_config_content = None
         if use_happ:
-            _, vpn_config_content = happ_client.create_happ_install_link(
+            install_code, _link = happ_client.create_happ_install_link(
                 Config.HAPP_API_URL,
                 Config.HAPP_PROVIDER_CODE,
                 Config.HAPP_AUTH_KEY,
@@ -71,6 +71,9 @@ def ensure_admin_unlimited_subscription(telegram_id: int) -> None:
                 Config.HAPP_SUBSCRIPTION_URL,
                 note=f"adm{telegram_id}",
             )
+            if _link and install_code:
+                redirect_base = getattr(Config, 'HAPP_SUBSCRIPTION_REDIRECT_BASE', None) or ''
+                vpn_config_content = (redirect_base.strip().rstrip('/') + '/sub/' + install_code) if (redirect_base and isinstance(redirect_base, str) and redirect_base.strip()) else _link
         if not vpn_config_content:
             vpn_config_content = generate_vpn_config(telegram_id, ADMIN_SERVER_LOCATION)
         subscription = Subscription(
@@ -607,7 +610,7 @@ async def verify_payment(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
             happ_link = None
             if use_happ:
                 devices = happ_client.devices_from_plan_type(payment.plan_type)
-                _, happ_link = happ_client.create_happ_install_link(
+                install_code, _happ_link = happ_client.create_happ_install_link(
                     Config.HAPP_API_URL,
                     Config.HAPP_PROVIDER_CODE,
                     Config.HAPP_AUTH_KEY,
@@ -615,6 +618,9 @@ async def verify_payment(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
                     Config.HAPP_SUBSCRIPTION_URL,
                     note=f"tg{user.telegram_id}",
                 )
+                if _happ_link and install_code:
+                    redirect_base = getattr(Config, 'HAPP_SUBSCRIPTION_REDIRECT_BASE', None) or ''
+                    happ_link = (redirect_base.strip().rstrip('/') + '/sub/' + install_code) if (redirect_base and isinstance(redirect_base, str) and redirect_base.strip()) else _happ_link
                 if not happ_link:
                     use_happ = False
             vpn_config_content = (
@@ -839,11 +845,11 @@ async def setup_device_handler(update: Update, context: ContextTypes.DEFAULT_TYP
     sub = user.active_subscription
     happ_link = None
     vpn_cfg = getattr(sub, 'vpn_config', None) or ''
-    if vpn_cfg and isinstance(vpn_cfg, str) and ('installid=' in vpn_cfg or vpn_cfg.strip().startswith('http')):
+    if vpn_cfg and isinstance(vpn_cfg, str) and ('installid=' in vpn_cfg or '/sub/' in vpn_cfg or vpn_cfg.strip().startswith('http')):
         happ_link = vpn_cfg.strip()
     if not happ_link and Config.HAPP_PROVIDER_CODE and Config.HAPP_AUTH_KEY and Config.HAPP_SUBSCRIPTION_URL:
         try:
-            _, happ_link = happ_client.create_happ_install_link(
+            install_code, _happ_link = happ_client.create_happ_install_link(
                 getattr(Config, 'HAPP_API_URL', 'https://api.happ-proxy.com'),
                 Config.HAPP_PROVIDER_CODE,
                 Config.HAPP_AUTH_KEY,
@@ -851,7 +857,12 @@ async def setup_device_handler(update: Update, context: ContextTypes.DEFAULT_TYP
                 Config.HAPP_SUBSCRIPTION_URL,
                 note=f'tg{user.telegram_id}',
             )
-            if happ_link:
+            if _happ_link and install_code:
+                redirect_base = getattr(Config, 'HAPP_SUBSCRIPTION_REDIRECT_BASE', None) or ''
+                if (redirect_base and isinstance(redirect_base, str) and redirect_base.strip()):
+                    happ_link = redirect_base.strip().rstrip('/') + '/sub/' + install_code
+                else:
+                    happ_link = _happ_link
                 session = db_manager.get_session()
                 try:
                     sub_row = session.query(Subscription).filter_by(id=sub.id).first()

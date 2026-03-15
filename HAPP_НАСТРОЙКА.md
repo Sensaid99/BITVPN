@@ -56,16 +56,18 @@
 В папке проекта откройте файл **.env** и заполните (без кавычек, без пробелов вокруг `=`):
 
 ```env
-HAPP_API_URL=https://happ-proxy.com
+HAPP_API_URL=https://api.happ-proxy.com
 HAPP_PROVIDER_CODE=ваш_8_символов
 HAPP_AUTH_KEY=ваш_32_символа
 HAPP_SUBSCRIPTION_URL=https://ваша-базовая-ссылка-подписки
+HAPP_SUBSCRIPTION_REDIRECT_BASE=https://ваш-домен-api
 ```
 
-- **HAPP_API_URL** — оставьте `https://happ-proxy.com` (или другой URL API, если вам выдали иной).
+- **HAPP_API_URL** — используйте `https://api.happ-proxy.com` (основной сайт happ-proxy.com отдаёт 404 для API).
 - **HAPP_PROVIDER_CODE** — ваш provider_code из кабинета Happ (8 символов).
 - **HAPP_AUTH_KEY** — ваш auth_key из кабинета Happ (32 символа).
-- **HAPP_SUBSCRIPTION_URL** — базовая ссылка подписки (то, что вы раздаёте пользователям; бот добавит к ней `?installid=...` или `&installid=...`).
+- **HAPP_SUBSCRIPTION_URL** — базовая ссылка подписки (то, что вы раздаёте; бот добавит к ней `?installid=...` или выдаст редирект-ссылку).
+- **HAPP_SUBSCRIPTION_REDIRECT_BASE** — (необязательно) если задан, пользователь получает ссылку вида `https://этот-домен/sub/КОД` вместо реального URL подписки — так нельзя «обойти» лимит, удалив `installid`. Подробнее: [HAPP_ЗАЩИТА_ССЫЛКИ.md](HAPP_ЗАЩИТА_ССЫЛКИ.md).
 
 Сохраните файл и **перезапустите бота**.
 

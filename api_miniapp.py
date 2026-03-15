@@ -27,7 +27,7 @@ except Exception:
 
 from fastapi import FastAPI, HTTPException, Header, Request
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import Response, StreamingResponse, HTMLResponse
+from fastapi.responses import Response, StreamingResponse, HTMLResponse, RedirectResponse
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -345,6 +345,30 @@ def redirect_to_app(url: str = ""):
     Если не сработало — показывается кнопка «Открыть вручную».
     """
     return HTMLResponse(content=REDIRECT_TO_APP_HTML)
+
+
+@app.get("/sub/{install_code:path}")
+def sub_redirect(install_code: str):
+    """
+    Редирект на реальную подписку с installid. Пользователь получает ссылку вида
+    https://ваш-домен/sub/XXXXXXXXXXXX — реальный URL подписки не светится; без кода не работает.
+    """
+    import re
+    code = (install_code or "").strip().split("/")[0]
+    if not code or not re.match(r"^[A-Za-z0-9]{12}$", code):
+        raise HTTPException(status_code=404, detail="Invalid or missing install code")
+    try:
+        from bot.config.settings import Config
+        base = (getattr(Config, "HAPP_SUBSCRIPTION_URL", None) or os.environ.get("HAPP_SUBSCRIPTION_URL") or "").strip().rstrip("/")
+        if not base:
+            raise HTTPException(status_code=503, detail="Subscription URL not configured")
+        target = f"{base}?installid={code}" if "?" not in base else f"{base}&installid={code}"
+        return RedirectResponse(url=target, status_code=302)
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.warning("sub_redirect: %s", e)
+        raise HTTPException(status_code=503, detail="Redirect unavailable")
 
 
 @app.get("/api/miniapp/check-happ-env")
@@ -709,10 +733,10 @@ async def miniapp_me(request: Request):
             # Ссылка для Happ — отдаём только если это URL (Happ), не отдаём WireGuard-конфиг
             vpn_cfg = getattr(sub, "vpn_config", None) or ""
             subscription_link = None
-            if vpn_cfg and isinstance(vpn_cfg, str) and ("installid=" in vpn_cfg or vpn_cfg.strip().startswith("http")):
+            if vpn_cfg and isinstance(vpn_cfg, str) and ("installid=" in vpn_cfg or "/sub/" in vpn_cfg or vpn_cfg.strip().startswith("http")):
                 subscription_link = vpn_cfg.strip()
-            # Если в БД сохранён базовый URL без installid — считаем, что ссылки нет, и пробуем выдать полную Happ-ссылку
-            if subscription_link and "installid=" not in subscription_link:
+            # Если в БД сохранён только базовый URL (без installid и без /sub/CODE) — считаем, что ссылки нет
+            if subscription_link and "installid=" not in subscription_link and "/sub/" not in subscription_link:
                 subscription_link = None
             # Если подписка активна, но ссылки нет — пробуем сгенерировать Happ-ссылку (и сохранить в подписку)
             if not subscription_link and sub.end_date and sub.end_date > datetime.utcnow():
@@ -729,7 +753,7 @@ async def miniapp_me(request: Request):
                     elif use_happ:
                         devices = happ_client.devices_from_plan_type(sub.plan_type or "")
                         logger.info("miniapp_me: Trying Happ fallback for user %s plan_type=%s devices=%s", user.telegram_id, sub.plan_type, devices)
-                        _, happ_link = happ_client.create_happ_install_link(
+                        install_code, happ_link = happ_client.create_happ_install_link(
                             getattr(Config, "HAPP_API_URL", "https://api.happ-proxy.com"),
                             Config.HAPP_PROVIDER_CODE,
                             Config.HAPP_AUTH_KEY,
@@ -737,7 +761,10 @@ async def miniapp_me(request: Request):
                             Config.HAPP_SUBSCRIPTION_URL,
                             note=f"tg{user.telegram_id}",
                         )
-                        if happ_link:
+                        if happ_link and install_code:
+                            redirect_base = getattr(Config, "HAPP_SUBSCRIPTION_REDIRECT_BASE", None) or os.environ.get("HAPP_SUBSCRIPTION_REDIRECT_BASE", "").strip()
+                            if redirect_base:
+                                happ_link = redirect_base.rstrip("/") + "/sub/" + install_code
                             subscription_link = happ_link
                             sub.vpn_config = happ_link
                             session.commit()
@@ -794,7 +821,13 @@ async def miniapp_me(request: Request):
                 "server_location": sub.server_location or "",
                 "server_flag": get_server_flag(sub.server_location or "") if get_server_flag and sub.server_location else "🌍",
                 "subscription_link": subscription_link,
-                "subscription_link_has_install_limit": bool(subscription_link and "installid=" in subscription_link),
+                "subscription_link_has_install_limit": bool(
+                    subscription_link
+                    and (
+                        "installid=" in subscription_link
+                        or ("/sub/" in subscription_link and happ_client.parse_install_code_from_happ_link(subscription_link))
+                    )
+                ),
                 "devices_used": devices_used,
                 "devices_limit": devices_limit,
             }
@@ -1026,7 +1059,7 @@ def _complete_payment_and_send_link(payment_db_id: int) -> bool:
         happ_link = None
         if use_happ:
             devices = happ_client.devices_from_plan_type(payment.plan_type)
-            _, happ_link = happ_client.create_happ_install_link(
+            install_code, _happ_link = happ_client.create_happ_install_link(
                 getattr(Config, "HAPP_API_URL", "https://api.happ-proxy.com"),
                 Config.HAPP_PROVIDER_CODE,
                 Config.HAPP_AUTH_KEY,
@@ -1034,6 +1067,9 @@ def _complete_payment_and_send_link(payment_db_id: int) -> bool:
                 Config.HAPP_SUBSCRIPTION_URL,
                 note=f"tg{telegram_id}",
             )
+            if _happ_link and install_code:
+                redirect_base = getattr(Config, "HAPP_SUBSCRIPTION_REDIRECT_BASE", None) or os.environ.get("HAPP_SUBSCRIPTION_REDIRECT_BASE", "").strip()
+                happ_link = (redirect_base.rstrip("/") + "/sub/" + install_code) if redirect_base else _happ_link
             if not happ_link:
                 use_happ = False
         server_location = get_random_server_location()
