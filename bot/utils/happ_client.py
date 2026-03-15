@@ -41,12 +41,15 @@ def get_install_stats(
         items = data.get("data") or data.get("obj") or data.get("list") or []
         if isinstance(items, dict):
             items = items.get("list") or []
+        if not isinstance(items, list):
+            items = []
         install_code_clean = (install_code or "").strip()
         for item in (items or []):
-            item_code = (item.get("install_code") or "").strip()
+            # Happ может вернуть install_code или installCode
+            item_code = (item.get("install_code") or item.get("installCode") or "").strip()
             if item_code.lower() == install_code_clean.lower():
-                count = item.get("install_count")
-                limit = item.get("install_limit")
+                count = item.get("install_count") if item.get("install_count") is not None else item.get("installCount")
+                limit = item.get("install_limit") if item.get("install_limit") is not None else item.get("installLimit")
                 if count is not None and limit is not None:
                     logger.debug("Happ list-install: install_code %s -> count=%s limit=%s", install_code_clean[:6] + "***", count, limit)
                     return int(count), int(limit)
@@ -63,6 +66,51 @@ def get_install_stats(
     except Exception as e:
         logger.warning("Happ API list-install error: %s", e)
         return None, None
+
+
+def get_install_stats_debug(
+    api_url: str,
+    provider_code: str,
+    auth_key: str,
+    install_code: str,
+) -> dict:
+    """
+    То же что get_install_stats, но возвращает dict с отладочной информацией:
+    found, install_count, install_limit, list_total, rc, msg, sample_codes (первые 6 символов кодов из ответа).
+    """
+    out = {"found": False, "install_count": None, "install_limit": None, "list_total": 0, "rc": None, "msg": None, "sample_codes": [], "error": None}
+    if not install_code or len(install_code) != 12:
+        out["error"] = "install_code must be 12 chars"
+        return out
+    try:
+        r = requests.get(
+            f"{api_url}/api/list-install",
+            params={"provider_code": provider_code, "auth_key": auth_key},
+            headers=HAPP_HEADERS,
+            timeout=10,
+        )
+        data = r.json() if r.ok else {}
+        out["rc"] = data.get("rc")
+        out["msg"] = data.get("msg")
+        items = data.get("data") or data.get("obj") or data.get("list") or []
+        if isinstance(items, dict):
+            items = items.get("list") or []
+        if not isinstance(items, list):
+            items = []
+        out["list_total"] = len(items)
+        out["sample_codes"] = [(item.get("install_code") or item.get("installCode") or "")[:6] for item in items[:10]]
+        install_code_clean = (install_code or "").strip()
+        for item in items:
+            item_code = (item.get("install_code") or item.get("installCode") or "").strip()
+            if item_code.lower() == install_code_clean.lower():
+                out["found"] = True
+                out["install_count"] = item.get("install_count") if item.get("install_count") is not None else item.get("installCount")
+                out["install_limit"] = item.get("install_limit") if item.get("install_limit") is not None else item.get("installLimit")
+                break
+        return out
+    except Exception as e:
+        out["error"] = str(e)
+        return out
 
 
 def parse_install_code_from_happ_link(happ_link: str | None) -> str | None:

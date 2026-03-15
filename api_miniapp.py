@@ -777,6 +777,53 @@ async def debug_subscription(request: Request):
         return {"ok": False, "reason": "error", "message": str(e)}
 
 
+@app.get("/api/miniapp/debug-install-stats")
+def debug_install_stats(install_code: str = ""):
+    """
+    Отладка счётчика «Подключено»: проверка, видит ли API ваш install в ответе Happ.
+    Откройте в браузере: https://ваш-API/api/miniapp/debug-install-stats?install_code=XXXXXXXXXXXX
+    (код из ссылки подписки — 12 символов после /sub/ в ссылке из бота).
+    """
+    code = (install_code or "").strip()
+    if len(code) != 12 or not code.isalnum():
+        return {
+            "ok": False,
+            "message": "Укажите install_code в query: ?install_code=XXXXXXXXXXXX (12 символов из ссылки после /sub/).",
+            "example": "/api/miniapp/debug-install-stats?install_code=Abc123Def456",
+        }
+    try:
+        from bot.config.settings import Config
+        from bot.utils import happ_client
+        api_url = (getattr(Config, "HAPP_API_URL", None) or os.environ.get("HAPP_API_URL", "") or "").strip().rstrip("/")
+        pc = getattr(Config, "HAPP_PROVIDER_CODE", None) or os.environ.get("HAPP_PROVIDER_CODE", "")
+        ak = getattr(Config, "HAPP_AUTH_KEY", None) or os.environ.get("HAPP_AUTH_KEY", "")
+        if not api_url or not pc or not ak:
+            return {"ok": False, "message": "На сервере не заданы HAPP_API_URL, HAPP_PROVIDER_CODE или HAPP_AUTH_KEY.", "install_code_sent": code[:6] + "***"}
+        info = happ_client.get_install_stats_debug(api_url, pc, ak, code)
+        hint = ""
+        if info.get("error"):
+            hint = "Ошибка запроса к Happ: " + str(info["error"])
+        elif info.get("rc") != 1:
+            hint = "Happ вернул rc=%s, msg=%s. Проверьте HAPP_PROVIDER_CODE и HAPP_AUTH_KEY." % (info.get("rc"), info.get("msg"))
+        elif not info.get("found"):
+            hint = "Ваш код не найден в списке Happ (всего записей: %s). Убедитесь, что добавили в Happ именно ссылку из бота (Подписки → +). Коды в ответе (первые 6 символов): %s." % (info.get("list_total"), info.get("sample_codes"))
+        else:
+            hint = "Найдено. Счётчик должен отображаться в мини-аппе после обновления."
+        return {
+            "ok": True,
+            "install_code_sent": code[:6] + "***",
+            "found": info.get("found"),
+            "install_count": info.get("install_count"),
+            "install_limit": info.get("install_limit"),
+            "list_total": info.get("list_total"),
+            "rc": info.get("rc"),
+            "hint": hint,
+        }
+    except Exception as e:
+        logger.warning("debug_install_stats: %s", e)
+        return {"ok": False, "message": str(e), "install_code_sent": code[:6] + "***"}
+
+
 @app.post("/api/miniapp/me")
 async def miniapp_me(request: Request):
     """
