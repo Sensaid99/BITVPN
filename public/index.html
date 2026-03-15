@@ -261,11 +261,7 @@
     }
     .main-action-btn .main-action-icon svg { width: 22px; height: 22px; fill: #b0b0b0; }
     .main-action-btn .main-action-label { line-height: 1.2; white-space: nowrap; }
-    .main-card-device-display { margin-top: 16px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px; padding: 16px 0; }
-    .main-card-device-icon { display: flex; align-items: center; justify-content: center; }
-    .main-card-device-icon svg { width: 72px; height: 72px; fill: var(--accent); opacity: 0.9; }
-    .main-card-device-name { font-size: 0.85rem; font-weight: 600; color: var(--text-muted); }
-    .main-install-wrap { margin-top: 10px; display: none !important; }
+    .main-install-wrap { margin-top: 10px; display: block !important; }
     .main-install-btn {
       width: 100%;
       padding: 14px 16px;
@@ -897,10 +893,6 @@
         </div>
         <span id="status-badge" class="status-badge">Загрузка…</span>
       </div>
-      <div class="main-card-device-display" aria-hidden="true">
-        <div id="main-card-device-icon" class="main-card-device-icon"></div>
-        <span id="main-card-device-name" class="main-card-device-name"></span>
-      </div>
       <a id="btn-buy" class="main-cta" href="#">
         <svg viewBox="0 0 24 24"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg>
         Оформить подписку
@@ -913,6 +905,13 @@
         <button type="button" id="btn-help" class="main-action-btn">
           <span class="main-action-icon"><svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 17h-2v-2h2v2zm2.07-7.75l-.9.92C13.45 12.9 13 13.5 13 15h-2v-.5c0-1.1.45-2.1 1.17-2.83l1.24-1.26c.37-.36.59-.86.59-1.41 0-1.1-.9-2-2-2s-2 .9-2 2H8c0-2.21 1.79-4 4-4s4 1.79 4 4c0 .88-.36 1.68-.93 2.25z"/></svg></span>
           <span class="main-action-label">Помощь</span>
+        </button>
+      </div>
+      <div class="main-install-wrap">
+        <button type="button" id="btn-install-sub" class="main-install-btn">
+          <span class="main-install-icon main-install-icon-left"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="7" y="2" width="10" height="12" rx="1"/><path d="M10 14v4M14 14v4M9 18h6"/></svg></span>
+          <span class="main-install-label">Установить подписку</span>
+          <span class="main-install-icon main-install-icon-right"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/></svg></span>
         </button>
       </div>
       <div id="help-inline" class="tariffs-inline" style="display:none;">
@@ -1909,7 +1908,7 @@
               loadMeFromApi(function() { renderSubsAndPayFromApi(); });
             };
           }
-          if (mainInstallWrap) mainInstallWrap.style.display = 'none';
+          if (mainInstallWrap) mainInstallWrap.style.display = '';
           return;
         }
         if (API_ME.subscription && API_ME.subscription.subscription_link && typeof pregenOtherDeviceQR === 'function') pregenOtherDeviceQR(API_ME.subscription.subscription_link);
@@ -1925,7 +1924,7 @@
           mainStatusBadge.style.cursor = '';
           mainStatusBadge.onclick = null;
         }
-        if (mainInstallWrap) mainInstallWrap.style.display = 'none';
+        if (mainInstallWrap) mainInstallWrap.style.display = '';
         var listActive = document.getElementById('subs-list-active');
         var listInactive = document.getElementById('subs-list-inactive');
         var emptyActive = document.getElementById('subs-empty-active');
@@ -2660,13 +2659,6 @@
       }
       var INSTALL_INTRO_GLB = { ios: 'apple_iphone_15_pro_max_black.glb', windows: 'gaming_laptop.glb', macos: 'macbook_pro_14-inch_m5.glb', android: 'samsung_galaxy_s22_ultra.glb', linux: 'tux.glb', other: 'samsung_galaxy_s22_ultra.glb' };
       window.getInstallIntroGlbFilename = function() { var d = getInstallIntroDev(); return INSTALL_INTRO_GLB[d.platform] || INSTALL_INTRO_GLB.other; };
-      (function() {
-        var dev = detectDevice();
-        var iconEl = document.getElementById('main-card-device-icon');
-        var nameEl = document.getElementById('main-card-device-name');
-        if (iconEl) iconEl.innerHTML = dev.icon;
-        if (nameEl) nameEl.textContent = dev.name;
-      })();
       function openDevicesSheet() {
         if (devicesOverlay) { devicesOverlay.classList.remove('devices-sheet-hidden'); devicesOverlay.classList.add('open'); devicesOverlay.setAttribute('aria-hidden', 'false'); }
         if (devicesSheet) { devicesSheet.style.transform = ''; devicesSheet.style.transition = ''; devicesSheet.classList.remove('devices-sheet-hidden'); devicesSheet.classList.add('open'); }
