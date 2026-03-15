@@ -4,18 +4,22 @@
 # Или при деплое вызывается автоматически из ДЕПЛОЙ_НА_СЕРВЕР.bat.
 
 set -e
-SITES="/etc/nginx/sites-available"
+SITES_AVAILABLE="/etc/nginx/sites-available"
+SITES_ENABLED="/etc/nginx/sites-enabled"
 CONF=""
-# Ищем любой конфиг, где уже есть location /api/
-for f in "$SITES"/default "$SITES"/vpn-api; do
+# Ищем любой конфиг, где уже есть location /api/ (сначала типичные имена, потом все)
+for f in "$SITES_AVAILABLE"/default "$SITES_AVAILABLE"/vpn-api "$SITES_AVAILABLE"/vpn-bot; do
     [ -f "$f" ] && grep -q "location /api/" "$f" 2>/dev/null && CONF="$f" && break
 done
-[ -z "$CONF" ] && for f in "$SITES"/*; do
+[ -z "$CONF" ] && for f in "$SITES_AVAILABLE"/*; do
+    [ -f "$f" ] && grep -q "location /api/" "$f" 2>/dev/null && CONF="$f" && break
+done
+[ -z "$CONF" ] && [ -d "$SITES_ENABLED" ] && for f in "$SITES_ENABLED"/*; do
     [ -f "$f" ] && grep -q "location /api/" "$f" 2>/dev/null && CONF="$f" && break
 done
 if [ -z "$CONF" ]; then
     echo "Не найден конфиг nginx с location /api/. Добавьте /sub/ вручную."
-    echo "Проверьте: grep -l 'location /api/' $SITES/*"
+    echo "Проверьте: grep -l 'location /api/' $SITES_AVAILABLE/* $SITES_ENABLED/* 2>/dev/null"
     exit 1
 fi
 echo "Используется конфиг: $CONF"

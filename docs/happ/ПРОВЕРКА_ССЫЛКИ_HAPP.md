@@ -6,6 +6,32 @@
 
 ---
 
+## Ошибка в Happ: «Error transferring https://IP/sub/КОД - server replied: Not Found»
+
+Если в приложении Happ при обновлении подписки появляется **Not Found** по ссылке вида `https://155.212.164.135/sub/XXXXXXXXXXXX`, значит запрос **не доходит до API** — его перехватывает **nginx** и отдаёт 404, потому что у него нет правила для пути `/sub/`.
+
+**Что сделать на сервере (155.212.164.135):**
+
+1. Подключитесь по SSH: `ssh root@155.212.164.135` (или ваш пользователь).
+2. Запустите скрипт, который добавит `location /sub/` в конфиг nginx и перезагрузит nginx:
+   ```bash
+   cd /opt/vpn-bot
+   sudo bash deploy/apply-nginx-sub.sh
+   ```
+   Если скрипт пишет «Не найден конфиг nginx с location /api/» — найдите конфиг вручную:
+   ```bash
+   grep -l "location /api/" /etc/nginx/sites-available/* /etc/nginx/sites-enabled/* 2>/dev/null
+   ```
+   Откройте найденный файл (например `sudo nano /etc/nginx/sites-available/default`) и **перед** блоком `location /api/ {` вставьте блок из файла `deploy/nginx-miniapp-api.conf` (блок `location /sub/ { ... }`). Сохраните, затем:
+   ```bash
+   sudo nginx -t && sudo systemctl reload nginx
+   ```
+3. Проверьте: откройте в браузере `https://155.212.164.135/sub/тест12символов` (ровно 12 латинских букв/цифр) — не должно быть 404 от nginx; API может вернуть 404 «Invalid or missing install code» (это нормально для тестового кода). Если по ссылке с **реальным** кодом из бота всё ещё Not Found — убедитесь, что API запущен: `sudo systemctl status miniapp-api`, при необходимости `sudo systemctl restart miniapp-api`.
+
+После этого ссылка из бота (например `https://155.212.164.135/sub/yHmESPsZKd76`) должна открываться в Happ без ошибки.
+
+---
+
 ## Если после деплоя ссылка всё равно старая (95.181.175.67...?installid=...)
 
 1. **Проверьте, что API на сервере обновлён и видит правильный redirect_base.**  
