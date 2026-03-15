@@ -37,8 +37,12 @@ if exist "api" (
 echo    Скопировано: webapp -^> public, index.html, api\root_index.html, apple_iphone_15_pro_max_black.glb
 echo.
 
-REM 2. Пуш на GitHub (HEAD -> master)
-echo 2. Пуш на GitHub...
+REM 2. Пуш на GitHub
+echo 2. Пуш на GitHub (ветка %GIT_BRANCH%)...
+if not exist "%~dp0deploy_config.cmd" goto :skip_config_api
+call "%~dp0deploy_config.cmd"
+:skip_config_api
+if not defined GIT_BRANCH set GIT_BRANCH=main
 where git >nul 2>&1
 if errorlevel 1 (
     echo    Git не найден - пуш пропущен.
@@ -50,9 +54,10 @@ if errorlevel 1 (
         echo    Нет изменений для коммита. Сохранили ли вы webapp\index.html?
         echo    Пуш пропущен.
     ) else (
-        git push origin HEAD:master
+        git push origin %GIT_BRANCH% 2>nul
+        if errorlevel 1 ( git push origin HEAD:%GIT_BRANCH% 2>nul )
         if errorlevel 1 (
-            echo    [ВНИМАНИЕ] Пуш не удался. Проверьте доступ к GitHub.
+            echo    [ВНИМАНИЕ] Пуш не удался. Проверьте deploy_config.cmd (GIT_BRANCH=main) и доступ к GitHub.
         ) else (
             echo    Пуш выполнен.
         )
@@ -97,7 +102,7 @@ if "%SERVER_IP%"=="" (
 )
 
 echo    Введите пароль от сервера, если попросит.
-ssh %SERVER_USER%@%SERVER_IP% "cd %BOT_PATH% && git pull --ff-only && sudo systemctl restart miniapp-api && echo Готово."
+ssh %SERVER_USER%@%SERVER_IP% "cd %BOT_PATH% && git fetch origin && git checkout %GIT_BRANCH% && git reset --hard origin/%GIT_BRANCH% && sudo systemctl restart miniapp-api && echo Готово."
 if errorlevel 1 (
     echo    [ВНИМАНИЕ] SSH или команды на сервере не удались. Vercel уже обновлён, если шаг 2.5 прошёл.
     echo    Проверьте deploy_config.cmd и доступ по SSH.

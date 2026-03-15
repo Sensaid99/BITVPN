@@ -929,9 +929,8 @@ async def miniapp_me(request: Request):
     except HTTPException:
         raise
     except Exception as e:
-        import traceback
         logger.exception("miniapp_me failed: %s", e)
-        raise HTTPException(status_code=500, detail="Internal error. Check Vercel logs.")
+        raise HTTPException(status_code=500, detail="Internal error. Check API server logs (journalctl -u miniapp-api).")
 
 
 def payment_methods_for_miniapp():

@@ -1787,6 +1787,7 @@
         return fetch(apiBase + '/api/miniapp/me', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ initData: initData }) })
           .then(function(r) { return r.ok ? r.json() : null; }).catch(function() { return null; })
           .then(function(data) {
+            window._apiMeLoadAttempted = true;
             if (data) API_ME = mergeApiMeSubscriptionLink(API_ME, data);
             var refEl = document.getElementById('ref-sheet-link');
             if (refEl && API_ME && API_ME.user && API_ME.user.referral_code) {
@@ -1822,8 +1823,9 @@
               }
               refEl.textContent = link || (apiBase ? 'Не удалось загрузить ссылку.' : 'Откройте приложение из меню бота. В .env укажите MINIAPP_API_URL.');
             }
+            window._apiMeLoadAttempted = true;
             return { hadInitData: !!initData, res: res };
-          }).catch(function() { return { hadInitData: false, res: null }; });
+          }).catch(function() { window._apiMeLoadAttempted = true; return { hadInitData: false, res: null }; });
         }
         apiLoadPromise.then(function(out) {
           if (cb) cb();
@@ -1884,18 +1886,35 @@
       }
 
       function renderSubsAndPayFromApi() {
-        if (!API_ME) return;
+        var mainStatusBadge = document.getElementById('status-badge');
+        var mainInstallWrap = document.querySelector('.main-install-wrap');
+        if (!API_ME) {
+          if (mainStatusBadge && window._apiMeLoadAttempted) {
+            mainStatusBadge.textContent = 'Ошибка загрузки';
+            mainStatusBadge.classList.remove('active');
+            mainStatusBadge.title = 'Нажмите, чтобы повторить';
+            mainStatusBadge.style.cursor = 'pointer';
+            mainStatusBadge.onclick = function() {
+              mainStatusBadge.textContent = 'Загрузка…';
+              mainStatusBadge.onclick = null;
+              loadMeFromApi(function() { renderSubsAndPayFromApi(); });
+            };
+          }
+          if (mainInstallWrap) mainInstallWrap.style.display = '';
+          return;
+        }
         if (API_ME.subscription && API_ME.subscription.subscription_link && typeof pregenOtherDeviceQR === 'function') pregenOtherDeviceQR(API_ME.subscription.subscription_link);
         var subs = API_ME.subscriptions || [];
         var payments = API_ME.payments || [];
         var activeSubs = subs.filter(function(s) { return s.is_active; });
         var inactiveSubs = subs.filter(function(s) { return !s.is_active; });
         var hasActiveSub = !!(API_ME.subscription || activeSubs.length > 0);
-        var mainStatusBadge = document.getElementById('status-badge');
-        var mainInstallWrap = document.querySelector('.main-install-wrap');
         if (mainStatusBadge) {
-          mainStatusBadge.textContent = hasActiveSub ? 'Активна' : 'Загрузка…';
+          mainStatusBadge.textContent = hasActiveSub ? 'Активна' : 'Нет подписки';
           mainStatusBadge.classList.toggle('active', !!hasActiveSub);
+          mainStatusBadge.title = '';
+          mainStatusBadge.style.cursor = '';
+          mainStatusBadge.onclick = null;
         }
         if (mainInstallWrap) mainInstallWrap.style.display = '';
         var listActive = document.getElementById('subs-list-active');

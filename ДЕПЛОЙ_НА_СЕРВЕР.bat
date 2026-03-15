@@ -52,15 +52,18 @@ if exist "public\index.html" (
 )
 echo.
 
-echo 2. Пуш на GitHub...
+echo 2. Пуш на GitHub (ветка %GIT_BRANCH%)...
 where git >nul 2>&1
 if errorlevel 1 goto :git_skip
 git add -A
 git commit -m "Deploy" 2>nul
 if errorlevel 1 echo    Нет изменений для коммита или ошибка коммита.
-git push origin HEAD:master
+git push origin %GIT_BRANCH% 2>nul
 if errorlevel 1 (
-    echo    [ВНИМАНИЕ] Пуш не удался. Проверьте доступ к GitHub.
+    git push origin HEAD:%GIT_BRANCH% 2>nul
+)
+if errorlevel 1 (
+    echo    [ВНИМАНИЕ] Пуш не удался. Проверьте ветку в deploy_config.cmd (GIT_BRANCH=main) и доступ к GitHub.
     echo    Деплой на сервер продолжится.
 ) else (
     echo    Пуш выполнен.
@@ -85,9 +88,9 @@ if "%COPY_ENV_TO_SERVER%"=="1" (
 )
 echo.
 
-echo 4. На сервере: обновление из GitHub и перезапуск...
+echo 4. На сервере: обновление из GitHub (ветка %GIT_BRANCH%) и перезапуск...
 echo    Введите пароль от сервера, если попросит.
-ssh %SERVER_USER%@%SERVER_IP% "cd %BOT_PATH% && git pull --ff-only && %RESTART_CMD% && (sudo systemctl restart miniapp-api 2>/dev/null || true) && echo Готово."
+ssh %SERVER_USER%@%SERVER_IP% "cd %BOT_PATH% && git fetch origin && git checkout %GIT_BRANCH% && git reset --hard origin/%GIT_BRANCH% && %RESTART_CMD% && (sudo systemctl restart miniapp-api 2>/dev/null || true) && echo Готово."
 if errorlevel 1 (
     echo [ОШИБКА] Подключение к серверу не удалось. Проверьте deploy_config.cmd.
     goto :error
