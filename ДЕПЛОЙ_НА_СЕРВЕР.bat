@@ -6,6 +6,7 @@ if not "%~1"=="KEEPOPEN" (
     exit /b 0
 )
 chcp 65001 >nul 2>nul
+setlocal EnableDelayedExpansion
 cd /d "%~dp0"
 if errorlevel 1 (
     echo Ошибка: не удалось перейти в папку скрипта.
@@ -72,14 +73,15 @@ echo.
 
 echo 3. Копирование .env на сервер...
 if "%COPY_ENV_TO_SERVER%"=="1" (
-    if exist "%~dp0.env" (
-        scp -q "%~dp0.env" %SERVER_USER%@%SERVER_IP%:%BOT_PATH%/.env 2>nul
-        if errorlevel 1 (echo    [ВНИМАНИЕ] Не удалось. Проверьте SSH.) else (echo    .env скопирован.)
+    set "ENVFILE=%~dp0.env"
+    if exist "!ENVFILE!" (
+        scp -q "!ENVFILE!" %SERVER_USER%@%SERVER_IP%:%BOT_PATH%/.env 2>nul
+        if errorlevel 1 (echo    [ВНИМАНИЕ] Не удалось, проверьте SSH) else (echo    Файл .env скопирован на сервер)
     ) else (
-        echo    Файл .env не найден — пропущено.
+        echo    Файл .env не найден — пропущено
     )
 ) else (
-    echo    Отключено (COPY_ENV_TO_SERVER не 1 в deploy_config.cmd).
+    echo    Отключено: COPY_ENV_TO_SERVER не 1 в deploy_config.cmd
 )
 echo.
 
