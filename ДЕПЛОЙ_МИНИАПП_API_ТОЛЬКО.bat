@@ -107,7 +107,7 @@ if "%SERVER_IP%"=="" (
 )
 
 echo    Введите пароль от сервера, если попросит.
-ssh %SERVER_USER%@%SERVER_IP% "cd %BOT_PATH% && git fetch origin && git checkout %GIT_BRANCH% && git reset --hard origin/%GIT_BRANCH% && sudo systemctl restart miniapp-api && echo Готово."
+ssh %SERVER_USER%@%SERVER_IP% "cd %BOT_PATH% && git fetch origin && git checkout %GIT_BRANCH% && git reset --hard origin/%GIT_BRANCH% && sudo systemctl restart miniapp-api && (sudo bash deploy/apply-nginx-sub.sh 2>/dev/null || true) && echo Готово."
 if errorlevel 1 (
     echo    [ВНИМАНИЕ] SSH или команды на сервере не удались. Vercel уже обновлён, если шаг 2.5 прошёл.
     echo    Проверьте deploy_config.cmd и доступ по SSH.

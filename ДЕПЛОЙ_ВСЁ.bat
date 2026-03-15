@@ -4,17 +4,32 @@ cd /d "%~dp0"
 
 echo.
 echo ========================================
-echo   Деплой всего: Vercel + сервер
+echo   Деплой всего: синхронизация, GitHub, сервер, Vercel
+echo   (чтобы нигде не оставалась старая версия)
 echo ========================================
 echo.
 
-echo 1. Деплой мини-аппа на Vercel...
-call "%~dp0ДЕПЛОЙ_МИНИАПП_VERCEL.bat"
+REM Сначала синхронизируем webapp -^> public, чтобы в пуш и на сервер попала одна и та же версия
+echo 0. Синхронизация webapp -^> public, index, api...
+if exist "webapp\index.html" (
+    copy /Y "webapp\index.html" "public\index.html" >nul 2>nul
+    copy /Y "public\index.html" "index.html" >nul 2>nul
+    if exist "api" copy /Y "public\index.html" "api\root_index.html" >nul 2>nul
+    echo    Готово.
+) else (
+    echo    Нет webapp\index.html — пропущено.
+)
 echo.
 
-echo 2. Деплой кода и API на сервер (в этом же окне)...
+echo 1. Деплой на сервер (пуш в GitHub + копирование .env + обновление на сервере + nginx)...
 call "%~dp0ДЕПЛОЙ_НА_СЕРВЕР.bat" KEEPOPEN
 echo.
 
-echo Готово. Нажмите любую клавишу для выхода.
+echo 2. Деплой мини-аппа на Vercel (bitvpn.vercel.app)...
+call "%~dp0ДЕПЛОЙ_МИНИАПП_VERCEL.bat"
+echo.
+
+echo ========================================
+echo   Готово. Проверьте бота и приложение.
+echo ========================================
 pause >nul

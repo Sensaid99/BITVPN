@@ -50,14 +50,14 @@ insert = '''    location /sub/ {
         proxy_set_header X-Forwarded-Host \$host;
     }
 '''
-# Вставить перед первым "location /api/"
+# Вставить перед КАЖДЫМ "location /api/" (в default часто два server — 80 и 443; оба должны иметь /sub/)
 if "location /api/" not in content:
     print("В конфиге нет location /api/. Выход.")
     sys.exit(1)
-new_content = content.replace("location /api/", insert + "    location /api/", 1)
+new_content = content.replace("    location /api/", insert + "    location /api/")
 with open(conf, "w") as f:
     f.write(new_content)
-print("Блок location /sub/ добавлен.")
+print("Блок location /sub/ добавлен перед каждым location /api/.")
 PYTHON
 echo "Проверка nginx..."
 sudo nginx -t

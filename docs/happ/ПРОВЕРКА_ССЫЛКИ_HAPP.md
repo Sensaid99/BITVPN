@@ -12,23 +12,30 @@
 
 **Что сделать на сервере (155.212.164.135):**
 
-1. Подключитесь по SSH: `ssh root@155.212.164.135` (или ваш пользователь).
-2. Запустите скрипт, который добавит `location /sub/` в конфиг nginx и перезагрузит nginx:
+1. **Диагностика** — выполните на сервере (подставьте свой код из ссылки):
+   ```bash
+   cd /opt/vpn-bot
+   bash deploy/check-sub-url.sh yHmESPsZKd76
+   ```
+   Смотрите: если шаг 1 (API напрямую) даёт 200 или 302 — API работает; если 404 — проверьте в `.env` на сервере: `HAPP_SUBSCRIPTION_URL` должен быть **https://...** (не `happ://`). Если шаг 2 (через nginx) даёт 404 — в nginx нет или не в том блоке `location /sub/`.
+
+2. **Добавить `location /sub/` в nginx.** В конфиге `default` часто **два** блока `server` (порт 80 и 443). Ссылка из Happ идёт по **https** (порт 443), поэтому `location /sub/` должен быть **в том же блоке server, где есть `location /api/` для 443**. Запустите (обновлённый скрипт добавит `/sub/` перед каждым `location /api/`):
    ```bash
    cd /opt/vpn-bot
    sudo bash deploy/apply-nginx-sub.sh
    ```
-   Если скрипт пишет «Не найден конфиг nginx с location /api/» — найдите конфиг вручную:
+   Если скрипт уже запускали раньше и пишет «location /sub/ уже есть» — откройте конфиг и проверьте, что `location /sub/` есть **внутри блока server с listen 443** (или в default_server для HTTPS):
    ```bash
-   grep -l "location /api/" /etc/nginx/sites-available/* /etc/nginx/sites-enabled/* 2>/dev/null
+   sudo grep -n "listen\|location /sub/\|location /api/" /etc/nginx/sites-available/default
    ```
-   Откройте найденный файл (например `sudo nano /etc/nginx/sites-available/default`) и **перед** блоком `location /api/ {` вставьте блок из файла `deploy/nginx-miniapp-api.conf` (блок `location /sub/ { ... }`). Сохраните, затем:
+   При необходимости добавьте блок `location /sub/ { ... }` вручную **перед** каждым `location /api/` (и в блоке 80, и в блоке 443), как в `deploy/nginx-miniapp-api.conf`. Затем:
    ```bash
    sudo nginx -t && sudo systemctl reload nginx
    ```
-3. Проверьте: откройте в браузере `https://155.212.164.135/sub/тест12символов` (ровно 12 латинских букв/цифр) — не должно быть 404 от nginx; API может вернуть 404 «Invalid or missing install code» (это нормально для тестового кода). Если по ссылке с **реальным** кодом из бота всё ещё Not Found — убедитесь, что API запущен: `sudo systemctl status miniapp-api`, при необходимости `sudo systemctl restart miniapp-api`.
 
-После этого ссылка из бота (например `https://155.212.164.135/sub/yHmESPsZKd76`) должна открываться в Happ без ошибки.
+3. **Проверка:** откройте в браузере `https://155.212.164.135/sub/yHmESPsZKd76` (код из бота) — не должно быть «Not Found». Убедитесь, что API запущен: `sudo systemctl status miniapp-api`, при необходимости `sudo systemctl restart miniapp-api`.
+
+После этого ссылка из бота должна открываться в Happ без ошибки.
 
 ---
 

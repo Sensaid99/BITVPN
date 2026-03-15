@@ -8,3 +8,4 @@ REM Ветка Git для пуша и обновления на сервере (
 set GIT_BRANCH=main
 REM Копировать ли .env на сервер при каждом деплое (1=да, 0=нет). Если 1 — в локальном .env держите актуальные HAPP_*, MINIAPP_API_URL и т.д.
 set COPY_ENV_TO_SERVER=1
+REM Папки deploy/ и docs/ в репозитории — при git push и обновлении на сервере (git reset --hard) подтягиваются актуальные скрипты nginx и инструкции.

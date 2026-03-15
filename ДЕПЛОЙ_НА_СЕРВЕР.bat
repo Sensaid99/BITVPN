@@ -52,10 +52,11 @@ if exist "public\index.html" (
 )
 echo.
 
-echo 2. Пуш на GitHub (ветка %GIT_BRANCH%)...
+echo 2. Пуш на GitHub (ветка %GIT_BRANCH%) — в репозиторий попадут все файлы: код, deploy/, docs/, public, webapp...
 where git >nul 2>&1
 if errorlevel 1 goto :git_skip
 git add -A
+git status --short
 git commit -m "Deploy" 2>nul
 if errorlevel 1 echo    Нет изменений для коммита или ошибка коммита.
 git push origin %GIT_BRANCH% 2>nul
