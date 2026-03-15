@@ -70,10 +70,17 @@ echo    Git не найден — пуш пропущен.
 :git_done
 echo.
 
-echo 3. Копирование .env на сервер — ОТКЛЮЧЕНО (чтобы не затирать WEBAPP_URL с ?api= на сервере).
-echo    Если нужно обновить .env на сервере — скопируйте вручную или раскомментируйте строки ниже.
-REM scp -q ".env" %SERVER_USER%@%SERVER_IP%:%BOT_PATH%/.env 2>nul
-REM if errorlevel 1 (echo    Не удалось.) else (echo    .env скопирован.)
+echo 3. Копирование .env на сервер...
+if "%COPY_ENV_TO_SERVER%"=="1" (
+    if exist "%~dp0.env" (
+        scp -q "%~dp0.env" %SERVER_USER%@%SERVER_IP%:%BOT_PATH%/.env 2>nul
+        if errorlevel 1 (echo    [ВНИМАНИЕ] Не удалось. Проверьте SSH.) else (echo    .env скопирован.)
+    ) else (
+        echo    Файл .env не найден — пропущено.
+    )
+) else (
+    echo    Отключено (COPY_ENV_TO_SERVER не 1 в deploy_config.cmd).
+)
 echo.
 
 echo 4. На сервере: обновление из GitHub и перезапуск...
