@@ -261,7 +261,10 @@
     }
     .main-action-btn .main-action-icon svg { width: 22px; height: 22px; fill: #b0b0b0; }
     .main-action-btn .main-action-label { line-height: 1.2; white-space: nowrap; }
-    .main-install-wrap { margin-top: 10px; display: block !important; }
+    .main-card-devices-row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; padding: 10px 14px; background: rgba(0,255,136,0.06); border: 1px solid rgba(0,255,136,0.2); border-radius: 10px; }
+    .main-card-devices-label { font-size: 0.88rem; font-weight: 600; color: var(--text); }
+    .main-card-devices-count { font-size: 1rem; font-weight: 700; color: var(--accent); }
+    .main-install-wrap { margin-top: 10px; display: none !important; }
     .main-install-btn {
       width: 100%;
       padding: 14px 16px;
@@ -893,6 +896,10 @@
         </div>
         <span id="status-badge" class="status-badge">Загрузка…</span>
       </div>
+      <div class="main-card-devices-row">
+        <span class="main-card-devices-label">Подключено</span>
+        <span id="main-devices-count" class="main-card-devices-count">—</span>
+      </div>
       <a id="btn-buy" class="main-cta" href="#">
         <svg viewBox="0 0 24 24"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg>
         Оформить подписку
@@ -905,13 +912,6 @@
         <button type="button" id="btn-help" class="main-action-btn">
           <span class="main-action-icon"><svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 17h-2v-2h2v2zm2.07-7.75l-.9.92C13.45 12.9 13 13.5 13 15h-2v-.5c0-1.1.45-2.1 1.17-2.83l1.24-1.26c.37-.36.59-.86.59-1.41 0-1.1-.9-2-2-2s-2 .9-2 2H8c0-2.21 1.79-4 4-4s4 1.79 4 4c0 .88-.36 1.68-.93 2.25z"/></svg></span>
           <span class="main-action-label">Помощь</span>
-        </button>
-      </div>
-      <div class="main-install-wrap">
-        <button type="button" id="btn-install-sub" class="main-install-btn">
-          <span class="main-install-icon main-install-icon-left"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="7" y="2" width="10" height="12" rx="1"/><path d="M10 14v4M14 14v4M9 18h6"/></svg></span>
-          <span class="main-install-label">Установить подписку</span>
-          <span class="main-install-icon main-install-icon-right"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/></svg></span>
         </button>
       </div>
       <div id="help-inline" class="tariffs-inline" style="display:none;">
@@ -1896,6 +1896,8 @@
         var mainStatusBadge = document.getElementById('status-badge');
         var mainInstallWrap = document.querySelector('.main-install-wrap');
         if (!API_ME) {
+          var mainDevicesCountEl = document.getElementById('main-devices-count');
+          if (mainDevicesCountEl) mainDevicesCountEl.textContent = '—';
           if (mainStatusBadge && window._apiMeLoadAttempted) {
             mainStatusBadge.textContent = 'Ошибка загрузки';
             mainStatusBadge.classList.remove('active');
@@ -1908,7 +1910,7 @@
               loadMeFromApi(function() { renderSubsAndPayFromApi(); });
             };
           }
-          if (mainInstallWrap) mainInstallWrap.style.display = '';
+          if (mainInstallWrap) mainInstallWrap.style.display = 'none';
           return;
         }
         if (API_ME.subscription && API_ME.subscription.subscription_link && typeof pregenOtherDeviceQR === 'function') pregenOtherDeviceQR(API_ME.subscription.subscription_link);
@@ -1924,7 +1926,15 @@
           mainStatusBadge.style.cursor = '';
           mainStatusBadge.onclick = null;
         }
-        if (mainInstallWrap) mainInstallWrap.style.display = '';
+        var mainDevicesCountEl = document.getElementById('main-devices-count');
+        if (mainDevicesCountEl) {
+          var used = (API_ME.subscription && API_ME.subscription.devices_used != null) ? API_ME.subscription.devices_used : (API_ME.devices_used != null ? API_ME.devices_used : null);
+          var limit = (API_ME.subscription && API_ME.subscription.devices_limit != null) ? API_ME.subscription.devices_limit : (API_ME.devices_limit != null ? API_ME.devices_limit : null);
+          if (limit != null && limit > 0) mainDevicesCountEl.textContent = (used != null ? used : 0) + ' / ' + limit;
+          else if (used != null) mainDevicesCountEl.textContent = String(used);
+          else mainDevicesCountEl.textContent = '—';
+        }
+        if (mainInstallWrap) mainInstallWrap.style.display = 'none';
         var listActive = document.getElementById('subs-list-active');
         var listInactive = document.getElementById('subs-list-inactive');
         var emptyActive = document.getElementById('subs-empty-active');
@@ -2679,6 +2689,12 @@
           var used = (API_ME && API_ME.subscription && API_ME.subscription.devices_used != null) ? API_ME.subscription.devices_used : (API_ME && API_ME.devices_used != null ? API_ME.devices_used : 0);
           var limit = (API_ME && API_ME.subscription && API_ME.subscription.devices_limit != null) ? API_ME.subscription.devices_limit : (API_ME && API_ME.devices_limit != null ? API_ME.devices_limit : 0);
           if (sheetDevicesCount) sheetDevicesCount.textContent = (limit != null && limit > 0) ? (used + ' / ' + limit) : (used != null ? String(used) : '0');
+          var mainDevicesCountEl = document.getElementById('main-devices-count');
+          if (mainDevicesCountEl) {
+            if (limit != null && limit > 0) mainDevicesCountEl.textContent = (used != null ? used : 0) + ' / ' + limit;
+            else if (used != null) mainDevicesCountEl.textContent = String(used);
+            else mainDevicesCountEl.textContent = '—';
+          }
           if (sheetDevicesList) {
             var empty = sheetDevicesList.querySelector('.sheet-devices-empty');
             var items = sheetDevicesList.querySelectorAll('.device-item');
