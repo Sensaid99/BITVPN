@@ -128,7 +128,7 @@ grep -E "HAPP_|MINIAPP" .env
 
 ```env
 MINIAPP_API_URL=https://nikolay.lisobyk.fvds.ru
-HAPP_API_URL=https://api.happ-proxy.com
+HAPP_API_URL=https://happ-proxy.com
 HAPP_PROVIDER_CODE=ZzQ4DIUe
 HAPP_AUTH_KEY=h6LDyDkZr_ne01k_LK371xIB9FPzkfCl
 HAPP_SUBSCRIPTION_URL=https://95.181.175.67:2096/sub_bitvpn/bgmdn1s016p08yfb
@@ -151,7 +151,7 @@ sudo systemctl restart miniapp-api
 
 На ПК в `d:\VPN BOT\.env` у вас указано:
 
-- `HAPP_API_URL=https://api.happ-proxy.com` — **обязательно** (на happ-proxy.com без api. — 404).
+- `HAPP_API_URL=https://happ-proxy.com` — **обязательно** (на happ-proxy.com без api. — 404).
 - `HAPP_PROVIDER_CODE=ZzQ4DIUe` — верно.
 - `HAPP_AUTH_KEY=...` — верно.
 - `HAPP_SUBSCRIPTION_URL=https://95.181.175.67:2096/sub_bitvpn/bgmdn1s016p08yfb` — базовая ссылка без `installid`, формат верный.
@@ -246,7 +246,7 @@ journalctl -u miniapp-api -n 100 --no-pager
    - **hint** — подсказка, что не так.
 
 2. **На сервере в `.env` должно быть именно:**  
-   `HAPP_API_URL=https://api.happ-proxy.com`  
+   `HAPP_API_URL=https://happ-proxy.com`  
    (не `https://happ-proxy.com` — там 404).
 
 3. **Перезапустите API** после смены:  
@@ -258,10 +258,10 @@ journalctl -u miniapp-api -n 100 --no-pager
    ```
    Ищите строку `miniapp_me: get_install_stats api=... install_code=...*** -> used=... limit=...`  
    - Если видите `used=0 limit=3` — Happ вернул 0 устройств (добавьте ссылку в приложение Happ на телефоне и подождите 1–2 мин).  
-   - Если видите `not_found or error` — ваш `install_code` не найден в ответе Happ или запрос к API упал; проверьте, что `HAPP_API_URL` именно `https://api.happ-proxy.com`.
+   - Если видите `not_found or error` — ваш `install_code` не найден в ответе Happ или запрос к API упал; проверьте, что `HAPP_API_URL` именно `https://happ-proxy.com`.
 
 5. **Проверить вручную с сервера** (подставьте свой `auth_key` и при необходимости `provider_code`):
    ```bash
-   curl -s -H "Accept: application/json" "https://api.happ-proxy.com/api/list-install?provider_code=ZzQ4DIUe&auth_key=ВАШ_КЛЮЧ" | head -500
+   curl -s -H "Accept: application/json" "https://happ-proxy.com/api/list-install?provider_code=ZzQ4DIUe&auth_key=ВАШ_КЛЮЧ" | head -500
    ```
    В ответе найдите объект с вашим `install_code` (из ссылки после `installid=`). Посмотрите поля `install_count` и `install_limit`. Если вашей записи нет — вопрос к поддержке Happ.

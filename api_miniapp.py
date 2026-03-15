@@ -999,7 +999,7 @@ async def miniapp_me(request: Request):
                         devices = happ_client.devices_from_plan_type(sub.plan_type or "")
                         logger.info("miniapp_me: Trying Happ fallback for user %s plan_type=%s devices=%s", user.telegram_id, sub.plan_type, devices)
                         install_code, happ_link = happ_client.create_happ_install_link(
-                            getattr(Config, "HAPP_API_URL", "https://api.happ-proxy.com"),
+                            getattr(Config, "HAPP_API_URL", "https://happ-proxy.com"),
                             Config.HAPP_PROVIDER_CODE,
                             Config.HAPP_AUTH_KEY,
                             devices,
@@ -1047,7 +1047,7 @@ async def miniapp_me(request: Request):
                                 devices_limit = limit if limit is not None else happ_client.devices_from_plan_type(sub.plan_type or "")
                                 logger.info("miniapp_me: get_install_stats api=%s install_code=%s*** -> used=%s limit=%s", api_url[:30], install_code[:6], used, devices_limit)
                             else:
-                                logger.info("miniapp_me: get_install_stats api=%s install_code=%s*** -> not_found or error (check HAPP_API_URL=https://api.happ-proxy.com)", api_url[:30] if api_url else "?", install_code[:6])
+                                logger.info("miniapp_me: get_install_stats api=%s install_code=%s*** -> not_found or error (check HAPP_API_URL=https://happ-proxy.com)", api_url[:30] if api_url else "?", install_code[:6])
                         else:
                             logger.info("miniapp_me: get_install_stats skipped (api_url=%s or missing provider/auth)", "set" if api_url else "empty")
                 except Exception as e:
@@ -1308,7 +1308,7 @@ def _complete_payment_and_send_link(payment_db_id: int) -> bool:
         if use_happ:
             devices = happ_client.devices_from_plan_type(payment.plan_type)
             install_code, _happ_link = happ_client.create_happ_install_link(
-                getattr(Config, "HAPP_API_URL", "https://api.happ-proxy.com"),
+                getattr(Config, "HAPP_API_URL", "https://happ-proxy.com"),
                 Config.HAPP_PROVIDER_CODE,
                 Config.HAPP_AUTH_KEY,
                 devices,

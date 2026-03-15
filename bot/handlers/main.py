@@ -856,7 +856,7 @@ async def setup_device_handler(update: Update, context: ContextTypes.DEFAULT_TYP
     if not happ_link and Config.HAPP_PROVIDER_CODE and Config.HAPP_AUTH_KEY and Config.HAPP_SUBSCRIPTION_URL:
         try:
             install_code, _happ_link = happ_client.create_happ_install_link(
-                getattr(Config, 'HAPP_API_URL', 'https://api.happ-proxy.com'),
+                getattr(Config, 'HAPP_API_URL', 'https://happ-proxy.com'),
                 Config.HAPP_PROVIDER_CODE,
                 Config.HAPP_AUTH_KEY,
                 happ_client.devices_from_plan_type(sub.plan_type or ''),
