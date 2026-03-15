@@ -711,6 +711,9 @@ async def miniapp_me(request: Request):
             subscription_link = None
             if vpn_cfg and isinstance(vpn_cfg, str) and ("installid=" in vpn_cfg or vpn_cfg.strip().startswith("http")):
                 subscription_link = vpn_cfg.strip()
+            # Если в БД сохранён базовый URL без installid — считаем, что ссылки нет, и пробуем выдать полную Happ-ссылку
+            if subscription_link and "installid=" not in subscription_link:
+                subscription_link = None
             # Если подписка активна, но ссылки нет — пробуем сгенерировать Happ-ссылку (и сохранить в подписку)
             if not subscription_link and sub.end_date and sub.end_date > datetime.utcnow():
                 try:
@@ -727,7 +730,7 @@ async def miniapp_me(request: Request):
                         devices = happ_client.devices_from_plan_type(sub.plan_type or "")
                         logger.info("miniapp_me: Trying Happ fallback for user %s plan_type=%s devices=%s", user.telegram_id, sub.plan_type, devices)
                         _, happ_link = happ_client.create_happ_install_link(
-                            getattr(Config, "HAPP_API_URL", "https://happ-proxy.com"),
+                            getattr(Config, "HAPP_API_URL", "https://api.happ-proxy.com"),
                             Config.HAPP_PROVIDER_CODE,
                             Config.HAPP_AUTH_KEY,
                             devices,
@@ -791,6 +794,7 @@ async def miniapp_me(request: Request):
                 "server_location": sub.server_location or "",
                 "server_flag": get_server_flag(sub.server_location or "") if get_server_flag and sub.server_location else "🌍",
                 "subscription_link": subscription_link,
+                "subscription_link_has_install_limit": bool(subscription_link and "installid=" in subscription_link),
                 "devices_used": devices_used,
                 "devices_limit": devices_limit,
             }
@@ -1023,7 +1027,7 @@ def _complete_payment_and_send_link(payment_db_id: int) -> bool:
         if use_happ:
             devices = happ_client.devices_from_plan_type(payment.plan_type)
             _, happ_link = happ_client.create_happ_install_link(
-                getattr(Config, "HAPP_API_URL", "https://happ-proxy.com"),
+                getattr(Config, "HAPP_API_URL", "https://api.happ-proxy.com"),
                 Config.HAPP_PROVIDER_CODE,
                 Config.HAPP_AUTH_KEY,
                 devices,

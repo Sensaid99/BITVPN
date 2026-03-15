@@ -1188,7 +1188,8 @@
         <div id="sheet-devices-list" class="sheet-devices-list">
           <div class="sheet-devices-empty">Нет устройств</div>
         </div>
-        <p id="sheet-devices-delay-hint" class="sheet-devices-delay-hint" style="display:none;">Если вы только что подключили устройство, подождите 1–2 минуты и обновите экран (закройте и снова откройте «Устройства»). Счётчик приходит из Happ.</p>
+        <p id="sheet-devices-delay-hint" class="sheet-devices-delay-hint" style="display:none;">Счётчик показывает, сколько устройств добавили эту ссылку в приложение Happ (Подписки → +). Если только что добавили — подождите 1–2 минуты и обновите экран.</p>
+        <p id="sheet-devices-no-installid-hint" class="sheet-devices-delay-hint" style="display:none;">Ссылка без лимита устройств. Чтобы счётчик «Подключено» работал, получите ссылку в боте — кнопка «Мой конфиг».</p>
         <button type="button" id="sheet-add-device" class="sheet-add-device">+ Добавить устройство</button>
       </div>
       <p class="sheet-tip">Конфиг и инструкция приходят в боте после оплаты</p>
@@ -2668,9 +2669,14 @@
               emptyEl.textContent = 'Нет устройств';
               sheetDevicesList.appendChild(emptyEl);
             }
+            var hasInstallLimit = (API_ME && API_ME.subscription && API_ME.subscription.subscription_link_has_install_limit === true);
             var delayHint = document.getElementById('sheet-devices-delay-hint');
             if (delayHint) {
-              delayHint.style.display = (used === 0 && (limit > 0 || subLink)) ? '' : 'none';
+              delayHint.style.display = (used === 0 && hasInstallLimit && (limit > 0 || subLink)) ? '' : 'none';
+            }
+            var noInstallidHint = document.getElementById('sheet-devices-no-installid-hint');
+            if (noInstallidHint) {
+              noInstallidHint.style.display = (subLink && !hasInstallLimit) ? '' : 'none';
             }
           }
           if (subLink && typeof pregenOtherDeviceQR === 'function') pregenOtherDeviceQR(subLink);

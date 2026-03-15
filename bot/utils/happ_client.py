@@ -8,6 +8,9 @@ import requests
 
 logger = logging.getLogger(__name__)
 
+# Заголовок из документации Happ — без него сервер может отдавать 404
+HAPP_HEADERS = {"Accept": "application/json"}
+
 
 def get_install_stats(
     api_url: str,
@@ -28,6 +31,7 @@ def get_install_stats(
                 "provider_code": provider_code,
                 "auth_key": auth_key,
             },
+            headers=HAPP_HEADERS,
             timeout=10,
         )
         data = r.json() if r.ok else {}
@@ -37,16 +41,24 @@ def get_install_stats(
         items = data.get("data") or data.get("obj") or data.get("list") or []
         if isinstance(items, dict):
             items = items.get("list") or []
+        install_code_clean = (install_code or "").strip()
         for item in (items or []):
-            if item.get("install_code") == install_code:
+            item_code = (item.get("install_code") or "").strip()
+            if item_code.lower() == install_code_clean.lower():
                 count = item.get("install_count")
                 limit = item.get("install_limit")
                 if count is not None and limit is not None:
+                    logger.debug("Happ list-install: install_code %s -> count=%s limit=%s", install_code_clean[:6] + "***", count, limit)
                     return int(count), int(limit)
                 if count is not None:
+                    logger.debug("Happ list-install: install_code %s -> count=%s limit=%s", install_code_clean[:6] + "***", count, limit)
                     return int(count), int(limit) if limit is not None else count
-                break
-        logger.debug("Happ list-install: install_code %s not found in list (%s items)", install_code[:6] + "***", len(items or []))
+                # Нашли запись, но count не пришёл — считаем 0
+                if limit is not None:
+                    logger.debug("Happ list-install: install_code %s -> count=0 limit=%s (count missing in response)", install_code_clean[:6] + "***", limit)
+                    return 0, int(limit)
+                return 0, 0
+        logger.debug("Happ list-install: install_code %s not found in list (%s items)", (install_code or "")[:6] + "***", len(items or []))
         return None, None
     except Exception as e:
         logger.warning("Happ API list-install error: %s", e)
@@ -99,7 +111,7 @@ def create_happ_install_link(
         params["note"] = note[:255]
     url = f"{api_url.rstrip('/')}/api/add-install"
     try:
-        r = requests.get(url, params=params, timeout=10)
+        r = requests.get(url, params=params, headers=HAPP_HEADERS, timeout=10)
         if r.status_code == 404:
             logger.warning(
                 "Happ API 404: URL=%s (no /api/add-install here?). "
