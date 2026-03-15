@@ -1090,6 +1090,8 @@ async def miniapp_me(request: Request):
                 "subscription_status": status,
                 "subscriptions": subscriptions_list,
                 "payments": payments_list,
+                "devices_used": devices_used,
+                "devices_limit": devices_limit,
             }
         finally:
             session.close()

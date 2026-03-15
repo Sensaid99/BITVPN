@@ -2669,8 +2669,8 @@
           }
           var noLinkHint = document.getElementById('sheet-happ-no-link-hint');
           if (noLinkHint) noLinkHint.style.display = (hasActiveSub && !subLink) ? '' : 'none';
-          var used = (API_ME && API_ME.subscription && API_ME.subscription.devices_used != null) ? API_ME.subscription.devices_used : 0;
-          var limit = (API_ME && API_ME.subscription && API_ME.subscription.devices_limit != null) ? API_ME.subscription.devices_limit : 0;
+          var used = (API_ME && API_ME.subscription && API_ME.subscription.devices_used != null) ? API_ME.subscription.devices_used : (API_ME && API_ME.devices_used != null ? API_ME.devices_used : 0);
+          var limit = (API_ME && API_ME.subscription && API_ME.subscription.devices_limit != null) ? API_ME.subscription.devices_limit : (API_ME && API_ME.devices_limit != null ? API_ME.devices_limit : 0);
           if (sheetDevicesCount) sheetDevicesCount.textContent = limit ? (used + ' / ' + limit) : (used || '0');
           if (sheetDevicesList) {
             var empty = sheetDevicesList.querySelector('.sheet-devices-empty');
