@@ -46,6 +46,9 @@ class Config:
     HAPP_SUBSCRIPTION_URL = (os.getenv('HAPP_SUBSCRIPTION_URL') or '').strip() or None
     # Если задан — пользователь получает ссылку вида https://этот-домен/sub/КОД (редирект), реальный URL подписки не светится
     HAPP_SUBSCRIPTION_REDIRECT_BASE = (os.getenv('HAPP_SUBSCRIPTION_REDIRECT_BASE') or '').strip() or None
+    # Имя и описание подписки в приложении (Happ): подменяем ps/remark в контенте подписки при прокси через /sub/
+    SUBSCRIPTION_DISPLAY_NAME = (os.getenv('SUBSCRIPTION_DISPLAY_NAME') or 'BIT VPN').strip() or 'BIT VPN'
+    SUBSCRIPTION_DESCRIPTION = (os.getenv('SUBSCRIPTION_DESCRIPTION') or '').strip() or None
 
     # Bot Settings
     DEFAULT_LANGUAGE = os.getenv('DEFAULT_LANGUAGE', 'ru')
