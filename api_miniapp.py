@@ -665,6 +665,67 @@ def _redirect_base_from_request(request: Request) -> str:
         return str(request.base_url).rstrip("/") if request else ""
 
 
+@app.post("/api/miniapp/debug-subscription")
+async def debug_subscription(request: Request):
+    """
+    Отладка «Нет подписки»: принять initData и вернуть короткий статус (есть ли пользователь,
+    есть ли активная подписка). Вызовите POST с телом {"initData": "..."} — например из консоли
+    мини-аппа: copy(Telegram.WebApp.initData) и вставить в тело запроса к /api/miniapp/debug-subscription.
+    """
+    try:
+        body = {}
+        try:
+            body = await request.json()
+        except Exception:
+            pass
+        init_data = (body.get("initData") or request.headers.get("X-Telegram-Init-Data") or "").strip()
+        if not init_data:
+            return {"ok": False, "reason": "initData_required", "message": "Передайте initData в теле POST (или откройте приложение из Telegram — тогда initData подставится автоматически)."}
+        parsed = validate_init_data(init_data)
+        if not parsed:
+            return {"ok": False, "reason": "invalid_initData", "message": "initData не прошёл проверку. Проверьте, что на сервере API в .env указан тот же BOT_TOKEN, что у бота, из которого открыто приложение."}
+        telegram_id, _ = get_telegram_user_from_init(parsed)
+        if not telegram_id:
+            return {"ok": False, "reason": "no_user_in_initData", "message": "В initData нет пользователя."}
+        ctx = _get_db()
+        db_manager = ctx.get("db_manager") if isinstance(ctx, dict) else None
+        User = ctx.get("User") if isinstance(ctx, dict) else None
+        if not db_manager or not User:
+            return {"ok": False, "reason": "db_not_configured", "message": "API: база данных не настроена (DATABASE_URL, BOT_TOKEN на сервере)."}
+        session = db_manager.get_session()
+        try:
+            user = session.query(User).filter_by(telegram_id=telegram_id).first()
+            if not user:
+                return {
+                    "ok": True,
+                    "reason": "user_not_in_db",
+                    "telegram_id": telegram_id,
+                    "message": "Пользователь с этим Telegram ID не найден в базе. Напишите боту в Telegram /start — тогда создастся запись. Подписка появится после оплаты или выдачи админом.",
+                }
+            sub = user.active_subscription
+            if not sub:
+                subs = list(user.subscriptions)
+                return {
+                    "ok": True,
+                    "reason": "no_active_subscription",
+                    "telegram_id": telegram_id,
+                    "subscriptions_count": len(subs),
+                    "message": "В базе нет активной подписки (все истекли или is_active=false). Проверьте в Neon таблицу subscriptions: user_id=%s, is_active=true, end_date > сейчас." % user.id,
+                }
+            return {
+                "ok": True,
+                "reason": "has_active_subscription",
+                "telegram_id": telegram_id,
+                "end_date": sub.end_date.isoformat() if sub.end_date else None,
+                "message": "Активная подписка есть. Если в приложении всё равно «Нет подписки» — обновите страницу или нажмите «Повторить».",
+            }
+        finally:
+            session.close()
+    except Exception as e:
+        logger.warning("debug_subscription: %s", e)
+        return {"ok": False, "reason": "error", "message": str(e)}
+
+
 @app.post("/api/miniapp/me")
 async def miniapp_me(request: Request):
     """

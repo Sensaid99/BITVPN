@@ -204,6 +204,18 @@ async def post_init(application: Application) -> None:
         except Exception as e:
             logger.warning(f"Failed to send startup message to admin {admin_id}: {e}")
 
+    # Выдать безлимитную подписку на 10 устройств обоим админам (если ещё нет активной)
+    try:
+        from bot.handlers.main import ensure_admin_unlimited_subscription
+        for admin_id in Config.ADMIN_IDS:
+            try:
+                ensure_admin_unlimited_subscription(admin_id)
+            except Exception as e:
+                logger.warning("ensure_admin_unlimited for %s: %s", admin_id, e)
+        logger.info("✅ Admin unlimited subscriptions (10 devices) ensured for %s", Config.ADMIN_IDS)
+    except Exception as e:
+        logger.warning("Admin subscription ensure on startup: %s", e)
+
     # Ежедневная рассылка: истечение подписки (за 3 дня, за 1 день, после истечения)
     try:
         from bot.jobs.expiry_notifications import send_expiry_notifications

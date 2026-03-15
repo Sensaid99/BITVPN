@@ -38,8 +38,8 @@ from locales.ru import get_message, format_price_per_month, format_savings
 
 logger = logging.getLogger(__name__)
 
-# План для безлимитной подписки админа (отображение в профиле)
-ADMIN_UNLIMITED_PLAN_TYPE = "12_months_1"
+# План для безлимитной подписки админа: 10 устройств, отображение в профиле и в мини-аппе
+ADMIN_UNLIMITED_PLAN_TYPE = "12_months_10"
 ADMIN_SERVER_LOCATION = "Admin"
 
 
