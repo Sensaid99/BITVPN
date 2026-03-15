@@ -355,9 +355,12 @@ def _rewrite_subscription_remark(raw: bytes, display_name: str, description: str
     """
     if not raw or not display_name:
         return raw
-    remark = display_name
+    remark = display_name.strip()
     if description:
-        remark = remark + "\n\n" + description.strip()
+        # Убираем лишние переносы и склеиваем в одну строку — в Happ так описание выглядит аккуратнее
+        desc = " ".join(s.strip() for s in description.strip().replace("\r", "\n").split("\n") if s.strip())
+        if desc:
+            remark = remark + "\n" + desc
     try:
         decoded = base64.standard_b64decode(raw).decode("utf-8", errors="replace")
     except Exception:
