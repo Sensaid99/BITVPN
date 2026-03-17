@@ -348,10 +348,12 @@ def redirect_to_app(url: str = ""):
     return HTMLResponse(content=REDIRECT_TO_APP_HTML)
 
 
-def _rewrite_subscription_remark(raw: bytes, display_name: str, description: str | None) -> bytes:
+def _rewrite_subscription_remark(raw: bytes, display_name: str, description: str | None, provider_id: str | None = None) -> bytes:
     """
     Подменяет имя (ps/remark) в контенте подписки, чтобы в Happ отображалось SUBSCRIPTION_DISPLAY_NAME
     и описание (как у LastdepVPN), без домена. Подключение остаётся к серверу из ссылок (95.181.175.67).
+    Если передан provider_id (HAPP_PROVIDER_CODE), в начало тела подписки добавляется комментарий
+    #providerid {id} — по документации Happ это нужно для учёта устройств и проверки на check.happ-proxy.com.
     """
     if not raw or not display_name:
         return raw
@@ -389,6 +391,8 @@ def _rewrite_subscription_remark(raw: bytes, display_name: str, description: str
     if not out:
         return raw
     text = "\n".join(out)
+    if provider_id and provider_id.strip():
+        text = "#providerid " + provider_id.strip() + "\n" + text
     return base64.standard_b64encode(text.encode("utf-8"))
 
 
@@ -417,11 +421,15 @@ def sub_redirect(install_code: str, request: Request):
         if description and "\\n" in description:
             description = description.replace("\\n", "\n")
         # Проксируем контент подписки, чтобы клиенты (Happ и др.) получали конфиг без перехода по редиректу
+        provider_code = (getattr(Config, "HAPP_PROVIDER_CODE", None) or os.environ.get("HAPP_PROVIDER_CODE") or "").strip()
         try:
             r = requests.get(target, timeout=15, headers={"User-Agent": request.headers.get("User-Agent", "BitVPN-MiniApp/1.0")})
             if r.status_code == 200 and r.content:
-                content = _rewrite_subscription_remark(r.content, display_name, description)
-                return Response(content=content, status_code=200, media_type=r.headers.get("Content-Type", "text/plain"))
+                content = _rewrite_subscription_remark(r.content, display_name, description, provider_id=provider_code or None)
+                headers = {}
+                if provider_code:
+                    headers["providerid"] = provider_code
+                return Response(content=content, status_code=200, media_type=r.headers.get("Content-Type", "text/plain"), headers=headers)
         except Exception as e:
             logger.debug("sub proxy fetch failed, fallback to redirect: %s", e)
         return RedirectResponse(url=target, status_code=302)
