@@ -151,7 +151,7 @@ sudo systemctl restart miniapp-api
 
 На ПК в `d:\VPN BOT\.env` у вас указано:
 
-- `HAPP_API_URL=https://happ-proxy.com` — **обязательно** (на happ-proxy.com без api. — 404).
+- `HAPP_API_URL=https://happ-proxy.com` — по официальной документации Happ это базовый URL API (add-install, list-install и т.д.).
 - `HAPP_PROVIDER_CODE=ZzQ4DIUe` — верно.
 - `HAPP_AUTH_KEY=...` — верно.
 - `HAPP_SUBSCRIPTION_URL=https://95.181.175.67:2096/sub_bitvpn/bgmdn1s016p08yfb` — базовая ссылка без `installid`, формат верный.
@@ -248,11 +248,7 @@ journalctl -u miniapp-api -n 100 --no-pager
    - **raw_keys** / **first_item_keys** — какие поля вернул Happ (для отладки).
    - **hint** — подсказка, что не так.
 
-2. **URL для list-install:** счётчик запрашивает `list-install` по тому же базовому URL. Если у вас `HAPP_API_URL=https://api.happ-proxy.com` (для выдачи ссылок), то **list-install** там может отдавать 404. Задайте отдельно:
-   ```bash
-   HAPP_LIST_INSTALL_URL=https://happ-proxy.com
-   ```
-   Тогда для счётчика будет использоваться этот URL. Либо поставьте единый `HAPP_API_URL=https://happ-proxy.com`, если и выдача ссылок, и list-install у вас работают с ним.
+2. **URL API:** по документации Happ единый базовый URL — `https://happ-proxy.com`. В `.env` на сервере должно быть `HAPP_API_URL=https://happ-proxy.com` (и выдача ссылок, и счётчик «Подключено» идут туда). Если для list-install нужен другой хост — задайте `HAPP_LIST_INSTALL_URL=...`.
 
 3. **Перезапустите API** после смены:  
    `sudo systemctl restart miniapp-api`
@@ -263,7 +259,7 @@ journalctl -u miniapp-api -n 100 --no-pager
    ```
    Ищите строку `miniapp_me: get_install_stats api=... install_code=...*** -> used=... limit=...`  
    - Если видите `used=0 limit=3` — Happ вернул 0 устройств (добавьте ссылку в приложение Happ на телефоне и подождите 1–2 мин).  
-   - Если видите `not_found or error` — ваш `install_code` не найден в ответе Happ или запрос к API упал; проверьте, что `HAPP_API_URL` именно `https://happ-proxy.com`.
+   - Если видите `not_found or error` — ваш `install_code` не найден в ответе Happ или запрос к API упал; проверьте `HAPP_API_URL` (или `HAPP_LIST_INSTALL_URL`) — по документации должен быть `https://happ-proxy.com`.
 
 5. **Проверить вручную с сервера** (подставьте свой `auth_key` и при необходимости `provider_code`):
    ```bash
