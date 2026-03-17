@@ -39,8 +39,10 @@ class Config:
     # VPN Settings
     VPN_SERVER_URL = os.getenv('VPN_SERVER_URL')
     VPN_API_KEY = os.getenv('VPN_API_KEY')
-    # Happ (Happ-Proxy) — лимитированные ссылки для приложения Happ
+    # Happ (Happ-Proxy). По официальной документации API: URL = https://happ-proxy.com (пути /api/add-install, /api/list-install и т.д.)
     HAPP_API_URL = (os.getenv('HAPP_API_URL') or 'https://happ-proxy.com').rstrip('/')
+    # Опционально: отдельный URL для list-install (счётчик «Подключено»). Если не задан — используется HAPP_API_URL.
+    HAPP_LIST_INSTALL_URL = (os.getenv('HAPP_LIST_INSTALL_URL') or '').strip().rstrip('/') or None
     HAPP_PROVIDER_CODE = (os.getenv('HAPP_PROVIDER_CODE') or '').strip() or None
     HAPP_AUTH_KEY = (os.getenv('HAPP_AUTH_KEY') or '').strip() or None
     HAPP_SUBSCRIPTION_URL = (os.getenv('HAPP_SUBSCRIPTION_URL') or '').strip() or None

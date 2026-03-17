@@ -248,9 +248,11 @@ journalctl -u miniapp-api -n 100 --no-pager
    - **raw_keys** / **first_item_keys** — какие поля вернул Happ (для отладки).
    - **hint** — подсказка, что не так.
 
-2. **На сервере в `.env` должно быть:**  
-   `HAPP_API_URL=https://happ-proxy.com`  
-   (не `https://api.happ-proxy.com` — там 404).
+2. **URL для list-install:** счётчик запрашивает `list-install` по тому же базовому URL. Если у вас `HAPP_API_URL=https://api.happ-proxy.com` (для выдачи ссылок), то **list-install** там может отдавать 404. Задайте отдельно:
+   ```bash
+   HAPP_LIST_INSTALL_URL=https://happ-proxy.com
+   ```
+   Тогда для счётчика будет использоваться этот URL. Либо поставьте единый `HAPP_API_URL=https://happ-proxy.com`, если и выдача ссылок, и list-install у вас работают с ним.
 
 3. **Перезапустите API** после смены:  
    `sudo systemctl restart miniapp-api`

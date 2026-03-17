@@ -22,7 +22,7 @@ except Exception:
 
 
 def main():
-    api_url = (os.environ.get("HAPP_API_URL") or "https://happ-proxy.com").strip().rstrip("/")  # list-install на happ-proxy.com; api.happ-proxy.com даёт 404
+    api_url = (os.environ.get("HAPP_LIST_INSTALL_URL") or os.environ.get("HAPP_API_URL") or "https://happ-proxy.com").strip().rstrip("/")
     provider = (os.environ.get("HAPP_PROVIDER_CODE") or "").strip()
     auth_key = (os.environ.get("HAPP_AUTH_KEY") or "").strip()
     check_code = (sys.argv[1] or "").strip() if len(sys.argv) > 1 else None

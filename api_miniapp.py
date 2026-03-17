@@ -794,11 +794,12 @@ def debug_install_stats(install_code: str = ""):
     try:
         from bot.config.settings import Config
         from bot.utils import happ_client
-        api_url = (getattr(Config, "HAPP_API_URL", None) or os.environ.get("HAPP_API_URL", "") or "").strip().rstrip("/")
+        list_url = getattr(Config, "HAPP_LIST_INSTALL_URL", None) or os.environ.get("HAPP_LIST_INSTALL_URL", "")
+        api_url = (list_url or getattr(Config, "HAPP_API_URL", None) or os.environ.get("HAPP_API_URL", "") or "").strip().rstrip("/")
         pc = getattr(Config, "HAPP_PROVIDER_CODE", None) or os.environ.get("HAPP_PROVIDER_CODE", "")
         ak = getattr(Config, "HAPP_AUTH_KEY", None) or os.environ.get("HAPP_AUTH_KEY", "")
         if not api_url or not pc or not ak:
-            return {"ok": False, "message": "На сервере не заданы HAPP_API_URL, HAPP_PROVIDER_CODE или HAPP_AUTH_KEY.", "install_code_sent": code[:6] + "***"}
+            return {"ok": False, "message": "На сервере не заданы HAPP_API_URL (или HAPP_LIST_INSTALL_URL), HAPP_PROVIDER_CODE или HAPP_AUTH_KEY.", "install_code_sent": code[:6] + "***"}
         info = happ_client.get_install_stats_debug(api_url, pc, ak, code)
         hint = ""
         if info.get("error"):
@@ -812,6 +813,7 @@ def debug_install_stats(install_code: str = ""):
         return {
             "ok": True,
             "install_code_sent": code[:6] + "***",
+            "list_install_url_used": api_url[:50] + "..." if len(api_url) > 50 else api_url,
             "found": info.get("found"),
             "install_count": info.get("install_count"),
             "install_limit": info.get("install_limit"),
@@ -1036,7 +1038,9 @@ async def miniapp_me(request: Request):
                     install_code = happ_client.parse_install_code_from_happ_link(subscription_link)
                     if install_code:
                         from bot.config.settings import Config
-                        api_url = (getattr(Config, "HAPP_API_URL", None) or os.environ.get("HAPP_API_URL", "") or "").strip().rstrip("/")
+                        # при необходимости list-install можно направить на другой URL через HAPP_LIST_INSTALL_URL
+                        list_url = getattr(Config, "HAPP_LIST_INSTALL_URL", None) or os.environ.get("HAPP_LIST_INSTALL_URL", "")
+                        api_url = (list_url or getattr(Config, "HAPP_API_URL", None) or os.environ.get("HAPP_API_URL", "") or "").strip().rstrip("/")
                         if api_url and getattr(Config, "HAPP_PROVIDER_CODE", None) and getattr(Config, "HAPP_AUTH_KEY", None):
                             used, limit = happ_client.get_install_stats(
                                 api_url, Config.HAPP_PROVIDER_CODE, Config.HAPP_AUTH_KEY, install_code

@@ -24,8 +24,8 @@ except Exception:
 
 
 def main():
-    # add-domain в документации работает по https://api.happ-proxy.com
-    add_domain_base = "https://api.happ-proxy.com"
+    # по документации API: базовый URL https://happ-proxy.com, путь /api/add-domain
+    add_domain_base = (os.environ.get("HAPP_API_URL") or "https://happ-proxy.com").strip().rstrip("/")
     provider = (os.environ.get("HAPP_PROVIDER_CODE") or "").strip()
     auth_key = (os.environ.get("HAPP_AUTH_KEY") or "").strip()
     redirect_base = (os.environ.get("HAPP_SUBSCRIPTION_REDIRECT_BASE") or "").strip()
