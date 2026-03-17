@@ -24,8 +24,14 @@ except Exception:
 
 
 def main():
-    # по документации API: базовый URL https://happ-proxy.com, путь /api/add-domain
-    add_domain_base = (os.environ.get("HAPP_API_URL") or "https://happ-proxy.com").strip().rstrip("/")
+    # add-domain может быть на другом хосте, чем list-install/add-install.
+    # 1) Пробуем базу из HAPP_ADD_DOMAIN_URL (если задана), иначе HAPP_API_URL, иначе https://happ-proxy.com
+    # 2) Если получаем HTML 404 (nginx) — пробуем https://api.happ-proxy.com
+    add_domain_base = (
+        (os.environ.get("HAPP_ADD_DOMAIN_URL") or "").strip().rstrip("/")
+        or (os.environ.get("HAPP_API_URL") or "").strip().rstrip("/")
+        or "https://happ-proxy.com"
+    )
     provider = (os.environ.get("HAPP_PROVIDER_CODE") or "").strip()
     auth_key = (os.environ.get("HAPP_AUTH_KEY") or "").strip()
     redirect_base = (os.environ.get("HAPP_SUBSCRIPTION_REDIRECT_BASE") or "").strip()
@@ -44,18 +50,32 @@ def main():
         sys.exit(1)
 
     domain_hash = hashlib.sha256(domain.encode()).hexdigest()
-    url = f"{add_domain_base}/api/add-domain"
     params = {"provider_code": provider, "auth_key": auth_key, "domain_hash": domain_hash, "domain_name": domain}
 
     try:
         import requests
-        r = requests.get(url, params=params, headers={"Accept": "application/json"}, timeout=15)
-        try:
-            data = r.json()
-        except Exception:
-            data = {}
-            if r.text:
-                print("Ответ не JSON. status =", r.status_code, "| body:", r.text[:400])
+        headers = {"Accept": "application/json"}
+        tried = []
+        bases = [add_domain_base]
+        if add_domain_base.rstrip("/") != "https://api.happ-proxy.com":
+            bases.append("https://api.happ-proxy.com")
+
+        data = {}
+        r = None
+        for base in bases:
+            url = f"{base.rstrip('/')}/api/add-domain"
+            tried.append(url)
+            print("Запрос:", url)
+            r = requests.get(url, params=params, headers=headers, timeout=15)
+            try:
+                data = r.json()
+                break
+            except Exception:
+                data = {}
+                if r.text:
+                    print("Ответ не JSON. status =", r.status_code, "| body:", r.text[:250])
+                # если это не json — пробуем следующий base
+                continue
         if data.get("rc") == 1:
             print("OK: домен", domain, "зарегистрирован в Happ. Счётчик устройств должен начать обновляться.")
         elif data.get("rc") == 2 or (data.get("msg") and "exist" in str(data.get("msg")).lower()):
@@ -63,6 +83,13 @@ def main():
             print("Если счётчик всё ещё 0: в Happ удалите подписку и добавьте заново ссылку из приложения (Скопировать ссылку), подождите 1–2 мин, нажмите обновить в приложении.")
         else:
             msg = data.get("msg") or data.get("message") or ("HTTP " + str(r.status_code) if not data else str(data))
+            if not data:
+                msg = (
+                    f"HTTP {r.status_code if r is not None else '??'} (не JSON). "
+                    f"Похоже, это не Happ API, а другой nginx/хост. "
+                    f"Попробованы URL: {', '.join(tried)}. "
+                    f"Можно явно задать HAPP_ADD_DOMAIN_URL=https://api.happ-proxy.com в .env и повторить."
+                )
             print("Ответ API:", msg, "| rc =", data.get("rc"))
     except Exception as e:
         print("Ошибка запроса:", e)
