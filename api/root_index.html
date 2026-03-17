@@ -18,8 +18,8 @@
       --border: rgba(255, 255, 255, 0.08);
       --text: #ffffff;
       --text-muted: rgba(255, 255, 255, 0.6);
-      --accent: #00ff88;
-      --accent-dim: rgba(0, 255, 136, 0.2);
+      --accent: #00d96f;
+      --accent-dim: rgba(0, 217, 111, 0.2);
       --radius: 12px;
       --safe-bottom: env(safe-area-inset-bottom, 0);
       --nav-h: 56px;
@@ -98,7 +98,7 @@
       font-family: 'Unbounded', sans-serif;
       font-size: 1.35rem;
       font-weight: 600;
-      background: linear-gradient(135deg, #00ff88, #00cc6a);
+      background: linear-gradient(135deg, #00d96f, #00b85c);
       -webkit-background-clip: text;
       -webkit-text-fill-color: transparent;
       background-clip: text;
@@ -110,9 +110,6 @@
       margin-top: 2px;
       text-shadow: 0 0 12px rgba(0, 0, 0, 0.9), 0 1px 3px rgba(0, 0, 0, 0.7);
     }
-    /* Главный экран в стиле макета — без верхнего промо-заголовка */
-    #screen-main ~ .screen .header,
-    .page-content > .header { display: none; }
     .card {
       background: var(--bg-card);
       border: 1px solid var(--border);
@@ -165,7 +162,7 @@
     }
     .btn:active { transform: scale(0.98); opacity: 0.9; }
     .btn-primary {
-      background: linear-gradient(135deg, #00ff88, #00cc6a);
+      background: linear-gradient(135deg, #00d96f, #00b85c);
       color: #000;
       margin-top: 20px;
       margin-bottom: 12px;
@@ -181,12 +178,14 @@
     }
     /* Главная: непрозрачная карточка и кнопки (белый/чёрный/зелёный/серый, без прозрачности) */
     .main-card-glass {
-      background: #0f0f0f;
-      border: 1px solid rgba(0,255,136,0.25);
+      background: rgba(15,15,15,0.58);
+      border: 1px solid rgba(0,217,111,0.22);
       border-radius: 16px;
       padding: 18px 16px;
       margin-bottom: 12px;
       box-shadow: 0 0 0 1px rgba(0,0,0,0.35) inset, 0 10px 30px rgba(0,0,0,0.55);
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
     }
     .main-card-glass .card-head { margin-bottom: 14px; }
     .main-card-glass .card-title { color: #fff; font-size: 1.08rem; }
@@ -201,7 +200,7 @@
     }
     .main-card-glass .status-badge.active {
       background: #0a2e1a;
-      color: #00ff88;
+      color: #00d96f;
     }
     .main-card-glass .stats-row {
       border-color: #2a2a2a;
@@ -220,7 +219,7 @@
       margin-top: 16px;
       margin-bottom: 14px;
       border-radius: 16px;
-      background: linear-gradient(135deg, #00ff88, #00cc6a);
+      background: linear-gradient(135deg, #00d96f, #00b85c);
       color: #000;
       font-weight: 700;
       font-size: 0.95rem;
@@ -270,11 +269,11 @@
       width: 100%;
       padding: 14px 16px;
       border-radius: 999px;
-      background: #fff;
-      border: none;
-      color: #1a1a1a;
+      background: linear-gradient(180deg, rgba(0,217,111,0.20), rgba(0,217,111,0.10));
+      border: 1px solid rgba(0,217,111,0.45);
+      color: #fff;
       font-size: 0.95rem;
-      font-weight: 600;
+      font-weight: 700;
       cursor: pointer;
       transition: background 0.2s, opacity 0.2s;
       display: flex;
@@ -284,17 +283,17 @@
     }
     .main-install-btn .main-install-label { flex: 1; text-align: center; }
     .main-install-btn .main-install-icon { display: flex; align-items: center; justify-content: center; }
-    .main-install-btn .main-install-icon-left svg { width: 20px; height: 20px; color: #1a1a1a; }
-    .main-install-btn .main-install-icon-right svg { width: 22px; height: 22px; color: #888; }
-    .main-install-btn:active { background: #e8e8e8; }
+    .main-install-btn .main-install-icon-left svg { width: 20px; height: 20px; color: var(--accent); }
+    .main-install-btn .main-install-icon-right svg { width: 22px; height: 22px; color: rgba(255,255,255,0.75); }
+    .main-install-btn:active { background: rgba(0,217,111,0.26); }
 
     .speed-compact-row {
       display: flex; justify-content: space-between; align-items: center; gap: 12px;
       margin: 8px 0; padding: 10px 12px;
       border-top: 1px solid var(--border); border-bottom: 1px solid var(--border);
-      background: rgba(0,255,136,0.04); border-radius: 10px; border-left: 1px solid var(--border); border-right: 1px solid var(--border);
+      background: rgba(0,217,111,0.04); border-radius: 10px; border-left: 1px solid var(--border); border-right: 1px solid var(--border);
     }
-    .main-card-glass .speed-compact-row { border-color: #2a2a2a; background: rgba(0,255,136,0.03); }
+    .main-card-glass .speed-compact-row { border-color: #2a2a2a; background: rgba(0,217,111,0.03); }
     .speed-compact-item { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; font-size: 0.7rem; color: var(--text); flex: 1; min-width: 0; text-align: center; }
     .speed-compact-item:first-child { min-width: 3.2em; }
     .speed-compact-item:nth-child(n+2) { min-width: 4.2em; }
@@ -362,7 +361,7 @@
       font-size: 0.75rem;
     }
     .bottom-nav a:hover { color: var(--text); }
-    .bottom-nav a.active { color: var(--accent); background: rgba(0,255,136,0.15); }
+    .bottom-nav a.active { color: var(--accent); background: rgba(0,217,111,0.15); }
     .bottom-nav .nav-item { padding: 6px 12px; border-radius: 20px; transition: background 0.25s ease, color 0.25s ease; }
     .bottom-nav .nav-icon { width: 24px; height: 24px; display: flex; align-items: center; justify-content: center; }
     .bottom-nav .nav-icon svg { width: 20px; height: 20px; fill: currentColor; }
@@ -382,7 +381,7 @@
     .main-card .card-title { color: var(--text); }
     .main-card .card-title svg { width: 20px; height: 20px; fill: var(--accent); }
     .status-badge { font-size: 0.7rem; padding: 3px 8px; border-radius: 12px; background: rgba(255,255,255,0.1); color: var(--text); }
-    .status-badge.active { background: rgba(0, 255, 136, 0.2); color: var(--accent); }
+    .status-badge.active { background: rgba(0, 217, 111, 0.2); color: var(--accent); }
     .stats-row { display: flex; justify-content: space-between; align-items: stretch; gap: 8px; margin: 8px 0; padding: 8px 0; border-top: 1px solid var(--border); border-bottom: 1px solid var(--border); }
     .stat-item { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; font-size: 0.8rem; color: var(--text); flex: 1; min-width: 0; text-align: center; }
     .stat-item span { white-space: nowrap; }
@@ -397,13 +396,13 @@
 
     .pay-tabs { display: flex; gap: 8px; margin-bottom: 12px; }
     .pay-tabs button { flex: 1; padding: 10px 12px; border: 1px solid var(--border); border-radius: 10px; background: transparent; color: var(--text); font-size: 0.85rem; cursor: pointer; }
-    .pay-tabs button.active { background: rgba(0, 255, 136, 0.15); color: var(--accent); border-color: var(--accent); }
+    .pay-tabs button.active { background: rgba(0, 217, 111, 0.15); color: var(--accent); border-color: var(--accent); }
     .pay-list { margin-top: 10px; }
     .pay-item { background: rgba(255,255,255,0.04); border: 1px solid var(--border); border-radius: 10px; padding: 12px 14px; margin-bottom: 10px; }
     .pay-item-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 8px; flex-wrap: wrap; }
     .pay-item-title { font-weight: 600; font-size: 0.9rem; display: flex; align-items: center; gap: 8px; }
     .pay-item-title svg { width: 18px; height: 18px; fill: var(--accent); }
-    .pay-item-badge { font-size: 0.7rem; padding: 3px 8px; border-radius: 10px; background: rgba(0, 255, 136, 0.2); color: var(--accent); }
+    .pay-item-badge { font-size: 0.7rem; padding: 3px 8px; border-radius: 10px; background: rgba(0, 217, 111, 0.2); color: var(--accent); }
     .pay-item-badge.pending { background: rgba(255,193,7,0.2); color: #ffc107; }
     .pay-item-badge.expired { background: rgba(255, 152, 0, 0.2); color: #ff9800; }
     .pay-item-badge.failed { background: rgba(244, 67, 54, 0.2); color: #f44336; }
@@ -422,10 +421,14 @@
     .ref-stat-num { display: block; font-size: 1.5rem; font-weight: 700; color: var(--text); }
     .ref-stat-label { font-size: 0.78rem; color: var(--text-muted); }
     .ref-how-card { background: rgba(255,255,255,0.04); border: 1px solid var(--border); border-radius: 12px; padding: 14px; margin-bottom: 14px; }
-    .ref-how-title { font-size: 0.9rem; font-weight: 600; color: var(--text); margin-bottom: 8px; display: flex; align-items: center; gap: 6px; }
-    .ref-how-icon { width: 20px; height: 20px; border-radius: 50%; background: var(--accent-dim); color: var(--accent); display: inline-flex; align-items: center; justify-content: center; font-size: 0.75rem; font-style: normal; }
+    .ref-how-title { font-size: 0.9rem; font-weight: 600; color: var(--text); margin-bottom: 0; display: flex; align-items: center; gap: 8px; cursor: pointer; user-select: none; -webkit-tap-highlight-color: transparent; border: none; background: none; padding: 0; width: 100%; text-align: left; }
+    .ref-how-title .ref-how-icon { width: 22px; height: 22px; min-width: 22px; border-radius: 50%; background: var(--accent-dim); color: var(--accent); display: inline-flex; align-items: center; justify-content: center; font-size: 0.8rem; font-style: normal; }
+    .ref-how-body { display: none; margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--border); }
+    .ref-how-card.ref-how-open .ref-how-body { display: block; }
     .ref-how-text { font-size: 0.82rem; color: var(--text-muted); margin-bottom: 10px; line-height: 1.4; }
-    .ref-how-list { margin: 0; padding-left: 1.2rem; font-size: 0.82rem; color: var(--text); line-height: 1.6; }
+    .ref-how-title .ref-how-chevron { margin-left: auto; color: var(--text-muted); transition: transform 0.2s; }
+    .ref-how-card.ref-how-open .ref-how-chevron { transform: rotate(180deg); }
+    .ref-how-list { margin: 10px 0 0 0; padding-left: 1.2rem; font-size: 0.82rem; color: var(--text); line-height: 1.6; }
     .ref-actions-ref { margin-top: 8px; }
     /* Всплывающее окно реферальной статистики — вне трека, чтобы не съезжало на любых устройствах */
     .ref-stats-popup-overlay {
@@ -500,7 +503,7 @@
     .subscribe-block-devices { margin-bottom: 10px; }
     .subscribe-devices-btns { display: flex; gap: 10px; flex-wrap: wrap; }
     .subscribe-dev-btn { padding: 10px 20px; min-width: 48px; border: 1px solid var(--border); border-radius: 14px; background: rgba(255,255,255,0.04); color: var(--text); font-weight: 600; font-size: 0.95rem; cursor: pointer; transition: border-color 0.2s, background 0.2s; }
-    .subscribe-dev-btn.selected { border-color: var(--accent); background: rgba(0,255,136,0.15); color: var(--accent); }
+    .subscribe-dev-btn.selected { border-color: var(--accent); background: rgba(0,217,111,0.15); color: var(--accent); }
     .subscribe-days-left { font-size: 0.82rem; color: var(--text-muted); margin-top: 10px; }
     .subscribe-block-renew { margin-bottom: 12px; }
     /* Ползунок срока подписки */
@@ -517,19 +520,19 @@
       -webkit-appearance: none; appearance: none;
       width: 22px; height: 22px;
       border-radius: 50%;
-      background: linear-gradient(135deg, #00ff88, #00cc6a);
+      background: linear-gradient(135deg, #00d96f, #00b85c);
       cursor: pointer;
-      box-shadow: 0 2px 10px rgba(0,255,136,0.45);
+      box-shadow: 0 2px 10px rgba(0,217,111,0.45);
       border: 2px solid rgba(0,0,0,0.2);
       transition: transform 0.15s, box-shadow 0.15s;
     }
-    .subscribe-duration-slider::-webkit-slider-thumb:hover { transform: scale(1.08); box-shadow: 0 2px 14px rgba(0,255,136,0.55); }
+    .subscribe-duration-slider::-webkit-slider-thumb:hover { transform: scale(1.08); box-shadow: 0 2px 14px rgba(0,217,111,0.55); }
     .subscribe-duration-slider::-moz-range-thumb {
       width: 22px; height: 22px;
       border-radius: 50%;
-      background: linear-gradient(135deg, #00ff88, #00cc6a);
+      background: linear-gradient(135deg, #00d96f, #00b85c);
       cursor: pointer;
-      box-shadow: 0 2px 10px rgba(0,255,136,0.45);
+      box-shadow: 0 2px 10px rgba(0,217,111,0.45);
       border: 2px solid rgba(0,0,0,0.2);
       transition: transform 0.15s, box-shadow 0.15s;
     }
@@ -552,7 +555,7 @@
     .subscribe-summary-row span:last-child { font-weight: 600; color: var(--accent); flex-shrink: 0; }
     .subscribe-sheet-actions { display: flex; gap: 12px; margin-top: 16px; }
     .btn-subscribe-back { flex: 1; padding: 14px 18px; border-radius: 14px; border: 1px solid var(--border); background: rgba(255,255,255,0.06); color: var(--text); font-weight: 600; font-size: 0.95rem; cursor: pointer; transition: background 0.2s; }
-    .btn-subscribe-pay { flex: 1; padding: 14px 18px; border-radius: 14px; border: none; background: linear-gradient(135deg, #00ff88, #00cc6a); color: #000; font-weight: 700; font-size: 0.95rem; cursor: pointer; transition: transform 0.2s, box-shadow 0.2s; }
+    .btn-subscribe-pay { flex: 1; padding: 14px 18px; border-radius: 14px; border: none; background: linear-gradient(135deg, #00d96f, #00b85c); color: #000; font-weight: 700; font-size: 0.95rem; cursor: pointer; transition: transform 0.2s, box-shadow 0.2s; }
     .btn-subscribe-pay:active { transform: scale(0.98); }
     .subscribe-payment-methods-block { margin-top: 12px; }
     .subscribe-payment-methods-title { font-weight: 600; margin: 0 0 12px 0; color: var(--text); font-size: 1rem; }
@@ -582,45 +585,48 @@
     .bottom-sheet .sheet-client-id { display: flex; align-items: center; gap: 8px; padding: 8px 12px; margin-bottom: 12px; background: rgba(255,255,255,0.04); border-radius: 12px; border: 1px solid var(--border); }
     .bottom-sheet .sheet-client-id .client-id-label { font-size: 0.8rem; color: var(--text-muted); }
     .bottom-sheet .sheet-client-id .client-id-value { font-family: 'JetBrains Mono', monospace; font-size: 0.85rem; color: var(--accent); font-weight: 600; flex: 1; word-break: break-all; }
-    .bottom-sheet .sheet-client-id .btn-copy { width: 36px; height: 36px; padding: 0; border-radius: 10px; background: rgba(0,255,136,0.15); color: var(--accent); border: 1px solid rgba(0,255,136,0.4); cursor: pointer; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+    .bottom-sheet .sheet-client-id .btn-copy { width: 36px; height: 36px; padding: 0; border-radius: 10px; background: rgba(0,217,111,0.15); color: var(--accent); border: 1px solid rgba(0,217,111,0.4); cursor: pointer; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
     .bottom-sheet .sheet-client-id .btn-copy svg { width: 18px; height: 18px; fill: currentColor; }
-    .sheet-happ-link-block { margin-bottom: 14px; padding: 12px; background: rgba(0,255,136,0.08); border: 1px solid rgba(0,255,136,0.25); border-radius: 12px; }
+    .sheet-happ-link-block { margin-bottom: 14px; padding: 12px; background: rgba(0,217,111,0.08); border: 1px solid rgba(0,217,111,0.25); border-radius: 12px; }
     .sheet-happ-link-label { font-size: 0.9rem; font-weight: 600; color: var(--text); margin: 0 0 8px 0; }
     .sheet-happ-link-row { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
     .sheet-happ-link-input { flex: 1; min-width: 0; padding: 10px 12px; border-radius: 10px; border: 1px solid var(--border); background: rgba(0,0,0,0.2); color: var(--text); font-size: 0.78rem; font-family: 'JetBrains Mono', monospace; }
-    .sheet-happ-link-row .btn-copy { width: 40px; height: 40px; flex-shrink: 0; border-radius: 10px; background: rgba(0,255,136,0.2); border: 1px solid var(--accent); color: var(--accent); display: flex; align-items: center; justify-content: center; cursor: pointer; }
+    .sheet-happ-link-row .btn-copy { width: 40px; height: 40px; flex-shrink: 0; border-radius: 10px; background: rgba(0,217,111,0.2); border: 1px solid var(--accent); color: var(--accent); display: flex; align-items: center; justify-content: center; cursor: pointer; }
     .sheet-happ-link-row .btn-copy svg { width: 18px; height: 18px; fill: currentColor; }
     .sheet-happ-link-tip { font-size: 0.75rem; color: var(--text-muted); margin: 0; line-height: 1.35; }
-    .sheet-happ-link-row .btn-open-happ { flex: 1; min-width: 0; padding: 10px 12px; border-radius: 10px; border: 1px solid var(--accent); background: rgba(0,255,136,0.15); color: var(--accent); font-size: 0.85rem; font-weight: 600; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px; }
-    .subs-happ-block { margin: 14px 0; padding: 12px; background: rgba(0,255,136,0.08); border: 1px solid rgba(0,255,136,0.25); border-radius: 12px; }
+    .sheet-happ-link-row .btn-open-happ { flex: 1; min-width: 0; padding: 10px 12px; border-radius: 10px; border: 1px solid var(--accent); background: rgba(0,217,111,0.15); color: var(--accent); font-size: 0.85rem; font-weight: 600; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px; }
+    .subs-happ-block { margin: 14px 0; padding: 12px; background: rgba(0,217,111,0.08); border: 1px solid rgba(0,217,111,0.25); border-radius: 12px; }
     .subs-happ-block .subs-happ-title { font-size: 0.9rem; font-weight: 600; color: var(--text); margin: 0 0 10px 0; }
     .subs-happ-btns { display: flex; gap: 10px; margin-bottom: 8px; }
-    .subs-happ-btns .btn-open-happ { flex: 1; padding: 12px 14px; border-radius: 10px; border: 1px solid var(--accent); background: rgba(0,255,136,0.15); color: var(--accent); font-size: 0.9rem; font-weight: 600; cursor: pointer; }
-    .subs-happ-btns .btn-copy { width: 48px; padding: 0; border-radius: 10px; background: rgba(0,255,136,0.2); border: 1px solid var(--accent); color: var(--accent); display: flex; align-items: center; justify-content: center; cursor: pointer; flex-shrink: 0; }
+    .subs-happ-btns .btn-open-happ { flex: 1; padding: 12px 14px; border-radius: 10px; border: 1px solid var(--accent); background: rgba(0,217,111,0.15); color: var(--accent); font-size: 0.9rem; font-weight: 600; cursor: pointer; }
+    .subs-happ-btns .btn-copy { width: 48px; padding: 0; border-radius: 10px; background: rgba(0,217,111,0.2); border: 1px solid var(--accent); color: var(--accent); display: flex; align-items: center; justify-content: center; cursor: pointer; flex-shrink: 0; }
     .subs-happ-btns .btn-copy svg { width: 20px; height: 20px; fill: currentColor; }
     .subs-happ-tip { font-size: 0.75rem; color: var(--text-muted); margin: 0; line-height: 1.35; }
     .sheet-happ-no-link-hint { margin-bottom: 10px; padding: 8px 10px; background: rgba(255,193,7,0.08); border: 1px solid rgba(255,193,7,0.3); border-radius: 10px; font-size: 0.78rem; color: var(--text-muted); line-height: 1.35; }
     .sheet-happ-no-link-hint p { margin: 0; }
-    .sheet-devices-link-compact { margin-bottom: 10px; }
-    .sheet-devices-link-btns { display: flex; gap: 8px; margin-bottom: 6px; }
-    .sheet-devices-link-btns .btn-link-action { flex: 1; padding: 10px 12px; border-radius: 10px; font-size: 0.85rem; font-weight: 600; cursor: pointer; border: 1px solid rgba(0,255,136,0.5); background: rgba(0,255,136,0.12); color: var(--accent); }
-    .sheet-devices-link-btns .btn-link-replace { background: transparent; color: var(--accent); }
-    .sheet-devices-link-explain { font-size: 0.72rem; color: var(--text-muted); line-height: 1.35; margin: 0 0 10px 0; }
-    .sheet-tun-tip { font-size: 0.72rem; color: var(--text-muted); margin: 0 0 12px 0; padding: 8px 10px; background: rgba(255,255,255,0.03); border-radius: 10px; line-height: 1.4; }
+    .sheet-devices-link-compact { margin-bottom: 12px; }
+    .sheet-devices-add-one { display: inline-flex; align-items: center; justify-content: center; gap: 6px; padding: 10px 18px; border-radius: 10px; background: rgba(0,217,111,0.12); color: var(--accent); font-weight: 600; font-size: 0.85rem; border: 1px solid rgba(0,217,111,0.35); cursor: pointer; width: 100%; }
+    .sheet-vpn-trouble-card { margin-bottom: 12px; background: rgba(255,255,255,0.04); border: 1px solid var(--border); border-radius: 12px; overflow: hidden; }
+    .sheet-vpn-trouble-btn { width: 100%; padding: 10px 14px; border: none; background: none; color: var(--text-muted); font-size: 0.82rem; font-weight: 600; cursor: pointer; text-align: left; display: flex; align-items: center; justify-content: space-between; gap: 8px; -webkit-tap-highlight-color: transparent; }
+    .sheet-vpn-trouble-btn .sheet-vpn-trouble-chevron { color: var(--text-muted); transition: transform 0.2s; flex-shrink: 0; }
+    .sheet-vpn-trouble-card.open .sheet-vpn-trouble-chevron { transform: rotate(180deg); }
+    .sheet-vpn-trouble-body { display: none; padding: 0 14px 12px; border-top: 1px solid var(--border); }
+    .sheet-vpn-trouble-card.open .sheet-vpn-trouble-body { display: block; }
+    .sheet-devices-link-explain { font-size: 0.72rem; color: var(--text-muted); line-height: 1.35; margin: 10px 0 0 0; }
+    .sheet-tun-tip { font-size: 0.72rem; color: var(--text-muted); margin: 8px 0 0 0; padding: 8px 10px; background: rgba(255,255,255,0.03); border-radius: 10px; line-height: 1.4; }
     .sheet-current-device-top { display: flex; align-items: center; gap: 12px; margin-bottom: 12px; }
-    .sheet-current-device-icon { width: 44px; height: 44px; border-radius: 12px; background: rgba(0,255,136,0.12); display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+    .sheet-current-device-icon { width: 44px; height: 44px; border-radius: 12px; background: rgba(0,217,111,0.12); display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
     .sheet-current-device-icon svg { width: 26px; height: 26px; fill: var(--accent); }
     .sheet-current-device-head { flex: 1; min-width: 0; }
     .sheet-current-device-title { font-size: 0.95rem; font-weight: 700; color: var(--text); margin-bottom: 2px; }
     .sheet-current-device-desc { font-size: 0.78rem; color: var(--text-muted); line-height: 1.35; }
     .sheet-current-device-btns { display: flex; gap: 10px; }
-    .sheet-current-device-btns .btn-setup-this { flex: 1; padding: 11px 14px; border-radius: 10px; background: linear-gradient(135deg, #00ff88, #00cc6a); color: #000; font-weight: 600; font-size: 0.85rem; border: none; cursor: pointer; text-align: center; }
+    .sheet-current-device-btns .btn-setup-this { flex: 1; padding: 11px 14px; border-radius: 10px; background: linear-gradient(135deg, #00d96f, #00b85c); color: #000; font-weight: 600; font-size: 0.85rem; border: none; cursor: pointer; text-align: center; }
     .sheet-current-device-btns .btn-setup-other { flex: 1; padding: 11px 14px; border-radius: 10px; background: transparent; color: var(--accent); font-weight: 600; font-size: 0.85rem; border: 1px solid var(--accent); cursor: pointer; text-align: center; }
     .bottom-sheet .sheet-devices { padding: 12px 0 0; border-top: 1px solid var(--border); }
     .bottom-sheet .sheet-devices-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
     .bottom-sheet .sheet-devices-title { font-size: 0.85rem; font-weight: 600; color: var(--text); }
-    .bottom-sheet .sheet-devices-count { font-size: 1rem; font-weight: 700; color: var(--accent); background: rgba(0,255,136,0.15); padding: 4px 10px; border-radius: 10px; min-width: 2.5em; text-align: center; }
-    .bottom-sheet .sheet-devices-refresh-btn { width: 32px; height: 32px; border-radius: 8px; border: 1px solid var(--accent); background: rgba(0,255,136,0.1); color: var(--accent); font-size: 1.1rem; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; padding: 0; }
+    .bottom-sheet .sheet-devices-count { font-size: 1rem; font-weight: 700; color: var(--accent); background: rgba(0,217,111,0.15); padding: 4px 10px; border-radius: 10px; min-width: 2.5em; text-align: center; }
     .bottom-sheet .sheet-devices-list { font-size: 0.82rem; color: var(--text); min-height: 0; max-height: 80px; overflow-y: auto; margin-bottom: 10px; }
     .bottom-sheet .sheet-devices-list .device-item { display: flex; align-items: center; gap: 8px; padding: 8px 10px; background: rgba(255,255,255,0.04); border-radius: 10px; margin-bottom: 6px; }
     .bottom-sheet .sheet-devices-list .device-item:last-child { margin-bottom: 0; }
@@ -628,9 +634,8 @@
     .bottom-sheet .sheet-devices-empty { color: var(--text-muted); font-size: 0.8rem; padding: 8px 0; }
     .bottom-sheet .sheet-devices-delay-hint { color: var(--text-muted); font-size: 0.72rem; line-height: 1.35; margin: 6px 0 10px; padding: 0; }
     .bottom-sheet .sheet-devices-hint-warn { background: rgba(255,193,7,0.1); border: 1px solid rgba(255,193,7,0.25); border-radius: 8px; padding: 8px 10px; color: var(--text); }
-    .bottom-sheet .sheet-add-device { display: inline-flex; align-items: center; justify-content: center; gap: 6px; padding: 10px 18px; border-radius: 10px; background: rgba(0,255,136,0.12); color: var(--accent); font-weight: 600; font-size: 0.85rem; border: 1px solid rgba(0,255,136,0.35); cursor: pointer; width: 100%; }
     .bottom-sheet .sheet-tip { font-size: 0.72rem; color: var(--text-muted); text-align: center; margin-top: 10px; line-height: 1.4; }
-    .speed-sheet-geo { padding: 14px 16px; margin-bottom: 14px; background: rgba(0,255,136,0.06); border: 1px solid rgba(0,255,136,0.2); border-radius: 14px; }
+    .speed-sheet-geo { padding: 14px 16px; margin-bottom: 14px; background: rgba(0,217,111,0.06); border: 1px solid rgba(0,217,111,0.2); border-radius: 14px; }
     .speed-sheet-flag-row { display: flex; align-items: center; gap: 10px; margin-bottom: 6px; }
     .speed-sheet-flag { font-size: 2rem; line-height: 1; }
     .speed-sheet-flag-img { width: 32px; height: 24px; object-fit: contain; border-radius: 4px; display: block; }
@@ -693,7 +698,7 @@
     }
     .install-intro-sheet .install-intro-btns { display: flex; flex-direction: column; gap: 12px; }
     .install-intro-sheet .install-intro-btns .btn-install-this { width: 100%; padding: 16px 20px; border-radius: 999px; background: #fff; color: #0d0d0d; font-weight: 700; font-size: 0.95rem; border: none; cursor: pointer; text-align: center; box-shadow: 0 2px 12px rgba(0,0,0,0.2); }
-    .install-intro-sheet .install-intro-btns .btn-install-other { width: 100%; padding: 16px 20px; border-radius: 999px; background: rgba(0,255,136,0.18); color: #fff; font-weight: 600; font-size: 0.95rem; border: 1px solid rgba(0,255,136,0.5); cursor: pointer; text-align: center; }
+    .install-intro-sheet .install-intro-btns .btn-install-other { width: 100%; padding: 16px 20px; border-radius: 999px; background: rgba(0,217,111,0.18); color: #fff; font-weight: 600; font-size: 0.95rem; border: 1px solid rgba(0,217,111,0.5); cursor: pointer; text-align: center; }
     /* Экран выбора платформы и приложения (после «Подключить на этом устройстве») */
     .platform-app-sheet-hidden { display: none !important; }
     .platform-app-sheet .sheet-content { padding: 14px 18px 18px; max-height: 75vh; overflow-y: auto; }
@@ -710,19 +715,19 @@
     .platform-app-sheet .platform-dropdown { margin-top: 6px; border-radius: 12px; background: rgba(0,0,0,0.25); border: 1px solid var(--border); overflow: hidden; }
     .platform-app-sheet .platform-option { width: 100%; padding: 12px 16px; border: none; background: transparent; color: var(--text); font-size: 0.9rem; font-weight: 500; cursor: pointer; display: flex; align-items: center; gap: 12px; text-align: left; border-bottom: 1px solid var(--border); transition: background 0.15s; }
     .platform-app-sheet .platform-option:last-child { border-bottom: none; }
-    .platform-app-sheet .platform-option:active { background: rgba(0,255,136,0.1); }
-    .platform-app-sheet .platform-option.selected { background: rgba(0,255,136,0.12); color: var(--accent); }
+    .platform-app-sheet .platform-option:active { background: rgba(0,217,111,0.1); }
+    .platform-app-sheet .platform-option.selected { background: rgba(0,217,111,0.12); color: var(--accent); }
     .platform-app-sheet .platform-option .platform-option-icon { width: 24px; height: 24px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
     .platform-app-sheet .platform-option .platform-option-icon svg { width: 20px; height: 20px; fill: currentColor; }
     .platform-app-sheet .platform-option .platform-option-check { margin-left: auto; color: var(--accent); opacity: 0; }
     .platform-app-sheet .platform-option.selected .platform-option-check { opacity: 1; }
-    .platform-app-sheet .app-card { margin-top: 12px; padding: 12px 14px; border-radius: 14px; background: linear-gradient(145deg, rgba(0,255,136,0.08), rgba(0,255,136,0.02)); border: 1px solid rgba(0,255,136,0.25); }
+    .platform-app-sheet .app-card { margin-top: 12px; padding: 12px 14px; border-radius: 14px; background: linear-gradient(145deg, rgba(0,217,111,0.08), rgba(0,217,111,0.02)); border: 1px solid rgba(0,217,111,0.25); }
     .platform-app-sheet .app-card-title { font-size: 0.95rem; font-weight: 700; color: var(--text); margin-bottom: 2px; display: flex; align-items: center; gap: 8px; }
     .platform-app-sheet .app-card-title svg { width: 20px; height: 20px; fill: var(--accent); flex-shrink: 0; }
     .platform-app-sheet .app-card-badge { font-size: 0.65rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; color: var(--accent); }
     .platform-app-sheet .app-card-desc { font-size: 0.78rem; color: var(--text-muted); line-height: 1.35; margin-top: 6px; text-align: center; padding: 0 4px; }
     .platform-app-sheet .platform-app-actions { margin-top: 14px; display: flex; flex-direction: column; gap: 8px; }
-    .platform-app-sheet .btn-download-app { width: 100%; padding: 12px 16px; border-radius: 12px; background: linear-gradient(135deg, #00ff88, #00cc6a); color: #0d0d0d; font-weight: 700; font-size: 0.9rem; border: none; cursor: pointer; text-align: center; }
+    .platform-app-sheet .btn-download-app { width: 100%; padding: 12px 16px; border-radius: 12px; background: linear-gradient(135deg, #00d96f, #00b85c); color: #0d0d0d; font-weight: 700; font-size: 0.9rem; border: none; cursor: pointer; text-align: center; }
     .platform-app-sheet .platform-app-footer-row { display: flex; gap: 8px; margin-top: 6px; }
     .platform-app-sheet .btn-back-platform { flex: 1; padding: 10px 12px; border-radius: 10px; background: rgba(255,255,255,0.08); border: 1px solid var(--border); color: var(--text); font-weight: 600; font-size: 0.82rem; cursor: pointer; text-align: center; }
     .platform-app-sheet .btn-add-sub-platform { flex: 1; padding: 10px 12px; border-radius: 10px; background: #fff; color: #0d0d0d; font-weight: 600; font-size: 0.82rem; border: none; cursor: pointer; text-align: center; white-space: nowrap; }
@@ -736,7 +741,7 @@
     .other-device-qr-title { font-size: 1.1rem; font-weight: 700; color: var(--text); text-align: center; margin-bottom: 16px; line-height: 1.3; }
     .other-device-qrcode-wrap { display: flex; justify-content: center; align-items: center; min-height: 280px; margin-bottom: 20px; background: #fff; border-radius: 16px; padding: 16px; position: relative; }
     .other-device-qrcode-wrap canvas { display: block; }
-    .other-device-qr-spinner { width: 48px; height: 48px; border: 4px solid rgba(0,255,136,0.2); border-top-color: var(--accent); border-radius: 50%; animation: other-device-qr-spin 0.8s linear infinite; }
+    .other-device-qr-spinner { width: 48px; height: 48px; border: 4px solid rgba(0,217,111,0.2); border-top-color: var(--accent); border-radius: 50%; animation: other-device-qr-spin 0.8s linear infinite; }
     @keyframes other-device-qr-spin { to { transform: rotate(360deg); } }
     .other-device-qr-share-bar { display: flex; align-items: center; gap: 10px; padding: 14px 16px; background: #fff; color: #0d0d0d; border-radius: 14px; }
     .other-device-qr-share-bar .share-label { flex: 1; font-size: 0.9rem; font-weight: 600; }
@@ -747,8 +752,8 @@
     .other-device-qr-share-bar .share-telegram:active { background: rgba(0,136,204,0.25); }
     .other-device-qr-share-bar .share-telegram svg { width: 22px; height: 22px; fill: currentColor; }
     .other-device-qr-how-wrap { margin-top: 14px; }
-    .other-device-qr-how-btn { width: 100%; padding: 12px 16px; border-radius: 12px; background: rgba(0,255,136,0.12); border: 1px solid rgba(0,255,136,0.35); color: var(--accent); font-weight: 600; font-size: 0.9rem; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; }
-    .other-device-qr-how-btn:active { background: rgba(0,255,136,0.2); }
+    .other-device-qr-how-btn { width: 100%; padding: 12px 16px; border-radius: 12px; background: rgba(0,217,111,0.12); border: 1px solid rgba(0,217,111,0.35); color: var(--accent); font-weight: 600; font-size: 0.9rem; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; }
+    .other-device-qr-how-btn:active { background: rgba(0,217,111,0.2); }
     .other-device-qr-how-btn svg { width: 20px; height: 20px; fill: currentColor; transition: transform 0.2s; }
     .other-device-qr-how-btn.open svg { transform: rotate(180deg); }
     .other-device-qr-how-text { font-size: 0.82rem; color: var(--text-muted); line-height: 1.5; margin-top: 10px; padding: 12px; background: rgba(255,255,255,0.04); border-radius: 12px; border: 1px solid var(--border); }
@@ -765,9 +770,14 @@
     .link-copied-toast-hidden { display: none !important; }
     .link-copied-toast-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.7); z-index: 200; display: flex; align-items: center; justify-content: center; padding: 20px; box-sizing: border-box; }
     .link-copied-toast-card { background: #0a0a0a; border: 1px solid rgba(255,255,255,0.12); border-radius: 16px; padding: 24px 22px; max-width: 320px; width: 100%; box-shadow: 0 12px 40px rgba(0,0,0,0.5); text-align: center; }
-    .link-copied-toast-card .link-copied-title { font-size: 0.95rem; font-weight: 600; color: #fff; margin-bottom: 6px; line-height: 1.4; }
-    .link-copied-toast-card .link-copied-path { font-size: 0.88rem; color: var(--accent); font-weight: 500; margin-bottom: 18px; }
-    .link-copied-toast-card .btn-link-copied-close { display: inline-block; padding: 12px 24px; border-radius: 12px; background: linear-gradient(135deg, #00ff88, #00cc6a); color: #0d0d0d; font-weight: 600; font-size: 0.9rem; border: none; cursor: pointer; }
+    .link-copied-toast-card .link-copied-title { font-size: 0.95rem; font-weight: 600; color: #fff; margin-bottom: 10px; line-height: 1.4; }
+    .link-copied-toast-card .link-copied-steps { font-size: 0.8rem; color: var(--text-muted); line-height: 1.5; margin-bottom: 18px; text-align: left; padding: 0 4px; }
+    .link-copied-toast-card .link-copied-steps strong { color: var(--accent); font-weight: 600; }
+    .link-copied-toast-card .link-copied-copy-wrap { margin-bottom: 16px; }
+    .link-copied-toast-card .btn-link-copied-copy { display: inline-flex; align-items: center; justify-content: center; gap: 6px; padding: 8px 14px; border-radius: 10px; border: 1px solid rgba(0,217,111,0.4); background: rgba(0,217,111,0.08); color: var(--accent); font-size: 0.78rem; font-weight: 600; cursor: pointer; transition: background 0.2s, border-color 0.2s; }
+    .link-copied-toast-card .btn-link-copied-copy:active { background: rgba(0,217,111,0.18); }
+    .link-copied-toast-card .btn-link-copied-copy svg { width: 14px; height: 14px; fill: currentColor; flex-shrink: 0; }
+    .link-copied-toast-card .btn-link-copied-close { display: inline-block; padding: 12px 24px; border-radius: 12px; background: linear-gradient(135deg, #00d96f, #00b85c); color: #0d0d0d; font-weight: 600; font-size: 0.9rem; border: none; cursor: pointer; }
     .link-copied-toast-card .btn-link-copied-close:active { opacity: 0.9; }
     .app-alert-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.85); z-index: 210; display: none; align-items: center; justify-content: center; padding: 20px; box-sizing: border-box; }
     .app-alert-overlay.open { display: flex; }
@@ -777,7 +787,7 @@
     .app-alert-close-x svg { width: 20px; height: 20px; fill: currentColor; }
     .app-alert-message { font-size: 0.95rem; color: var(--text); line-height: 1.45; margin-bottom: 20px; padding-right: 28px; }
     .app-alert-footer { text-align: right; }
-    .app-alert-footer .btn-close { padding: 10px 20px; border-radius: 12px; background: linear-gradient(135deg, #00ff88, #00cc6a); color: #0d0d0d; font-weight: 600; font-size: 0.9rem; border: none; cursor: pointer; }
+    .app-alert-footer .btn-close { padding: 10px 20px; border-radius: 12px; background: linear-gradient(135deg, #00d96f, #00b85c); color: #0d0d0d; font-weight: 600; font-size: 0.9rem; border: none; cursor: pointer; }
     .app-alert-footer .btn-close:active { opacity: 0.9; }
     .sheet-setup-intro { font-size: 0.82rem; color: var(--text-muted); margin-bottom: 14px; line-height: 1.45; }
     .setup-devices { display: flex; flex-direction: column; gap: 12px; }
@@ -789,13 +799,13 @@
     /* Подписки */
     .subs-tabs { display: flex; gap: 8px; margin-bottom: 12px; }
     .subs-tabs button { flex: 1; padding: 10px 12px; border: 1px solid var(--border); border-radius: 10px; background: transparent; color: var(--text); font-size: 0.88rem; font-weight: 500; cursor: pointer; }
-    .subs-tabs button.active { background: rgba(0, 255, 136, 0.15); color: var(--accent); border-color: var(--accent); }
+    .subs-tabs button.active { background: rgba(0, 217, 111, 0.15); color: var(--accent); border-color: var(--accent); }
     .sub-card { background: rgba(255,255,255,0.04); border: 1px solid var(--border); border-radius: 12px; padding: 12px 14px; margin-bottom: 10px; }
     .sub-card-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 10px; }
     .sub-card-title { font-weight: 600; font-size: 0.95rem; display: flex; align-items: center; gap: 8px; color: var(--text); }
     .sub-card-title svg { width: 18px; height: 18px; fill: var(--accent); }
     .sub-badge { font-size: 0.7rem; padding: 3px 10px; border-radius: 12px; }
-    .sub-badge.active { background: rgba(0, 255, 136, 0.2); color: var(--accent); }
+    .sub-badge.active { background: rgba(0, 217, 111, 0.2); color: var(--accent); }
     .sub-badge.inactive { background: rgba(255,255,255,0.1); color: var(--text-muted); }
     .sub-info-row { display: flex; justify-content: space-between; font-size: 0.88rem; margin: 5px 0; color: var(--text); }
     .sub-info-row .val { color: var(--text); font-weight: 500; }
@@ -824,14 +834,14 @@
     .profile-user-card { padding: 16px 14px; margin-bottom: 14px; flex-shrink: 0; }
     .profile-user-card.profile-glass { border-color: rgba(255,255,255,0.12); }
     .profile-user-inner { display: flex; align-items: center; gap: 14px; }
-    .profile-user-card .avatar { width: 52px; height: 52px; border-radius: 50%; background: linear-gradient(145deg, rgba(0,255,136,0.4), rgba(0,204,106,0.3)); border: 2px solid #00ff88; box-shadow: 0 0 14px rgba(0,255,136,0.2); display: flex; align-items: center; justify-content: center; font-size: 1.25rem; font-weight: 700; color: #00ff88; flex-shrink: 0; }
+    .profile-user-card .avatar { width: 52px; height: 52px; border-radius: 50%; background: linear-gradient(145deg, rgba(0,217,111,0.4), rgba(0,204,106,0.3)); border: 2px solid #00d96f; box-shadow: 0 0 14px rgba(0,217,111,0.2); display: flex; align-items: center; justify-content: center; font-size: 1.25rem; font-weight: 700; color: #00d96f; flex-shrink: 0; }
     .profile-user-card .info { flex: 1; min-width: 0; }
     .profile-user-card .name { font-size: 1rem; font-weight: 700; color: var(--text); }
     .profile-user-card .user-id { font-size: 0.78rem; color: var(--text-muted); margin-top: 2px; font-family: 'JetBrains Mono', monospace; }
     .profile-user-card .profile-level { font-size: 0.75rem; color: rgba(255,255,255,0.7); margin-top: 6px; font-weight: 500; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
     .profile-status-badge { display: inline-flex; align-items: center; gap: 4px; padding: 4px 10px; border-radius: 999px; font-size: 0.7rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; }
     .profile-status-badge.basic { background: rgba(255,255,255,0.12); color: rgba(255,255,255,0.9); border: 1px solid rgba(255,255,255,0.2); }
-    .profile-status-badge.premium { background: linear-gradient(135deg, rgba(0,255,136,0.25), rgba(0,204,106,0.2)); color: #00ff88; border: 1px solid rgba(0,255,136,0.5); box-shadow: 0 0 12px rgba(0,255,136,0.15); }
+    .profile-status-badge.premium { background: linear-gradient(135deg, rgba(0,217,111,0.25), rgba(0,204,106,0.2)); color: #00d96f; border: 1px solid rgba(0,217,111,0.5); box-shadow: 0 0 12px rgba(0,217,111,0.15); }
     .profile-status-badge.none { background: rgba(255,255,255,0.06); color: var(--text-muted); border: 1px solid var(--border); }
     .profile-bonuses-inline { font-size: 0.72rem; color: var(--text-muted); }
     .profile-user-card .btn-copy-id { width: 42px; height: 42px; border-radius: 14px; color: rgba(255,255,255,0.85); display: flex; align-items: center; justify-content: center; cursor: pointer; flex-shrink: 0; border: none; }
@@ -860,14 +870,14 @@
     .profile-sheet .sheet-title { font-size: 1rem; font-weight: 700; color: var(--text); margin-bottom: 14px; }
     .profile-sheet .sheet-id-block { display: flex; align-items: center; gap: 10px; padding: 12px; background: rgba(255,255,255,0.04); border-radius: 12px; margin-bottom: 12px; }
     .profile-sheet .sheet-id-block .id-val { font-family: 'JetBrains Mono', monospace; font-size: 0.9rem; color: var(--accent); font-weight: 600; flex: 1; word-break: break-all; }
-    .profile-sheet .sheet-id-block .btn-copy { width: 40px; height: 40px; border-radius: 10px; background: rgba(0,255,136,0.15); border: 1px solid var(--accent); color: var(--accent); display: flex; align-items: center; justify-content: center; cursor: pointer; }
+    .profile-sheet .sheet-id-block .btn-copy { width: 40px; height: 40px; border-radius: 10px; background: rgba(0,217,111,0.15); border: 1px solid var(--accent); color: var(--accent); display: flex; align-items: center; justify-content: center; cursor: pointer; }
     .profile-sheet .sheet-id-block .btn-copy svg { width: 18px; height: 18px; fill: currentColor; }
     .profile-sheet .sheet-note { font-size: 0.8rem; color: var(--text-muted); line-height: 1.4; }
     .profile-sheet .sheet-email-row { display: flex; gap: 8px; margin: 12px 0; flex-wrap: wrap; }
     .profile-sheet .sheet-email-row input[type="email"] { flex: 1; min-width: 120px; padding: 10px 12px; border-radius: 10px; border: 1px solid var(--border); background: rgba(255,255,255,0.06); color: var(--text); font-size: 0.88rem; }
     .profile-sheet #promo-sheet-input { flex: 1; min-width: 120px; padding: 10px 12px; border-radius: 10px; border: 1px solid var(--border); background: var(--bg-card); color: var(--text); font-size: 0.88rem; }
     .profile-sheet #promo-sheet-input::placeholder { color: var(--text-muted); }
-    .profile-sheet .sheet-email-row .btn-save { padding: 10px 18px; border-radius: 10px; background: linear-gradient(135deg, #00ff88, #00cc6a); color: #000; font-weight: 600; font-size: 0.88rem; border: none; cursor: pointer; }
+    .profile-sheet .sheet-email-row .btn-save { padding: 10px 18px; border-radius: 10px; background: linear-gradient(135deg, #00d96f, #00b85c); color: #000; font-weight: 600; font-size: 0.88rem; border: none; cursor: pointer; }
     .profile-sheet .sheet-email-hint { font-size: 0.75rem; color: var(--text-muted); margin-top: 8px; line-height: 1.4; }
     .ref-sheet-actions { display: flex; align-items: center; gap: 10px; }
     .ref-sheet-copy-btn { flex: 1; padding: 10px 16px; border-radius: 12px; background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); color: var(--text); font-weight: 600; font-size: 0.88rem; cursor: pointer; }
@@ -998,13 +1008,19 @@
           <span class="ref-stat-label">Бонусов, ₽</span>
         </div>
       </div>
-      <div class="ref-how-card">
-        <div class="ref-how-title"><span class="ref-how-icon">i</span> Как это работает?</div>
-        <p class="ref-how-text">Делитесь ссылкой, приглашайте друзей — и получайте 50₽ бонусами после их первого платежа.</p>
+      <div id="ref-how-card" class="ref-how-card">
+        <button type="button" id="ref-how-toggle" class="ref-how-title" aria-expanded="false" aria-controls="ref-how-body">
+          <span class="ref-how-icon">i</span>
+          <span>Как это работает?</span>
+          <span class="ref-how-chevron" aria-hidden="true"><svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor"><path d="M7 10l5 5 5-5z"/></svg></span>
+        </button>
+        <div id="ref-how-body" class="ref-how-body" role="region" aria-labelledby="ref-how-toggle">
+          <p class="ref-how-text">Вы получаете <strong>50₽ на счёт</strong> после первой оплаты приглашённого друга. Друг, который перешёл по вашей ссылке и оплатил подписку, получает <strong>1 неделю VPN бесплатно</strong> — тоже только после своей первой оплаты. Бонусы начисляются <strong>один раз</strong>: за следующие оплаты того же реферала ни вы, ни он ничего не получаете.</p>
+        </div>
         <ul class="ref-how-list">
           <li>Делитесь своей уникальной ссылкой</li>
-          <li>Друг регистрируется по вашей ссылке</li>
-          <li>После первой оплаты друга вы получаете 50₽</li>
+          <li>Друг регистрируется по ссылке и оплачивает подписку</li>
+          <li>После его первой оплаты: вы — 50₽ на счёт, он — 1 неделю бесплатно (одноразово)</li>
         </ul>
       </div>
       <div class="ref-actions-ref">
@@ -1177,31 +1193,31 @@
       <h2 class="sheet-title">Устройства</h2>
       <div id="sheet-happ-link-block" class="sheet-devices-link-compact" style="display:none;">
         <input type="hidden" id="sheet-happ-link-value" />
-        <div class="sheet-devices-link-btns">
-          <button type="button" id="sheet-happ-link-copy" class="btn-link-action">Скопировать ссылку</button>
-          <button type="button" id="sheet-happ-link-replace" class="btn-link-action btn-link-replace">Заменить ссылку</button>
-        </div>
-        <p class="sheet-devices-link-explain">Если VPN глючит или не подключается — нажмите «Заменить ссылку», вставьте новую в Happ (Подписки → +). Обновятся настройки только на этом устройстве; у остальных ничего не изменится.</p>
       </div>
       <div id="sheet-happ-no-link-hint" class="sheet-happ-no-link-hint" style="display:none;">
         <p>У вас есть подписка. Если ссылка не отображается — откройте приложение из меню бота и обновите страницу, или в боте нажмите «Мой конфиг».</p>
       </div>
-      <p class="sheet-tun-tip">Если после установки VPN не работает: откройте настройки Happ (иконка слева), включите режим TUN и подключитесь заново.</p>
+      <div id="sheet-vpn-trouble-card" class="sheet-vpn-trouble-card">
+        <button type="button" id="sheet-vpn-trouble-toggle" class="sheet-vpn-trouble-btn" aria-expanded="false" aria-controls="sheet-vpn-trouble-body">
+          <span>VPN не работает?</span>
+          <span class="sheet-vpn-trouble-chevron" aria-hidden="true"><svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor"><path d="M7 10l5 5 5-5z"/></svg></span>
+        </button>
+        <div id="sheet-vpn-trouble-body" class="sheet-vpn-trouble-body" role="region" aria-labelledby="sheet-vpn-trouble-toggle">
+          <p class="sheet-devices-link-explain">Если VPN глючит или не подключается — скопируйте ссылку кнопкой «Добавить устройство», вставьте новую в Happ (Подписки → +). Обновятся настройки только на этом устройстве; у остальных ничего не изменится.</p>
+          <p class="sheet-tun-tip">Если после установки VPN не работает: откройте настройки Happ (иконка слева), включите режим TUN и подключитесь заново.</p>
+        </div>
+      </div>
       <div class="sheet-devices">
         <div class="sheet-devices-head">
           <span class="sheet-devices-title">Подключено</span>
-          <span style="display:flex;align-items:center;gap:8px;">
-            <span id="sheet-devices-count" class="sheet-devices-count">0</span>
-            <button type="button" id="sheet-devices-refresh" class="sheet-devices-refresh-btn" title="Обновить счётчик">↻</button>
-          </span>
+          <span id="sheet-devices-count" class="sheet-devices-count">0</span>
         </div>
         <div id="sheet-devices-list" class="sheet-devices-list">
           <div class="sheet-devices-empty">Нет устройств</div>
         </div>
-        <p id="sheet-devices-delay-hint" class="sheet-devices-delay-hint" style="display:none;">Счётчик показывает, сколько устройств добавили эту ссылку в приложение Happ (Подписки → +). Если только что добавили — подождите 1–2 минуты и обновите экран.</p>
         <p id="sheet-devices-hint" class="sheet-devices-delay-hint sheet-devices-hint-warn" style="display:none;"></p>
         <p id="sheet-devices-no-installid-hint" class="sheet-devices-delay-hint" style="display:none;">Ссылка без лимита устройств. Чтобы счётчик «Подключено» работал, получите ссылку в боте — кнопка «Мой конфиг».</p>
-        <button type="button" id="sheet-add-device" class="sheet-add-device">+ Добавить устройство</button>
+        <button type="button" id="sheet-add-device-btn" class="sheet-devices-add-one" style="display:none;">+ Добавить устройство</button>
       </div>
       <p class="sheet-tip">Конфиг и инструкция приходят в боте после оплаты</p>
     </div>
@@ -1364,9 +1380,17 @@
 
   <!-- Окно «Ссылка скопирована» — своё, чёрное -->
   <div id="link-copied-toast-overlay" class="link-copied-toast-overlay link-copied-toast-hidden" aria-hidden="true" role="dialog" aria-label="Ссылка скопирована">
-    <div class="link-copied-toast-card">
-      <p class="link-copied-title">Ссылка скопирована. Вставьте в Happ:</p>
-      <p class="link-copied-path">Подписки → +</p>
+    <div id="link-copied-toast-card" class="link-copied-toast-card" data-copied-link="">
+      <p class="link-copied-title">Ссылка скопирована. Куда вставить:</p>
+      <div class="link-copied-steps">
+        <strong>1.</strong> Откройте приложение Happ на этом устройстве.<br>
+        <strong>2.</strong> Перейдите в раздел «Подписки» (внизу экрана или в меню).<br>
+        <strong>3.</strong> Нажмите кнопку «+» (добавить подписку).<br>
+        <strong>4.</strong> Вставьте ссылку в поле (долгое нажатие → Вставить) и нажмите «Добавить» или «Подключить».
+      </div>
+      <div id="link-copied-copy-wrap" class="link-copied-copy-wrap">
+        <button type="button" id="btn-link-copied-copy" class="btn-link-copied-copy" aria-label="Скопировать ссылку ещё раз"><svg viewBox="0 0 24 24"><path d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z"/></svg><span id="btn-link-copied-copy-text">Скопировать ссылку</span></button>
+      </div>
       <button type="button" id="btn-link-copied-close" class="btn-link-copied-close">Закрыть</button>
     </div>
   </div>
@@ -1539,12 +1563,12 @@
             r = 0.5 + 2.5 * t;
             alpha = 0.45 + 0.5 * t;
             if (r > 1.5) {
-              ctx.fillStyle = 'rgba(0,255,136,' + alpha * 0.2 + ')';
+              ctx.fillStyle = 'rgba(0,217,111,' + alpha * 0.2 + ')';
               ctx.beginPath();
               ctx.arc(x, y, r * 2.2, 0, Math.PI * 2);
               ctx.fill();
             }
-            ctx.fillStyle = 'rgba(0,255,136,' + alpha + ')';
+            ctx.fillStyle = 'rgba(0,217,111,' + alpha + ')';
             ctx.beginPath();
             ctx.arc(x, y, r, 0, Math.PI * 2);
             ctx.fill();
@@ -1566,7 +1590,7 @@
           var sz = s.size * (1.2 - d * 0.5);
           if (sz < 1) return;
           var a = 0.6 + 0.35 * d;
-          ctx.fillStyle = 'rgba(0,255,136,' + a + ')';
+          ctx.fillStyle = 'rgba(0,217,111,' + a + ')';
           ctx.fillRect(x - sz / 2, y - sz / 2, sz, sz);
         });
       }
@@ -1586,7 +1610,7 @@
           ctx.font = '600 ' + Math.round(sz) + 'px "JetBrains Mono", monospace';
           ctx.textAlign = 'center';
           ctx.textBaseline = 'middle';
-          ctx.fillStyle = 'rgba(0,255,136,' + alpha + ')';
+          ctx.fillStyle = 'rgba(0,217,111,' + alpha + ')';
           ctx.fillText(b.char, x, y);
           ctx.restore();
         });
@@ -1608,7 +1632,7 @@
           ctx.font = '500 ' + Math.round(sz) + 'px "JetBrains Mono", monospace';
           ctx.textAlign = 'center';
           ctx.textBaseline = 'middle';
-          ctx.fillStyle = 'rgba(0,255,136,' + alpha + ')';
+          ctx.fillStyle = 'rgba(0,217,111,' + alpha + ')';
           ctx.fillText(ins.text, x, y);
           ctx.restore();
         });
@@ -1638,7 +1662,7 @@
             var alpha = (0.12 + 0.1 * (1 - t)) * fade;
             if (alpha < 0.01) continue;
             var ch = (rx + ry) % 2 ? '1' : '0';
-            ctx.fillStyle = 'rgba(0,255,136,' + alpha + ')';
+            ctx.fillStyle = 'rgba(0,217,111,' + alpha + ')';
             ctx.fillText(ch, px, py);
           }
         }
@@ -2612,11 +2636,9 @@
       var btnDevices = document.getElementById('btn-devices');
       var sheetHappLinkBlock = document.getElementById('sheet-happ-link-block');
       var sheetHappLinkValue = document.getElementById('sheet-happ-link-value');
-      var sheetHappLinkCopy = document.getElementById('sheet-happ-link-copy');
-      var sheetHappLinkReplace = document.getElementById('sheet-happ-link-replace');
+      var sheetAddDeviceBtn = document.getElementById('sheet-add-device-btn');
       var sheetDevicesList = document.getElementById('sheet-devices-list');
       var sheetDevicesCount = document.getElementById('sheet-devices-count');
-      var sheetAddDevice = document.getElementById('sheet-add-device');
       function getClientId() {
         if (tg && tg.initDataUnsafe && tg.initDataUnsafe.user && tg.initDataUnsafe.user.id != null)
           return String(tg.initDataUnsafe.user.id);
@@ -2681,6 +2703,7 @@
               sheetHappLinkBlock.style.display = 'none';
             }
           }
+          if (sheetAddDeviceBtn) sheetAddDeviceBtn.style.display = subLink ? '' : 'none';
           var noLinkHint = document.getElementById('sheet-happ-no-link-hint');
           if (noLinkHint) noLinkHint.style.display = (hasActiveSub && !subLink) ? '' : 'none';
           var used = (API_ME && API_ME.subscription && API_ME.subscription.devices_used != null) ? API_ME.subscription.devices_used : (API_ME && API_ME.devices_used != null ? API_ME.devices_used : 0);
@@ -2703,11 +2726,6 @@
               emptyEl.className = 'sheet-devices-empty';
               emptyEl.textContent = 'Нет устройств';
               sheetDevicesList.appendChild(emptyEl);
-            }
-            var hasInstallLimit = (API_ME && API_ME.subscription && API_ME.subscription.subscription_link_has_install_limit === true);
-            var delayHint = document.getElementById('sheet-devices-delay-hint');
-            if (delayHint) {
-              delayHint.style.display = (used === 0 && hasInstallLimit && (limit > 0 || subLink)) ? '' : 'none';
             }
             var devicesHintEl = document.getElementById('sheet-devices-hint');
             if (devicesHintEl) {
@@ -2740,11 +2758,6 @@
       if (devicesOverlay) devicesOverlay.classList.add('devices-sheet-hidden');
       if (devicesSheet) devicesSheet.classList.add('devices-sheet-hidden');
       if (btnDevices) btnDevices.addEventListener('click', openDevicesSheet);
-      var sheetDevicesRefresh = document.getElementById('sheet-devices-refresh');
-      if (sheetDevicesRefresh) sheetDevicesRefresh.addEventListener('click', function() {
-        if (sheetDevicesCount) sheetDevicesCount.textContent = '…';
-        if (typeof loadMeFromApi === 'function') loadMeFromApi(function() { if (_devicesSheetFill) _devicesSheetFill(); });
-      });
       if (devicesOverlay) devicesOverlay.addEventListener('click', closeDevicesSheet);
       if (devicesSheet) devicesSheet.addEventListener('click', function(e) { e.stopPropagation(); });
       attachSwipeToClose(devicesSheet, devicesOverlay, 'devices-sheet-hidden');
@@ -2775,6 +2788,11 @@
         var dev = getInstallIntroDev();
         if (installIntroTitle) installIntroTitle.textContent = 'Подключение на ' + dev.name;
         if (installIntroDesc) installIntroDesc.textContent = 'Подключение займёт 3 шага и пару минут.';
+        var btnThis = document.getElementById('install-intro-btn-this');
+        if (btnThis) {
+          var isMobile = (dev.platform === 'ios' || dev.platform === 'android');
+          btnThis.textContent = dev.platform === 'other' ? 'Подключить на этом устройстве' : (isMobile ? 'Подключить на этом ' + dev.name : 'Подключить на ' + dev.name);
+        }
         if (installIntroIconWrap) {
           installIntroIconWrap.innerHTML = getInstallIntroIconMarkup(dev);
           var phone3d = installIntroIconWrap.querySelector('.premium-phone-3d');
@@ -3109,8 +3127,15 @@
         return /Android/i.test(ua);
       }
       var linkCopiedToastOverlay = document.getElementById('link-copied-toast-overlay');
+      var linkCopiedToastCard = document.getElementById('link-copied-toast-card');
       var btnLinkCopiedClose = document.getElementById('btn-link-copied-close');
-      function showLinkCopiedModal() {
+      var btnLinkCopiedCopy = document.getElementById('btn-link-copied-copy');
+      var btnLinkCopiedCopyText = document.getElementById('btn-link-copied-copy-text');
+      var linkCopiedCopyWrap = document.getElementById('link-copied-copy-wrap');
+      function showLinkCopiedModal(link) {
+        if (linkCopiedToastCard) linkCopiedToastCard.setAttribute('data-copied-link', link || '');
+        if (linkCopiedCopyWrap) linkCopiedCopyWrap.style.display = link ? '' : 'none';
+        if (btnLinkCopiedCopyText) btnLinkCopiedCopyText.textContent = 'Скопировать ссылку';
         if (linkCopiedToastOverlay) {
           linkCopiedToastOverlay.classList.remove('link-copied-toast-hidden');
           linkCopiedToastOverlay.setAttribute('aria-hidden', 'false');
@@ -3123,62 +3148,63 @@
         }
       }
       if (btnLinkCopiedClose) btnLinkCopiedClose.addEventListener('click', closeLinkCopiedModal);
+      if (btnLinkCopiedCopy) btnLinkCopiedCopy.addEventListener('click', function() {
+        var link = linkCopiedToastCard ? linkCopiedToastCard.getAttribute('data-copied-link') : '';
+        if (!link) return;
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+          navigator.clipboard.writeText(link).then(function() {
+            if (btnLinkCopiedCopyText) { btnLinkCopiedCopyText.textContent = 'Скопировано'; setTimeout(function() { if (btnLinkCopiedCopyText) btnLinkCopiedCopyText.textContent = 'Скопировать ссылку'; }, 1500); }
+          }).catch(function() {});
+        }
+      });
       if (linkCopiedToastOverlay) linkCopiedToastOverlay.addEventListener('click', function(e) { if (e.target === linkCopiedToastOverlay) closeLinkCopiedModal(); });
       if (linkCopiedToastOverlay) linkCopiedToastOverlay.classList.add('link-copied-toast-hidden');
       function openHappLink(url) {
         if (!url) return;
         if (navigator.clipboard && navigator.clipboard.writeText) {
           navigator.clipboard.writeText(url).then(function() {
-            showLinkCopiedModal();
+            showLinkCopiedModal(url);
           }).catch(function() {
             if (tg && tg.showAlert) tg.showAlert('Ссылка скопирована. Вставьте в Happ: Подписки → +');
           });
         } else {
-          showLinkCopiedModal();
+          showLinkCopiedModal(url);
         }
         if (isAndroid()) {
           try {
             if (tg && tg.openLink) tg.openLink(HAPP_ANDROID_INTENT);
             else window.location.href = HAPP_ANDROID_INTENT;
           } catch (e) {
-            showLinkCopiedModal();
+            showLinkCopiedModal(url);
           }
         }
       }
-      if (sheetHappLinkCopy && sheetHappLinkValue) {
-        sheetHappLinkCopy.addEventListener('click', function() {
+      if (sheetAddDeviceBtn && sheetHappLinkValue) {
+        sheetAddDeviceBtn.addEventListener('click', function() {
           var link = sheetHappLinkValue.value;
           if (!link) return;
           if (navigator.clipboard && navigator.clipboard.writeText) {
             navigator.clipboard.writeText(link).then(function() {
-              if (tg && tg.showPopup) tg.showPopup({ title: '', message: 'Ссылка скопирована' });
+              if (typeof showLinkCopiedModal === 'function') showLinkCopiedModal(link);
+              else if (tg && tg.showPopup) tg.showPopup({ title: '', message: 'Ссылка скопирована' });
               else if (tg && tg.showAlert) tg.showAlert('Ссылка скопирована');
-              else sheetHappLinkCopy.textContent = 'Скопировано';
             }).catch(function() {
               if (tg && tg.showAlert) tg.showAlert(link);
             });
           } else {
-            if (tg && tg.showAlert) tg.showAlert(link);
+            if (typeof showLinkCopiedModal === 'function') showLinkCopiedModal(link);
+            else if (tg && tg.showAlert) tg.showAlert(link);
           }
         });
       }
-      if (sheetHappLinkReplace && sheetHappLinkValue) {
-        sheetHappLinkReplace.addEventListener('click', function() {
-          var link = sheetHappLinkValue.value;
-          if (!link) return;
-          if (navigator.clipboard && navigator.clipboard.writeText) {
-            navigator.clipboard.writeText(link).then(function() {
-              var msg = 'Ссылка скопирована. Вставьте в Happ (Подписки → +) — настройки обновятся только на этом устройстве, у остальных ничего не изменится.';
-              if (tg && tg.showAlert) tg.showAlert(msg);
-              else alert(msg);
-            }).catch(function() {
-              if (tg && tg.showAlert) tg.showAlert(link);
-            });
-          } else {
-            if (tg && tg.showAlert) tg.showAlert(link);
-          }
+      (function() {
+        var card = document.getElementById('sheet-vpn-trouble-card');
+        var btn = document.getElementById('sheet-vpn-trouble-toggle');
+        if (card && btn) btn.addEventListener('click', function() {
+          var open = card.classList.toggle('open');
+          btn.setAttribute('aria-expanded', open ? 'true' : 'false');
         });
-      }
+      })();
       var setupSheet = document.getElementById('setup-sheet');
       var setupOverlay = document.getElementById('setup-sheet-overlay');
       var setupHappLinkBlock = document.getElementById('setup-happ-link-block');
@@ -3229,13 +3255,6 @@
           }
         });
       }
-      if (sheetAddDevice) {
-        sheetAddDevice.addEventListener('click', function() {
-          closeDevicesSheet();
-          if (tg && tg.showAlert) tg.showAlert('Добавление устройства — в боте. Откройте бота на новом устройстве и нажмите «Мой конфиг».');
-        });
-      }
-
       var supportLink = document.getElementById('link-support');
       if (supportLink) {
         var supportUser = (window.API_CONFIG && window.API_CONFIG.support_username) ? window.API_CONFIG.support_username : 'HelpBit_bot';
@@ -3461,6 +3480,14 @@
       document.getElementById('history-sheet-overlay').addEventListener('click', function() { closeSheet('history-sheet-overlay', 'history-sheet'); });
       var refScreenBtnInvite = document.getElementById('ref-screen-btn-invite');
       if (refScreenBtnInvite) refScreenBtnInvite.addEventListener('click', function() { updateRefSheetLinkText(); if (window.MINIAPP_LOAD_AND_REFRESH_REF) window.MINIAPP_LOAD_AND_REFRESH_REF(updateRefSheetLinkText); saveRefLink(getRefLink()); openSheet('ref-sheet-overlay', 'ref-sheet'); });
+      (function() {
+        var card = document.getElementById('ref-how-card');
+        var btn = document.getElementById('ref-how-toggle');
+        if (card && btn) btn.addEventListener('click', function() {
+          var open = card.classList.toggle('ref-how-open');
+          btn.setAttribute('aria-expanded', open ? 'true' : 'false');
+        });
+      })();
       attachSwipeToClose(document.getElementById('account-sheet'), document.getElementById('account-sheet-overlay'), 'profile-sheet-hidden');
       attachSwipeToClose(document.getElementById('email-sheet'), document.getElementById('email-sheet-overlay'), 'profile-sheet-hidden');
       attachSwipeToClose(document.getElementById('promo-sheet'), document.getElementById('promo-sheet-overlay'), 'profile-sheet-hidden');
