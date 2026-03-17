@@ -110,6 +110,9 @@
       margin-top: 2px;
       text-shadow: 0 0 12px rgba(0, 0, 0, 0.9), 0 1px 3px rgba(0, 0, 0, 0.7);
     }
+    /* Главный экран в стиле макета — без верхнего промо-заголовка */
+    #screen-main ~ .screen .header,
+    .page-content > .header { display: none; }
     .card {
       background: var(--bg-card);
       border: 1px solid var(--border);
@@ -179,10 +182,11 @@
     /* Главная: непрозрачная карточка и кнопки (белый/чёрный/зелёный/серый, без прозрачности) */
     .main-card-glass {
       background: #0f0f0f;
-      border: 1px solid #2a2a2a;
+      border: 1px solid rgba(0,255,136,0.25);
       border-radius: 16px;
       padding: 18px 16px;
       margin-bottom: 12px;
+      box-shadow: 0 0 0 1px rgba(0,0,0,0.35) inset, 0 10px 30px rgba(0,0,0,0.55);
     }
     .main-card-glass .card-head { margin-bottom: 14px; }
     .main-card-glass .card-title { color: #fff; font-size: 1.08rem; }
@@ -215,8 +219,8 @@
       padding: 14px 20px;
       margin-top: 16px;
       margin-bottom: 14px;
-      border-radius: 12px;
-      background: #00cc6a;
+      border-radius: 16px;
+      background: linear-gradient(135deg, #00ff88, #00cc6a);
       color: #000;
       font-weight: 700;
       font-size: 0.95rem;
@@ -240,9 +244,9 @@
       gap: 10px;
       padding: 14px 12px;
       min-height: 52px;
-      border-radius: 12px;
-      background: #1a1a1a;
-      border: 1px solid #333;
+      border-radius: 16px;
+      background: linear-gradient(180deg, rgba(255,255,255,0.06), rgba(255,255,255,0.03));
+      border: 1px solid rgba(255,255,255,0.14);
       color: #fff;
       font-size: 0.88rem;
       font-weight: 600;
@@ -261,7 +265,7 @@
     }
     .main-action-btn .main-action-icon svg { width: 22px; height: 22px; fill: #b0b0b0; }
     .main-action-btn .main-action-label { line-height: 1.2; white-space: nowrap; }
-    .main-install-wrap { margin-top: 10px; display: block !important; }
+    .main-install-wrap { margin-top: 10px; display: none !important; }
     .main-install-btn {
       width: 100%;
       padding: 14px 16px;
@@ -283,6 +287,46 @@
     .main-install-btn .main-install-icon-left svg { width: 20px; height: 20px; color: #1a1a1a; }
     .main-install-btn .main-install-icon-right svg { width: 22px; height: 22px; color: #888; }
     .main-install-btn:active { background: #e8e8e8; }
+
+    /* Главный блок с 3D-устройством */
+    .main-hero {
+      margin-top: 10px;
+      border-radius: 18px;
+      border: 1px solid rgba(0,255,136,0.18);
+      background: radial-gradient(120px 120px at 50% 18%, rgba(0,255,136,0.18), transparent 70%),
+                  radial-gradient(220px 220px at 50% 75%, rgba(0,0,0,0.55), rgba(0,0,0,0.35));
+      overflow: hidden;
+      position: relative;
+      min-height: 360px;
+    }
+    .main-hero::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background-image:
+        radial-gradient(circle at 50% 55%, rgba(0,255,136,0.22) 0 2px, transparent 3px),
+        radial-gradient(circle at 30% 40%, rgba(0,255,136,0.18) 0 2px, transparent 3px),
+        radial-gradient(circle at 70% 42%, rgba(0,255,136,0.18) 0 2px, transparent 3px);
+      background-size: 160px 160px, 220px 220px, 220px 220px;
+      background-position: 50% 55%, 30% 38%, 70% 40%;
+      opacity: 0.65;
+      pointer-events: none;
+    }
+    .main-hero-inner {
+      position: relative;
+      z-index: 1;
+      display: flex;
+      align-items: flex-end;
+      justify-content: center;
+      padding: 10px 10px 14px;
+      min-height: 360px;
+    }
+    .main-hero .premium-phone-3d {
+      width: 320px;
+      height: 280px;
+      transform: translateY(6px);
+      filter: drop-shadow(0 18px 28px rgba(0,0,0,0.65));
+    }
     .speed-compact-row {
       display: flex; justify-content: space-between; align-items: center; gap: 12px;
       margin: 8px 0; padding: 10px 12px;
@@ -907,12 +951,14 @@
           <span class="main-action-label">Помощь</span>
         </button>
       </div>
-      <div class="main-install-wrap">
-        <button type="button" id="btn-install-sub" class="main-install-btn">
-          <span class="main-install-icon main-install-icon-left"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="7" y="2" width="10" height="12" rx="1"/><path d="M10 14v4M14 14v4M9 18h6"/></svg></span>
-          <span class="main-install-label">Установить подписку</span>
-          <span class="main-install-icon main-install-icon-right"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/></svg></span>
-        </button>
+      <div class="main-hero" aria-label="Устройство">
+        <div class="main-hero-inner" id="main-hero-3d">
+          <div class="premium-phone-3d">
+            <div class="phone-3d-canvas-wrap" data-glb="samsung_galaxy_s22_ultra.glb">
+              <canvas></canvas>
+            </div>
+          </div>
+        </div>
       </div>
       <div id="help-inline" class="tariffs-inline" style="display:none;">
         <h3>Помощь</h3>
@@ -1867,6 +1913,7 @@
       }
       if (tg && tg.ready) tg.ready();
       setTimeout(startAppLoad, 350);
+      setTimeout(function() { if (typeof window.ensureMainHero3D === 'function') window.ensureMainHero3D(); }, 650);
 
       var TAB_IDS = ['main', 'subs', 'ref', 'profile'];
       var currentTabIndex = 0;
@@ -1890,6 +1937,14 @@
             loadMeFromApi(function() { if (typeof updateProfileUI === 'function') updateProfileUI(); });
           }
         } else document.body.classList.remove('profile-active');
+
+        // 3D на главном экране: старт/стоп при переключении вкладок
+        if (id === 'main') {
+          if (typeof window.ensureMainHero3D === 'function') window.ensureMainHero3D();
+        } else {
+          if (typeof window.stopPremiumPhone3D === 'function') window.stopPremiumPhone3D();
+          window._mainHero3DInited = false;
+        }
       }
 
       function renderSubsAndPayFromApi() {
@@ -2659,6 +2714,27 @@
       }
       var INSTALL_INTRO_GLB = { ios: 'apple_iphone_15_pro_max_black.glb', windows: 'gaming_laptop.glb', macos: 'macbook_pro_14-inch_m5.glb', android: 'samsung_galaxy_s22_ultra.glb', linux: 'tux.glb', other: 'samsung_galaxy_s22_ultra.glb' };
       window.getInstallIntroGlbFilename = function() { var d = getInstallIntroDev(); return INSTALL_INTRO_GLB[d.platform] || INSTALL_INTRO_GLB.other; };
+
+      // Главный экран: 3D-устройство (тот же рендер, что и в модалке)
+      window.ensureMainHero3D = function() {
+        if (window._mainHero3DInited) return;
+        var host = document.getElementById('main-hero-3d');
+        if (!host) return;
+        var wrap = host.querySelector('.phone-3d-canvas-wrap');
+        if (!wrap) return;
+        var d = detectDevice();
+        var glb = (INSTALL_INTRO_GLB && INSTALL_INTRO_GLB[d.platform]) ? INSTALL_INTRO_GLB[d.platform] : (INSTALL_INTRO_GLB.other || 'samsung_galaxy_s22_ultra.glb');
+        wrap.setAttribute('data-glb', glb);
+        window._mainHero3DInited = true;
+        function tryInit() {
+          if (typeof window.initPremiumPhone3D === 'function') {
+            window.initPremiumPhone3D(host);
+          } else {
+            setTimeout(tryInit, 60);
+          }
+        }
+        tryInit();
+      };
       function openDevicesSheet() {
         if (devicesOverlay) { devicesOverlay.classList.remove('devices-sheet-hidden'); devicesOverlay.classList.add('open'); devicesOverlay.setAttribute('aria-hidden', 'false'); }
         if (devicesSheet) { devicesSheet.style.transform = ''; devicesSheet.style.transition = ''; devicesSheet.classList.remove('devices-sheet-hidden'); devicesSheet.classList.add('open'); }
