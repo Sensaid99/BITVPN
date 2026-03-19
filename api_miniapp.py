@@ -1094,7 +1094,14 @@ async def miniapp_me(request: Request):
                 if subscription_link and "/sub/" in subscription_link and not subscription_link.strip().lower().startswith("happ://"):
                     from bot.utils import happ_client
                     _code = happ_client.parse_install_code_from_happ_link(subscription_link)
-                    redirect_base = _redirect_base_from_request(request)
+                    # Брать основу для редиректа лучше из конфигурации (домен с валидным SSL),
+                    # а не из Host запроса (Host может быть IP).
+                    try:
+                        from bot.config.settings import Config
+                        cfg_base = (getattr(Config, "HAPP_SUBSCRIPTION_REDIRECT_BASE", None) or os.environ.get("HAPP_SUBSCRIPTION_REDIRECT_BASE", "") or "").strip().rstrip("/")
+                    except Exception:
+                        cfg_base = (os.environ.get("HAPP_SUBSCRIPTION_REDIRECT_BASE", "") or "").strip().rstrip("/")
+                    redirect_base = cfg_base or _redirect_base_from_request(request)
                     if _code and redirect_base:
                         normalized = redirect_base.rstrip("/") + "/sub/" + _code + "?installid=" + _code
                         if normalized != subscription_link:
