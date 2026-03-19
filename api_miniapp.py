@@ -366,6 +366,11 @@ def _rewrite_subscription_remark(raw: bytes, display_name: str, description: str
     try:
         decoded = base64.standard_b64decode(raw).decode("utf-8", errors="replace")
     except Exception:
+        # Если upstream не base64-контент — не портим ответ.
+        return raw
+    # Защита: если в decoded нет признаков формата подписки,
+    # значит upstream отдал не то, что мы ожидаем; возвращаем как есть.
+    if not any(x in decoded for x in ["vmess://", "vless://", "trojan://", "ss://"]):
         return raw
     lines = [s.strip() for s in decoded.replace("\r", "\n").split("\n") if s.strip()]
     out = []
@@ -426,10 +431,24 @@ def sub_redirect(install_code: str, request: Request):
             r = requests.get(target, timeout=15, headers={"User-Agent": request.headers.get("User-Agent", "BitVPN-MiniApp/1.0")})
             if r.status_code == 200 and r.content:
                 content = _rewrite_subscription_remark(r.content, display_name, description, provider_id=provider_code or None)
-                headers = {}
+                # Happ на iOS иногда капризничает с обработкой content-type/заголовков, поэтому
+                # явно задаём text/plain + Content-Disposition.
+                out_headers = {}
                 if provider_code:
-                    headers["providerid"] = provider_code
-                return Response(content=content, status_code=200, media_type=r.headers.get("Content-Type", "text/plain"), headers=headers)
+                    out_headers["providerid"] = provider_code
+                out_headers["Content-Disposition"] = f'attachment; filename="{code}.txt"'
+                out_headers["Cache-Control"] = "no-store"
+
+                content_str = content
+                if isinstance(content, (bytes, bytearray)):
+                    content_str = content.decode("utf-8", errors="ignore")
+
+                return Response(
+                    content=content_str,
+                    status_code=200,
+                    media_type="text/plain; charset=utf-8",
+                    headers=out_headers,
+                )
         except Exception as e:
             logger.debug("sub proxy fetch failed, fallback to redirect: %s", e)
         return RedirectResponse(url=target, status_code=302)
@@ -1143,7 +1162,7 @@ async def miniapp_me(request: Request):
                     if happ_client.parse_install_code_from_happ_link(subscription_link):
                         devices_limit = happ_client.devices_from_plan_type(sub.plan_type or "") or 1
                         devices_used = 0
-                        devices_hint = "В Happ добавьте ссылку из приложения (кнопка «Скопировать ссылку»), а не прямую ссылку на сервер. Затем нажмите ↻."
+                        devices_hint = "Нажмите «+ Добавить устройство» — откроется Happ Proxy Client и подписка добавится автоматически. После добавления вернитесь сюда и нажмите ↻."
                 except Exception:
                     pass
             sub_payload = {

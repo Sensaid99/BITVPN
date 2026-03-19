@@ -3188,22 +3188,23 @@
           }
         }
       }
+      function openHappAddSubscription(url) {
+        if (!url) return;
+        var deep = 'happ://add/' + url;
+        setTimeout(function() {
+          if (tg && tg.showAlert) tg.showAlert('Если Happ не открылся автоматически: вставьте ссылку в Happ вручную.');
+        }, 2500);
+        try {
+          window.location.href = deep;
+        } catch (e) {
+          if (tg && tg.showAlert) tg.showAlert('Не удалось открыть Happ автоматически. Вставьте ссылку в Happ вручную.');
+        }
+      }
       if (sheetAddDeviceBtn && sheetHappLinkValue) {
         sheetAddDeviceBtn.addEventListener('click', function() {
           var link = sheetHappLinkValue.value;
           if (!link) return;
-          if (navigator.clipboard && navigator.clipboard.writeText) {
-            navigator.clipboard.writeText(link).then(function() {
-              if (typeof showLinkCopiedModal === 'function') showLinkCopiedModal(link);
-              else if (tg && tg.showPopup) tg.showPopup({ title: '', message: 'Ссылка скопирована' });
-              else if (tg && tg.showAlert) tg.showAlert('Ссылка скопирована');
-            }).catch(function() {
-              if (tg && tg.showAlert) tg.showAlert(link);
-            });
-          } else {
-            if (typeof showLinkCopiedModal === 'function') showLinkCopiedModal(link);
-            else if (tg && tg.showAlert) tg.showAlert(link);
-          }
+          openHappAddSubscription(link);
         });
       }
       (function() {
