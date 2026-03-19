@@ -327,13 +327,37 @@ REDIRECT_TO_APP_HTML = """<!DOCTYPE html>
 (function(){
   var p = new URLSearchParams(location.search).get("url");
   if (!p) { document.getElementById("msg").textContent = "Нет ссылки для открытия."; return; }
-  var target = decodeURIComponent(p);
-  try { window.location.replace(target); } catch (e) {}
+  // URLSearchParams уже возвращает декодированное значение.
+  var target = p;
+  try { target = decodeURIComponent(p); } catch (e) {}
+
+  function go(){
+    try { window.location.replace(target); } catch (e0) {}
+    try { window.location.href = target; } catch (e1) {}
+    try { window.location.assign(target); } catch (e2) {}
+    // Клик по скрытой ссылке иногда проходит лучше для custom scheme.
+    try {
+      var a = document.createElement('a');
+      a.href = target;
+      a.style.display = 'none';
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+    } catch (e3) {}
+    try {
+      var btn = document.getElementById('openBtn');
+      if (btn) { btn.href = target; btn.click(); }
+    } catch (e4) {}
+  }
+
+  // Пытаемся открыть сразу (в идеале всё ещё в контексте клика пользователя).
+  go();
+
   setTimeout(function(){
     document.getElementById("msg").style.display = "none";
     document.getElementById("fallback").style.display = "block";
     document.getElementById("openBtn").href = target;
-  }, 2500);
+  }, 1600);
 })();
 </script></body></html>"""
 
