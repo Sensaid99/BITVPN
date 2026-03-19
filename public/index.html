@@ -3207,17 +3207,28 @@
           );
         } catch (e) {}
 
-        var deepCandidates = [
-          'happ://add/' + subUrl,
-          'happ://add/' + encodeURI(subUrl),
-          'happ://add/' + encodeURIComponent(subUrl),
-          'happ://add?url=' + encodeURIComponent(subUrl)
-        ];
+        var isDirectHappLink = String(subUrl || '').trim().toLowerCase().startsWith('happ://');
+        var deepCandidates = isDirectHappLink
+          ? [subUrl]
+          : [
+              'happ://add/' + subUrl,
+              'happ://add/' + encodeURI(subUrl),
+              'happ://add/' + encodeURIComponent(subUrl),
+              'happ://add?url=' + encodeURIComponent(subUrl)
+            ];
 
         function tryOpen(deep) {
           if (!deep) return false;
-          if (tg && tg.openLink) tg.openLink(deep);
-          else window.location.href = deep;
+          try { window.location.href = deep; } catch (e) {}
+          try {
+            var a = document.createElement('a');
+            a.href = deep;
+            a.style.display = 'none';
+            document.body.appendChild(a);
+            a.click();
+            a.remove();
+          } catch (e2) {}
+          try { if (tg && tg.openLink) tg.openLink(deep); } catch (e3) {}
           return true;
         }
 

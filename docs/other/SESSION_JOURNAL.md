@@ -303,6 +303,41 @@
 - `index.html`
 - `api/root_index.html`
 
+---
+## 2026-03-19 (четверг) — deep-link метод открытия (iOS)
+
+### Причина
+- На iOS/в Telegram WebApp deep-link может не открываться, если полагаться на `tg.openLink` для кастомной схемы.
+
+### Что сделано
+- В `openHappAddSubscription()` (во всех 4 HTML) поменял порядок попыток открытия:
+  - сначала `window.location.href = deep`
+  - затем клик по скрытому `<a href=...>`
+  - `tg.openLink(deep)` оставлен как запасной вариант
+
+### Файлы
+- `public/index.html`
+- `webapp/index.html`
+- `index.html`
+- `api/root_index.html`
+
 ### Что проверить / возможные риски
 - Повторить автодобавление в Happ с iPhone и ноутбука: окно Happ должно появляться, а fallback-алерт “вставьте ссылку вручную” — не должен срабатывать при успешном открытии.
 - После добавления подписки проверить, что счётчик устройств обновился (через `/debug-install-stats` на API).
+
+---
+## 2026-03-19 (четверг) — deep-link формат (happ://crypto)
+
+### Причина
+- В доках Happ зашифрованные подписки начинаются с `happ://crypto...` и их обычно нужно открывать в Happ напрямую, а не заворачивать в `happ://add/<url>`.
+
+### Что сделано
+- В `openHappAddSubscription()` во всех 4 HTML добавлена проверка:
+  - если `subscription_link` уже начинается с `happ://`, то открываем его напрямую (без `happ://add/...`).
+  - иначе используем варианты `happ://add/...` + `happ://add?url=...`.
+
+### Файлы
+- `public/index.html`
+- `webapp/index.html`
+- `index.html`
+- `api/root_index.html`
