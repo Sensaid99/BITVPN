@@ -3191,10 +3191,13 @@
       function openHappAddSubscription(url) {
         if (!url) return;
         var subUrl = String(url);
-        var deep = 'happ://add/' + encodeURIComponent(subUrl);
 
         var opened = false;
-        function markOpened() { opened = true; }
+        var failTimer = null;
+        function markOpened() {
+          opened = true;
+          try { if (failTimer) clearTimeout(failTimer); } catch (e) {}
+        }
         try { window.addEventListener('blur', markOpened, { once: true }); } catch (e) {}
         try {
           document.addEventListener(
@@ -3204,24 +3207,35 @@
           );
         } catch (e) {}
 
-        var failTimer = setTimeout(function() {
+        var deepCandidates = [
+          'happ://add/' + subUrl,
+          'happ://add/' + encodeURI(subUrl),
+          'happ://add/' + encodeURIComponent(subUrl),
+          'happ://add?url=' + encodeURIComponent(subUrl)
+        ];
+
+        function tryOpen(deep) {
+          if (!deep) return false;
+          if (tg && tg.openLink) tg.openLink(deep);
+          else window.location.href = deep;
+          return true;
+        }
+
+        failTimer = setTimeout(function() {
           if (opened) return;
           if (tg && tg.showAlert) tg.showAlert('Если Happ не открылся автоматически: вставьте ссылку в Happ вручную.');
           try {
             if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(subUrl).catch(function(){});
           } catch (e) {}
-        }, 1500);
+        }, 4000);
 
         try {
-          if (tg && tg.openLink) tg.openLink(deep);
-          else window.location.href = deep;
-          clearTimeout(failTimer);
+          tryOpen(deepCandidates[0]);
+          setTimeout(function() { if (!opened) try { tryOpen(deepCandidates[1]); } catch (e) {} }, 400);
         } catch (e) {
-          clearTimeout(failTimer);
-          if (tg && tg.showAlert) tg.showAlert('Не удалось открыть Happ автоматически. Вставьте ссылку в Happ вручную.');
           try {
-            if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(subUrl).catch(function(){});
-          } catch (e2) {}
+            if (!opened) try { tryOpen(deepCandidates[2]); } catch (e2) {}
+          } catch (e3) {}
         }
       }
       if (sheetAddDeviceBtn && sheetHappLinkValue) {
