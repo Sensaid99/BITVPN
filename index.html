@@ -3235,6 +3235,7 @@
         failTimer = setTimeout(function() {
           if (opened) return;
           if (tg && tg.showAlert) tg.showAlert('Если Happ не открылся автоматически: вставьте ссылку в Happ вручную.');
+          try { showLinkCopiedModal(subUrl); } catch (e) {}
           try {
             if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(subUrl).catch(function(){});
           } catch (e) {}

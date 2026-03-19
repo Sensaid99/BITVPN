@@ -341,3 +341,18 @@
 - `webapp/index.html`
 - `index.html`
 - `api/root_index.html`
+
+---
+## 2026-03-19 (четверг) — показать ссылку при fallback
+
+### Причина
+- На экране “Устройства” у пользователя не отображается блок со ссылкой и “Скопировать”.
+
+### Что сделано
+- В `openHappAddSubscription()` при срабатывании fallback теперь вызывается `showLinkCopiedModal(subUrl)`, чтобы появилась модалка с копированием `subscription_link`, даже если в “Устройствах” её не видно.
+
+### Файлы
+- `public/index.html`
+- `webapp/index.html`
+- `index.html`
+- `api/root_index.html`
