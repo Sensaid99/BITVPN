@@ -327,6 +327,9 @@ REDIRECT_TO_APP_HTML = """<!DOCTYPE html>
 (function(){
   var p = new URLSearchParams(location.search).get("url");
   if (!p) { document.getElementById("msg").textContent = "Нет ссылки для открытия."; return; }
+  var r = new URLSearchParams(location.search).get("return_url");
+  var returnUrl = r || '';
+  try { returnUrl = decodeURIComponent(r); } catch (e) {}
   // URLSearchParams уже возвращает декодированное значение.
   var target = p;
   try { target = decodeURIComponent(p); } catch (e) {}
@@ -353,11 +356,26 @@ REDIRECT_TO_APP_HTML = """<!DOCTYPE html>
   // Пытаемся открыть сразу (в идеале всё ещё в контексте клика пользователя).
   go();
 
+  var wentHidden = false;
+  try {
+    document.addEventListener('visibilitychange', function() {
+      if (document.hidden) wentHidden = true;
+    });
+  } catch (e) {}
+
   setTimeout(function(){
+    if (returnUrl) {
+      // Быстрый возврат на страницу мини-аппа, чтобы не показывать "синий экран"
+      // и не ломать пользователю сценарий.
+      if (!wentHidden) {
+        try { window.location.replace(returnUrl); } catch (e2) {}
+      }
+      return;
+    }
     document.getElementById("msg").style.display = "none";
     document.getElementById("fallback").style.display = "block";
     document.getElementById("openBtn").href = target;
-  }, 1600);
+  }, 900);
 })();
 </script></body></html>"""
 

@@ -3069,8 +3069,12 @@
       }
       if (platformBtnAddSub) {
         platformBtnAddSub.addEventListener('click', function() {
+          var subLink = (typeof API_ME !== 'undefined' && API_ME && API_ME.subscription && API_ME.subscription.subscription_link) ? API_ME.subscription.subscription_link : '';
           closePlatformAppSheet();
-          setTimeout(function() { if (typeof openConfirmInstalledSheet === 'function') openConfirmInstalledSheet(); }, 320);
+          setTimeout(function() {
+            if (subLink && typeof openHappAddSubscription === 'function') openHappAddSubscription(String(subLink));
+            else if (typeof openConfirmInstalledSheet === 'function') openConfirmInstalledSheet();
+          }, 320);
         });
       }
       var confirmInstalledSheet = document.getElementById('confirm-installed-sheet');
@@ -3094,20 +3098,8 @@
           var subLink = (typeof API_ME !== 'undefined' && API_ME && API_ME.subscription && API_ME.subscription.subscription_link) ? API_ME.subscription.subscription_link : '';
           closeConfirmInstalledSheet();
           if (subLink) {
-            if (typeof openHappLink === 'function') {
-              openHappLink(subLink);
-            } else {
-              if (navigator.clipboard && navigator.clipboard.writeText) {
-                navigator.clipboard.writeText(subLink).then(function() {
-                  if (tg && tg.showPopup) tg.showPopup({ title: '', message: 'Ссылка скопирована. Откройте Happ → Подписки → + → Вставьте.' });
-                  else if (tg && tg.showAlert) tg.showAlert('Ссылка скопирована. Откройте Happ и вставьте в Подписки → +');
-                }).catch(function() {});
-              }
-              if (tg && tg.openLink) {
-                var ua = typeof navigator !== 'undefined' ? (navigator.userAgent || '') : '';
-                if (/Android/i.test(ua)) tg.openLink('intent://#Intent;package=com.happproxy;action=android.intent.action.MAIN;category=android.intent.category.LAUNCHER;end');
-              }
-            }
+            if (typeof openHappAddSubscription === 'function') openHappAddSubscription(String(subLink));
+            else if (typeof openHappLink === 'function') openHappLink(subLink);
           } else {
             setTimeout(function() { if (typeof openSetupSheet === 'function') openSetupSheet(); }, 320);
           }
@@ -3198,6 +3190,11 @@
         var isDirectHappLink = String(subUrl).toLowerCase().startsWith('happ://');
         var deep = isDirectHappLink ? subUrl : ('happ://add/' + subUrl);
 
+        // Если Happ не открылся (страница не ушла в background) — покажем инструкцию и ссылку.
+        var wentHidden = false;
+        var visHandler = function() { try { if (document.hidden) wentHidden = true; } catch (e) {} };
+        try { document.addEventListener('visibilitychange', visHandler); } catch (e0) {}
+
         // Копируем как ручной fallback
         try {
           if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(subUrl).catch(function(){});
@@ -3207,12 +3204,21 @@
         // чтобы custom scheme срабатывал из "браузера", а не из WebView.
         var base = (window.MINIAPP_API_BASE || (typeof apiBase !== 'undefined' ? apiBase : '') || '').replace(/\/+$/, '');
         if (base) {
-          var redirectUrl = base + '/api/miniapp/redirect-to-app?url=' + encodeURIComponent(deep);
+          var redirectUrl = base + '/api/miniapp/redirect-to-app?url=' + encodeURIComponent(deep) + '&return_url=' + encodeURIComponent(window.location.href);
           var w = null;
           try { w = window.open(redirectUrl, '_blank'); } catch (e1) {}
           if (!w) {
             try { window.location.href = redirectUrl; } catch (e2) {}
           }
+
+          // Если за ~1с не переключились в Happ — показываем инструкцию без “синего экрана”.
+          try {
+            setTimeout(function() {
+              try { document.removeEventListener('visibilitychange', visHandler); } catch (e3) {}
+              if (!wentHidden && typeof showLinkCopiedModal === 'function') showLinkCopiedModal(subUrl);
+            }, 950);
+          } catch (e4) {}
+
           return;
         }
 
