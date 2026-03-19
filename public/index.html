@@ -3190,21 +3190,39 @@
       }
       function openHappAddSubscription(url) {
         if (!url) return;
-        var deepUrl = String(url);
-        var deep = 'happ://add/' + encodeURIComponent(deepUrl);
-        setTimeout(function() {
-          if (tg && tg.showAlert) tg.showAlert('Если Happ не открылся автоматически: вставьте ссылку в Happ вручную.');
-        }, 2500);
+        var subUrl = String(url);
+        var deep = 'happ://add/' + encodeURIComponent(subUrl);
+
+        var opened = false;
+        function markOpened() { opened = true; }
+        try { window.addEventListener('blur', markOpened, { once: true }); } catch (e) {}
         try {
-          if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(deepUrl).catch(function(){});
+          document.addEventListener(
+            'visibilitychange',
+            function() { if (document.visibilityState === 'hidden') markOpened(); },
+            { once: true }
+          );
         } catch (e) {}
+
+        var failTimer = setTimeout(function() {
+          if (opened) return;
+          if (tg && tg.showAlert) tg.showAlert('Если Happ не открылся автоматически: вставьте ссылку в Happ вручную.');
+          try {
+            if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(subUrl).catch(function(){});
+          } catch (e) {}
+        }, 1500);
+
         try {
-          window.location.href = deep;
-          return;
+          if (tg && tg.openLink) tg.openLink(deep);
+          else window.location.href = deep;
+          clearTimeout(failTimer);
         } catch (e) {
+          clearTimeout(failTimer);
           if (tg && tg.showAlert) tg.showAlert('Не удалось открыть Happ автоматически. Вставьте ссылку в Happ вручную.');
+          try {
+            if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(subUrl).catch(function(){});
+          } catch (e2) {}
         }
-        try { window.open(deep, '_blank'); } catch (e) {}
       }
       if (sheetAddDeviceBtn && sheetHappLinkValue) {
         sheetAddDeviceBtn.addEventListener('click', function() {
