@@ -1078,13 +1078,26 @@ async def miniapp_me(request: Request):
                     _code = happ_client.parse_install_code_from_happ_link(subscription_link)
                     redirect_base = _redirect_base_from_request(request)
                     if _code and redirect_base:
-                        new_link = redirect_base.rstrip("/") + "/sub/" + _code
+                        new_link = redirect_base.rstrip("/") + "/sub/" + _code + "?installid=" + _code
                         subscription_link = new_link
                         sub.vpn_config = new_link
                         session.commit()
                         logger.info("miniapp_me: Rewrote subscription link to redirect format for user %s -> %s/sub/***", user.telegram_id, redirect_base[:40])
                 except Exception as e:
                     logger.warning("miniapp_me: rewrite to redirect link failed: %s", e)
+            # Если в БД уже хранится /sub/<code>, но без ?installid=<code> — доклеиваем installid (для учёта devices).
+            if subscription_link and "/sub/" in subscription_link and "installid=" not in subscription_link:
+                try:
+                    from bot.utils import happ_client
+                    _code = happ_client.parse_install_code_from_happ_link(subscription_link)
+                    if _code:
+                        sep = "&" if "?" in subscription_link else "?"
+                        subscription_link = subscription_link + sep + "installid=" + _code
+                        sub.vpn_config = subscription_link
+                        session.commit()
+                        logger.info("miniapp_me: Added missing installid to redirect link for user %s", user.telegram_id)
+                except Exception as e:
+                    logger.warning("miniapp_me: failed to append installid to /sub link for user %s: %s", user.telegram_id, e)
             # Гарантированно отдать в ответе ссылку в формате редиректа (если ещё осталась старая — подменяем только в ответе)
             if subscription_link and "installid=" in subscription_link and "/sub/" not in subscription_link:
                 try:
@@ -1092,7 +1105,7 @@ async def miniapp_me(request: Request):
                     _code = happ_client.parse_install_code_from_happ_link(subscription_link)
                     redirect_base = _redirect_base_from_request(request)
                     if _code and redirect_base:
-                        subscription_link = redirect_base.rstrip("/") + "/sub/" + _code
+                        subscription_link = redirect_base.rstrip("/") + "/sub/" + _code + "?installid=" + _code
                         logger.info("miniapp_me: Response link forced to redirect format for user %s", user.telegram_id)
                 except Exception:
                     pass
@@ -1121,7 +1134,7 @@ async def miniapp_me(request: Request):
                         )
                         if happ_link:
                             redirect_base = _redirect_base_from_request(request)
-                            subscription_link = (redirect_base.rstrip("/") + "/sub/" + install_code) if (redirect_base and install_code) else happ_link
+                            subscription_link = (redirect_base.rstrip("/") + "/sub/" + install_code + "?installid=" + install_code) if (redirect_base and install_code) else happ_link
                             sub.vpn_config = happ_link
                             session.commit()
                             logger.info("miniapp_me: Happ link generated and saved for user %s", user.telegram_id)
@@ -1448,7 +1461,7 @@ def _complete_payment_and_send_link(payment_db_id: int) -> bool:
             )
             if _happ_link:
                 redirect_base = getattr(Config, "HAPP_SUBSCRIPTION_REDIRECT_BASE", None) or os.environ.get("HAPP_SUBSCRIPTION_REDIRECT_BASE", "").strip()
-                happ_link = (redirect_base.rstrip("/") + "/sub/" + install_code) if (redirect_base and install_code) else _happ_link
+                happ_link = (redirect_base.rstrip("/") + "/sub/" + install_code + "?installid=" + install_code) if (redirect_base and install_code) else _happ_link
             if not happ_link:
                 use_happ = False
         server_location = get_random_server_location()
