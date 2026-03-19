@@ -3190,15 +3190,21 @@
       }
       function openHappAddSubscription(url) {
         if (!url) return;
-        var deep = 'happ://add/' + url;
+        var deepUrl = String(url);
+        var deep = 'happ://add/' + encodeURIComponent(deepUrl);
         setTimeout(function() {
           if (tg && tg.showAlert) tg.showAlert('Если Happ не открылся автоматически: вставьте ссылку в Happ вручную.');
         }, 2500);
         try {
+          if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(deepUrl).catch(function(){});
+        } catch (e) {}
+        try {
           window.location.href = deep;
+          return;
         } catch (e) {
           if (tg && tg.showAlert) tg.showAlert('Не удалось открыть Happ автоматически. Вставьте ссылку в Happ вручную.');
         }
+        try { window.open(deep, '_blank'); } catch (e) {}
       }
       if (sheetAddDeviceBtn && sheetHappLinkValue) {
         sheetAddDeviceBtn.addEventListener('click', function() {
