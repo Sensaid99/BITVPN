@@ -659,6 +659,10 @@
     .install-intro-sheet .install-intro-icon-wrap { width: 100%; height: 248px; margin: -6px auto 18px; border-radius: 24px; background: transparent; display: flex; align-items: center; justify-content: center; overflow: visible; }
     .install-intro-sheet .install-intro-icon-wrap > svg { width: 54px; height: 54px; fill: var(--accent); stroke: var(--accent); opacity: 0.9; }
     .premium-phone-3d { position: relative; width: 290px; height: 232px; perspective: 1200px; }
+    @media (min-width: 900px) {
+      .install-intro-sheet .install-intro-icon-wrap { height: 180px; margin: -6px auto 14px; }
+      .premium-phone-3d { width: 240px; height: 190px; }
+    }
     .premium-phone-3d::before {
       content: "";
       position: absolute;
@@ -1232,7 +1236,7 @@
   <div id="install-intro-sheet-overlay" class="bottom-sheet-overlay install-intro-sheet-hidden" aria-hidden="true"></div>
   <div id="install-intro-sheet" class="bottom-sheet install-intro-sheet install-intro-sheet-hidden" role="dialog" aria-label="Подключение подписки" style="max-height:70vh;">
     <div class="bottom-sheet-handle"></div>
-    <div class="sheet-content">
+    <div class="sheet-content sheet-content-scrollable">
       <h2 id="install-intro-title" class="install-intro-title">Подключение на устройстве</h2>
       <p id="install-intro-desc" class="install-intro-desc">Подключение займёт 3 шага и пару минут.</p>
       <div id="install-intro-icon-wrap" class="install-intro-icon-wrap" aria-hidden="true">
@@ -3546,22 +3550,35 @@
   <script type="module">
     (function() {
       var scene, camera, renderer, phoneGroup, frameId;
+      var __threeLibPromise = null;
       function getGlbUrl(filename) {
         var base = (typeof window !== 'undefined' && window.location) ? window.location.href.split('#')[0].split('?')[0] : '';
         var path = base.lastIndexOf('/') >= 0 ? base.slice(0, base.lastIndexOf('/') + 1) : '';
         var file = filename || (typeof window.getInstallIntroGlbFilename === 'function' ? window.getInstallIntroGlbFilename() : 'apple_iphone_15_pro_max_black.glb');
         return (path && path !== 'https://' && path !== 'http://') ? (path + file) : ((window.location && window.location.origin) ? window.location.origin + '/' + file : '');
       }
-      window.addEventListener('load', function() {
+      function loadThreeOnce() {
+        if (__threeLibPromise) return __threeLibPromise;
+        __threeLibPromise = Promise.all([
+          import('https://unpkg.com/three@0.160.0/build/three.module.js'),
+          import('https://unpkg.com/three@0.160.0/examples/jsm/loaders/GLTFLoader.js')
+        ]).then(function(imports) { return { THREE: imports[0], GLTFLoader: imports[1].GLTFLoader }; })
+          .catch(function() {
+            return Promise.all([
+              import('https://esm.sh/three@0.160.0'),
+              import('https://esm.sh/three@0.160.0/examples/jsm/loaders/GLTFLoader.js')
+            ]).then(function(imports) { return { THREE: imports[0], GLTFLoader: imports[1].GLTFLoader }; });
+          });
+        return __threeLibPromise;
+      }
+      document.addEventListener('DOMContentLoaded', function() {
         setTimeout(function() {
           var glbUrl = getGlbUrl();
           if (!glbUrl) return;
-          Promise.all([
-            import('https://unpkg.com/three@0.160.0/build/three.module.js'),
-            import('https://unpkg.com/three@0.160.0/examples/jsm/loaders/GLTFLoader.js'),
-            fetch(glbUrl, { mode: 'cors' }).catch(function() {})
-          ]).catch(function() {});
-        }, 300);
+          loadThreeOnce().then(function() {
+            fetch(glbUrl, { mode: 'cors' }).catch(function() {});
+          }).catch(function() {});
+        }, 150);
       });
       window.initPremiumPhone3D = function(container) {
         var wrap = container && container.querySelector('.phone-3d-canvas-wrap');
@@ -3574,18 +3591,7 @@
         var path = base.lastIndexOf('/') >= 0 ? base.slice(0, base.lastIndexOf('/') + 1) : '';
         var glbFile = (container && container.getAttribute('data-glb')) || 'apple_iphone_15_pro_max_black.glb';
         var glbUrl = (path && path !== 'https://' && path !== 'http://') ? (path + glbFile) : ((window.location && window.location.origin) ? window.location.origin + '/' + glbFile : '');
-        function loadThree() {
-          return Promise.all([
-            import('https://unpkg.com/three@0.160.0/build/three.module.js'),
-            import('https://unpkg.com/three@0.160.0/examples/jsm/loaders/GLTFLoader.js')
-          ]).then(function(imports) { return { THREE: imports[0], GLTFLoader: imports[1].GLTFLoader }; });
-        }
-        loadThree().catch(function() {
-          return Promise.all([
-            import('https://esm.sh/three@0.160.0'),
-            import('https://esm.sh/three@0.160.0/examples/jsm/loaders/GLTFLoader.js')
-          ]).then(function(imports) { return { THREE: imports[0], GLTFLoader: imports[1].GLTFLoader }; });
-        }).then(function(lib) {
+        loadThreeOnce().then(function(lib) {
           var THREE = lib.THREE;
           var GLTFLoader = lib.GLTFLoader;
           scene = new THREE.Scene();
@@ -3593,9 +3599,9 @@
           camera = new THREE.PerspectiveCamera(52, w / h, 0.1, 100);
           camera.position.set(0, 0, 8.1);
           camera.lookAt(0, 0, 0);
-          renderer = new THREE.WebGLRenderer({ canvas: canvas, alpha: true, antialias: true });
+          renderer = new THREE.WebGLRenderer({ canvas: canvas, alpha: true, antialias: false });
           renderer.setSize(w, h);
-          renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+          renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.25));
           renderer.setClearColor(0x000000, 0);
           var amb = new THREE.AmbientLight(0x888888, 0.9);
           scene.add(amb);
