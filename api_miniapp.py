@@ -1085,6 +1085,25 @@ async def miniapp_me(request: Request):
                         logger.info("miniapp_me: Rewrote subscription link to redirect format for user %s -> %s/sub/***", user.telegram_id, redirect_base[:40])
                 except Exception as e:
                     logger.warning("miniapp_me: rewrite to redirect link failed: %s", e)
+
+            # Нормализация /sub/<code> ссылки под текущий домен API (важно для iOS):
+            # на iOS/мобилке сертификаты для IP часто считаются недействительными,
+            # из-за чего Happ добавляет подписку, но не может загрузить содержимое.
+            # Поэтому всегда приводим /sub/... к redirect_base (hostname с валидным SSL).
+            try:
+                if subscription_link and "/sub/" in subscription_link and not subscription_link.strip().lower().startswith("happ://"):
+                    from bot.utils import happ_client
+                    _code = happ_client.parse_install_code_from_happ_link(subscription_link)
+                    redirect_base = _redirect_base_from_request(request)
+                    if _code and redirect_base:
+                        normalized = redirect_base.rstrip("/") + "/sub/" + _code + "?installid=" + _code
+                        if normalized != subscription_link:
+                            subscription_link = normalized
+                            sub.vpn_config = normalized
+                            session.commit()
+                            logger.info("miniapp_me: Normalized /sub link host for user %s -> %s/sub/***", user.telegram_id, redirect_base[:40])
+            except Exception as e:
+                logger.warning("miniapp_me: normalize /sub link failed for user %s: %s", user.telegram_id, e)
             # Если в БД уже хранится /sub/<code>, но без ?installid=<code> — доклеиваем installid (для учёта devices).
             if subscription_link and "/sub/" in subscription_link and "installid=" not in subscription_link:
                 try:
