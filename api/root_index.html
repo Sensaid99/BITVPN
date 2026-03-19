@@ -3192,12 +3192,6 @@
         if (!url) return;
         var subUrl = String(url);
 
-        // Кладем ссылку в буфер: если Happ умеет импортировать из clipboard, будет шанс
-        // добавить подписку автоматически даже при неверном deep-link формате.
-        try {
-          if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(subUrl).catch(function(){});
-        } catch (e) {}
-
         var opened = false;
         var failTimer = null;
         function markOpened() {
@@ -3217,13 +3211,9 @@
         var deepCandidates = isDirectHappLink
           ? [subUrl]
           : [
-              'happ://add',
-              'happ://open',
-              'happ://',
+              // Конкуренты перекидывают в Happ через формат "happ://add/<subscription_url>"
               'happ://add/' + subUrl,
-              'happ://add/' + encodeURI(subUrl),
-              'happ://add/' + encodeURIComponent(subUrl),
-              'happ://add?url=' + encodeURIComponent(subUrl)
+              'happ://add/' + encodeURIComponent(subUrl)
             ];
 
         function tryOpen(deep) {
@@ -3251,18 +3241,18 @@
 
         try {
           tryOpen(deepCandidates[0]);
-          setTimeout(function() { if (!opened) try { tryOpen(deepCandidates[1]); } catch (e) {} }, 400);
-        } catch (e) {
-          try {
-            if (!opened) try { tryOpen(deepCandidates[2]); } catch (e2) {}
-          } catch (e3) {}
+          if (!opened) try { tryOpen(deepCandidates[1]); } catch (e) {}
+        } catch (eOuter) {
         }
       }
-      if (sheetAddDeviceBtn && sheetHappLinkValue) {
+      if (sheetAddDeviceBtn) {
         sheetAddDeviceBtn.addEventListener('click', function() {
-          var link = sheetHappLinkValue.value;
+          var link = (sheetHappLinkValue && sheetHappLinkValue.value) ? sheetHappLinkValue.value : '';
+          if (!link && typeof API_ME !== 'undefined' && API_ME && API_ME.subscription && API_ME.subscription.subscription_link) {
+            link = API_ME.subscription.subscription_link;
+          }
           if (!link) return;
-          openHappAddSubscription(link);
+          openHappAddSubscription(String(link));
         });
       }
       (function() {

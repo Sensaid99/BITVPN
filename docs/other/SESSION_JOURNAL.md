@@ -360,6 +360,26 @@
 - `api/root_index.html`
 
 ---
+## 2026-03-19 (четверг) — deep-link только "happ://add/<url>"
+
+### Причина
+- На iOS/Telegram WebApp deep-link не запускается: не появляется системное окно “Открыть Happ Proxy Client?”.
+- Дополнительные кандидаты deep-link и предварительные действия (clipboard) могли ломать user-gesture.
+
+### Что сделано
+- Во всех 4 HTML:
+  - `openHappAddSubscription()` теперь использует только формат `happ://add/<subscription_url>` (и запасной вариант с `encodeURIComponent`).
+  - попытка второго deep-link делается сразу (без `setTimeout`).
+  - предварительная запись `subscription_link` в clipboard убрана.
+  - обработчик кнопки `+ Добавить устройство` берёт `subscription_link` не только из `sheet-happ-link-value`, но и из `API_ME.subscription.subscription_link` при пустом значении.
+
+### Файлы
+- `public/index.html`
+- `webapp/index.html`
+- `index.html`
+- `api/root_index.html`
+
+---
 ## 2026-03-19 (четверг) — показать ссылку при fallback
 
 ### Причина
