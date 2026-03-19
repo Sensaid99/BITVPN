@@ -836,6 +836,64 @@ def debug_install_stats(install_code: str = ""):
         return {"ok": False, "message": str(e), "install_code_sent": code[:6] + "***"}
 
 
+@app.get("/api/miniapp/debug-sub-content")
+def debug_sub_content(install_code: str = ""):
+    """
+    Отладка: проксирует ли наш API подписку по /sub/{CODE} и добавляет ли ProviderID
+    в контент (строка вида #providerid <HAPP_PROVIDER_CODE>).
+
+    Вызов:
+      https://ВАШ_ДОМЕН_API/api/miniapp/debug-sub-content?install_code=XXXXXXXXXXXX
+    """
+    code = (install_code or "").strip()
+    if len(code) != 12 or not code.isalnum():
+        return {
+            "ok": False,
+            "message": "Укажите install_code в query: ?install_code=XXXXXXXXXXXX (12 символов после /sub/).",
+            "install_code_sent": code[:6] + "***",
+        }
+    try:
+        from bot.config.settings import Config
+        provider_code = (getattr(Config, "HAPP_PROVIDER_CODE", None) or os.environ.get("HAPP_PROVIDER_CODE", "") or "").strip()
+        base_url = (getattr(Config, "HAPP_SUBSCRIPTION_URL", None) or os.environ.get("HAPP_SUBSCRIPTION_URL", "") or "").strip().rstrip("/")
+        display_name = (getattr(Config, "SUBSCRIPTION_DISPLAY_NAME", None) or os.environ.get("SUBSCRIPTION_DISPLAY_NAME", "") or "BIT VPN").strip()
+        description = (getattr(Config, "SUBSCRIPTION_DESCRIPTION", None) or os.environ.get("SUBSCRIPTION_DESCRIPTION", "") or "").strip() or None
+
+        if not base_url:
+            return {"ok": False, "message": "HAPP_SUBSCRIPTION_URL missing on API server."}
+        if not provider_code:
+            return {"ok": False, "message": "HAPP_PROVIDER_CODE missing on API server."}
+
+        target = f"{base_url}?installid={code}" if "?" not in base_url else f"{base_url}&installid={code}"
+        r = requests.get(target, timeout=15, headers={"User-Agent": "BitVPN-MiniApp/1.0"})
+        status = r.status_code
+        proxied_ok = (status == 200 and bool(r.content))
+        providerid_injected = False
+        snippet = ""
+
+        if proxied_ok:
+            rewritten_b64 = _rewrite_subscription_remark(r.content, display_name, description, provider_id=provider_code)
+            try:
+                decoded = base64.standard_b64decode(rewritten_b64).decode("utf-8", errors="replace")
+                providerid_injected = ("#providerid " + provider_code) in decoded
+                snippet = "\n".join(decoded.split("\n")[:6])
+            except Exception:
+                providerid_injected = False
+        return {
+            "ok": True,
+            "install_code_sent": code[:6] + "***",
+            "sub_target": target.split("?")[0],
+            "upstream_status": status,
+            "proxied_ok": proxied_ok,
+            "provider_code_sent": provider_code[:6] + "***" if provider_code else None,
+            "providerid_injected": providerid_injected,
+            "decoded_snippet": snippet,
+        }
+    except Exception as e:
+        logger.warning("debug_sub_content: %s", e)
+        return {"ok": False, "message": str(e), "install_code_sent": code[:6] + "***"}
+
+
 @app.post("/api/miniapp/me")
 async def miniapp_me(request: Request):
     """
