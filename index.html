@@ -3192,6 +3192,12 @@
         if (!url) return;
         var subUrl = String(url);
 
+        // Кладем ссылку в буфер: если Happ умеет импортировать из clipboard, будет шанс
+        // добавить подписку автоматически даже при неверном deep-link формате.
+        try {
+          if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(subUrl).catch(function(){});
+        } catch (e) {}
+
         var opened = false;
         var failTimer = null;
         function markOpened() {
@@ -3211,6 +3217,9 @@
         var deepCandidates = isDirectHappLink
           ? [subUrl]
           : [
+              'happ://add',
+              'happ://open',
+              'happ://',
               'happ://add/' + subUrl,
               'happ://add/' + encodeURI(subUrl),
               'happ://add/' + encodeURIComponent(subUrl),
@@ -3234,7 +3243,6 @@
 
         failTimer = setTimeout(function() {
           if (opened) return;
-          if (tg && tg.showAlert) tg.showAlert('Если Happ не открылся автоматически: вставьте ссылку в Happ вручную.');
           try { showLinkCopiedModal(subUrl); } catch (e) {}
           try {
             if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(subUrl).catch(function(){});

@@ -343,6 +343,23 @@
 - `api/root_index.html`
 
 ---
+## 2026-03-19 (четверг) — deep-link fallback без alert + clipboard
+
+### Причина
+- На iOS Telegram WebApp deep-link может не открываться, но пользователю мешает показ alert; также блок со ссылкой в “Устройствах” может не отображаться.
+
+### Что сделано
+- Во всех 4 HTML в `openHappAddSubscription()` перед попыткой deep-link выполняем `navigator.clipboard.writeText(subUrl)`.
+- Убрали `tg.showAlert(...)` в fallback: теперь при неудаче показывается только модалка `showLinkCopiedModal(subUrl)`.
+- Добавили дополнительные кандидаты deep-link без параметров: `happ://add`, `happ://open`, `happ://` (на случай импорта из clipboard).
+
+### Файлы
+- `public/index.html`
+- `webapp/index.html`
+- `index.html`
+- `api/root_index.html`
+
+---
 ## 2026-03-19 (четверг) — показать ссылку при fallback
 
 ### Причина
