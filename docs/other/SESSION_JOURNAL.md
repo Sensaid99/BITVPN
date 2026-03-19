@@ -380,6 +380,23 @@
 - `api/root_index.html`
 
 ---
+## 2026-03-19 (четверг) — редирект через браузер
+
+### Причина
+- iOS/Telegram WebApp не запускает `happ://...` напрямую (не появляется системное окно “Открыть Happ Proxy Client?”).
+
+### Что сделано
+- В `openHappAddSubscription()` (во всех 4 HTML копиях) теперь открывается HTTPS-страница
+  `.../api/miniapp/redirect-to-app?url=<happ-deeplink>`.
+- Эта страница в `api_miniapp.py` выполняет `window.location.replace(target)` на `happ://...`, т.е. deep-link триггерится из браузера.
+
+### Файлы
+- `public/index.html`
+- `webapp/index.html`
+- `index.html`
+- `api/root_index.html`
+
+---
 ## 2026-03-19 (четверг) — показать ссылку при fallback
 
 ### Причина

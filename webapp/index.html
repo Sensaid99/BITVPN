@@ -3190,60 +3190,42 @@
       }
       function openHappAddSubscription(url) {
         if (!url) return;
-        var subUrl = String(url);
+        var subUrl = String(url).trim();
+        if (!subUrl) return;
 
-        var opened = false;
-        var failTimer = null;
-        function markOpened() {
-          opened = true;
-          try { if (failTimer) clearTimeout(failTimer); } catch (e) {}
-        }
-        try { window.addEventListener('blur', markOpened, { once: true }); } catch (e) {}
+        // deep-link для Happ добавления подписки:
+        // конкуренты перекидывают в Happ через format "happ://add/<subscription_url>"
+        var isDirectHappLink = String(subUrl).toLowerCase().startsWith('happ://');
+        var deep = isDirectHappLink ? subUrl : ('happ://add/' + subUrl);
+
+        // Копируем как ручной fallback
         try {
-          document.addEventListener(
-            'visibilitychange',
-            function() { if (document.visibilityState === 'hidden') markOpened(); },
-            { once: true }
-          );
-        } catch (e) {}
+          if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(subUrl).catch(function(){});
+        } catch (e0) {}
 
-        var isDirectHappLink = String(subUrl || '').trim().toLowerCase().startsWith('happ://');
-        var deepCandidates = isDirectHappLink
-          ? [subUrl]
-          : [
-              // Конкуренты перекидывают в Happ через формат "happ://add/<subscription_url>"
-              'happ://add/' + subUrl,
-              'happ://add/' + encodeURIComponent(subUrl)
-            ];
-
-        function tryOpen(deep) {
-          if (!deep) return false;
-          try { window.location.href = deep; } catch (e) {}
-          try {
-            var a = document.createElement('a');
-            a.href = deep;
-            a.style.display = 'none';
-            document.body.appendChild(a);
-            a.click();
-            a.remove();
-          } catch (e2) {}
-          try { if (tg && tg.openLink) tg.openLink(deep); } catch (e3) {}
-          return true;
+        // Ключевая идея: сначала открываем HTTPS-страницу перенаправления,
+        // чтобы custom scheme срабатывал из "браузера", а не из WebView.
+        var base = (window.MINIAPP_API_BASE || (typeof apiBase !== 'undefined' ? apiBase : '') || '').replace(/\/+$/, '');
+        if (base) {
+          var redirectUrl = base + '/api/miniapp/redirect-to-app?url=' + encodeURIComponent(deep);
+          var w = null;
+          try { w = window.open(redirectUrl, '_blank'); } catch (e1) {}
+          if (!w) {
+            try { window.location.href = redirectUrl; } catch (e2) {}
+          }
+          return;
         }
 
-        failTimer = setTimeout(function() {
-          if (opened) return;
-          try { showLinkCopiedModal(subUrl); } catch (e) {}
-          try {
-            if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(subUrl).catch(function(){});
-          } catch (e) {}
-        }, 4000);
-
+        // fallback: если нет base URL — пробуем напрямую
+        try { window.location.href = deep; } catch (e3) {}
         try {
-          tryOpen(deepCandidates[0]);
-          if (!opened) try { tryOpen(deepCandidates[1]); } catch (e) {}
-        } catch (eOuter) {
-        }
+          var a = document.createElement('a');
+          a.href = deep;
+          a.style.display = 'none';
+          document.body.appendChild(a);
+          a.click();
+          a.remove();
+        } catch (e4) {}
       }
       if (sheetAddDeviceBtn) {
         sheetAddDeviceBtn.addEventListener('click', function() {
