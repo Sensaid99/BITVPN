@@ -28,7 +28,7 @@
 - Обновлены: `.env`, `bot/config/settings.py`, `.env.example`, `docs/СЧЁТЧИК_УСТРОЙСТВ_ПОШАГОВО.md`, `scripts/test_happ_list_install.py`.
 
 ### 5. Регистрация домена в Happ
-- Запустили `python scripts/happ_add_redirect_domain.py` — **успешно**: домен `155.212.164.135` уже зарегистрирован (rc=2 Domain hash exists).
+- Запустили `python scripts/happ_add_redirect_domain.py` — **успешно**: домен `213.165.38.222` уже зарегистрирован (rc=2 Domain hash exists).
 
 ### 6. Проверка ответа Happ list-install
 - С `HAPP_API_URL=https://happ-proxy.com` и ключами из `.env` запрос к `list-install` возвращает:
@@ -44,7 +44,7 @@
   Пользователь сообщает: «счетчик так и не отображается».
 
 - **Не проверяли на сервере:**
-  - Какой именно `HAPP_API_URL` в `.env` на сервере (где крутится API: nikolay.lisobyk.fvds.ru / 155.212.164.135)?
+  - Какой именно `HAPP_API_URL` в `.env` на сервере (где крутится API: bitecosystem.ru / 213.165.38.222)?
   - Перезапускался ли API после смены URL?
   - Что возвращает `/api/miniapp/me` при открытии «Устройства» — приходят ли в ответе `devices_used` и `devices_limit`?
 
@@ -60,7 +60,7 @@
 | Компонент | Статус |
 |-----------|--------|
 | Локальный `.env` | `HAPP_API_URL=https://happ-proxy.com` |
-| Домен в Happ (add-domain) | Зарегистрирован (155.212.164.135) |
+| Домен в Happ (add-domain) | Зарегистрирован (213.165.38.222) |
 | Запрос list-install с ПК | 200, rc=1, 8 записей, есть install_count/install_limit |
 | Счётчик в мини-приложении | **Не отображается** |
 
@@ -79,7 +79,7 @@
 3. **Debug-эндпоинт**
    - Взять 12 символов кода из ссылки подписки (после `/sub/`).
    - Открыть в браузере:  
-     `https://nikolay.lisobyk.fvds.ru/api/miniapp/debug-install-stats?install_code=XXXXXXXXXXXX`  
+     `https://bitecosystem.ru/api/miniapp/debug-install-stats?install_code=XXXXXXXXXXXX`  
      (или IP сервера вместо домена).
    - Посмотреть: `found`, `install_count`, `install_limit`, есть ли ошибка про HAPP_*.
 
@@ -87,7 +87,7 @@
    - В разделе «Устройства» при нажатии «↻» вызывается `loadMeFromApi` и затем `fillDevicesFromApi`. В `fillDevicesFromApi` используются `API_ME.subscription.devices_used` и `API_ME.subscription.devices_limit`. Если API не отдаёт их — счётчик останется 0 или пустым.
 
 5. **Ссылка подписки**
-   - В БД у пользователя ссылка должна быть вида `https://155.212.164.135/sub/XXXXXXXXXXXX` (12 символов). Если хранится старый формат (без /sub/ или без кода) — `parse_install_code_from_happ_link` вернёт null и get_install_stats не вызовется.
+   - В БД у пользователя ссылка должна быть вида `https://213.165.38.222/sub/XXXXXXXXXXXX` (12 символов). Если хранится старый формат (без /sub/ или без кода) — `parse_install_code_from_happ_link` вернёт null и get_install_stats не вызовется.
 
 ---
 

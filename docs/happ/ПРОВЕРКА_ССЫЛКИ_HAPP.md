@@ -1,6 +1,6 @@
 # Проверка: почему нет ссылки Happ в мини-аппе
 
-Ссылку в приложении отдаёт **API на сервере** (у вас: `https://nikolay.lisobyk.fvds.ru`). Данные берутся из **сервера**, а не из локального `.env` на ПК.
+Ссылку в приложении отдаёт **API на сервере** (у вас: `https://bitecosystem.ru`). Данные берутся из **сервера**, а не из локального `.env` на ПК.
 
 **Важно:** мини-апп открывается с Vercel (bitvpn.vercel.app), но запросы к данным идут на **ваш сервер** — адрес берётся из параметра `?api=...` в ссылке. Деплой на Vercel обновляет только интерфейс; логика ссылок и счётчика устройств работает в **API на вашем сервере**. Поэтому после правок нужно обязательно обновить код на сервере (`git pull`) и перезапустить `miniapp-api`.
 
@@ -8,9 +8,9 @@
 
 ## Ошибка в Happ: «Error transferring https://IP/sub/КОД - server replied: Not Found»
 
-Если в приложении Happ при обновлении подписки появляется **Not Found** по ссылке вида `https://155.212.164.135/sub/XXXXXXXXXXXX`, значит запрос **не доходит до API** — его перехватывает **nginx** и отдаёт 404, потому что у него нет правила для пути `/sub/`.
+Если в приложении Happ при обновлении подписки появляется **Not Found** по ссылке вида `https://213.165.38.222/sub/XXXXXXXXXXXX`, значит запрос **не доходит до API** — его перехватывает **nginx** и отдаёт 404, потому что у него нет правила для пути `/sub/`.
 
-**Что сделать на сервере (155.212.164.135):**
+**Что сделать на сервере (213.165.38.222):**
 
 1. **Диагностика** — выполните на сервере (подставьте свой код из ссылки):
    ```bash
@@ -33,7 +33,7 @@
    sudo nginx -t && sudo systemctl reload nginx
    ```
 
-3. **Проверка:** откройте в браузере `https://155.212.164.135/sub/yHmESPsZKd76` (код из бота) — не должно быть «Not Found». Убедитесь, что API запущен: `sudo systemctl status miniapp-api`, при необходимости `sudo systemctl restart miniapp-api`.
+3. **Проверка:** откройте в браузере `https://213.165.38.222/sub/yHmESPsZKd76` (код из бота) — не должно быть «Not Found». Убедитесь, что API запущен: `sudo systemctl status miniapp-api`, при необходимости `sudo systemctl restart miniapp-api`.
 
 После этого ссылка из бота должна открываться в Happ без ошибки.
 
@@ -89,7 +89,7 @@
 
 Откройте в браузере (с ПК или телефона):
 
-**https://nikolay.lisobyk.fvds.ru/api/miniapp/check-happ-env**
+**https://bitecosystem.ru/api/miniapp/check-happ-env**
 
 Ожидаемый ответ при правильной настройке:
 
@@ -119,7 +119,7 @@
 Проверьте на сервере:
 
 ```bash
-ssh root@nikolay.lisobyk.fvds.ru
+ssh root@bitecosystem.ru
 cd /opt/vpn-bot   # или ваш BOT_PATH из deploy_config.cmd
 grep -E "HAPP_|MINIAPP" .env
 ```
@@ -127,7 +127,7 @@ grep -E "HAPP_|MINIAPP" .env
 Должны быть (значения подставьте свои):
 
 ```env
-MINIAPP_API_URL=https://nikolay.lisobyk.fvds.ru
+MINIAPP_API_URL=https://bitecosystem.ru
 HAPP_API_URL=https://happ-proxy.com
 HAPP_PROVIDER_CODE=ZzQ4DIUe
 HAPP_AUTH_KEY=h6LDyDkZr_ne01k_LK371xIB9FPzkfCl
@@ -171,7 +171,7 @@ sudo systemctl restart miniapp-api
 Как смотреть логи (пример для systemd):
 
 ```bash
-ssh root@nikolay.lisobyk.fvds.ru
+ssh root@bitecosystem.ru
 journalctl -u miniapp-api -n 100 --no-pager
 ```
 

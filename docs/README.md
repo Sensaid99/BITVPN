@@ -43,6 +43,7 @@
 | **MINI_APP_VERCEL.md** | Мини-апп на Vercel |
 | **VERCEL_НАСТРОЙКИ_ПОШАГОВО.txt** | Настройки Vercel |
 | **СМЕНА_СЕРВЕРА_БОТ_И_MINIAPP.md** | Чеклист переноса бота и API на новый домен/VPS |
+| **BITEcosystem_SERVER_VERCEL.md** | Текущий продакшен: домен **bitecosystem.ru**, IP **213.165.38.222**, Vercel, чеклист с нуля |
 
 ---
 

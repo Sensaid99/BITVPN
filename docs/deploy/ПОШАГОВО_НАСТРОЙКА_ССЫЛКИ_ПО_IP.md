@@ -1,6 +1,6 @@
-# Пошагово: как сделать, чтобы ссылка https://155.212.164.135/sub/КОД работала в Happ
+# Пошагово: как сделать, чтобы ссылка https://213.165.38.222/sub/КОД работала в Happ
 
-Делаем всё по порядку на сервере. Подключитесь по SSH: `ssh root@155.212.164.135` (или ваш пользователь).
+Делаем всё по порядку на сервере. Подключитесь по SSH: `ssh root@213.165.38.222` (или ваш пользователь).
 
 ---
 
@@ -22,9 +22,9 @@ sudo mkdir -p /etc/nginx/ssl
 
 ```bash
 sudo openssl req -x509 -nodes -days 3650 -newkey rsa:2048 \
-  -keyout /etc/nginx/ssl/155.212.164.135.key \
-  -out /etc/nginx/ssl/155.212.164.135.crt \
-  -subj "/CN=155.212.164.135" -addext "subjectAltName=IP:155.212.164.135"
+  -keyout /etc/nginx/ssl/213.165.38.222.key \
+  -out /etc/nginx/ssl/213.165.38.222.crt \
+  -subj "/CN=213.165.38.222" -addext "subjectAltName=IP:213.165.38.222"
 ```
 
 Нажмите Enter. Может появиться несколько строк текста — это нормально. Ошибок быть не должно.
@@ -35,7 +35,7 @@ sudo openssl req -x509 -nodes -days 3650 -newkey rsa:2048 \
 ls -la /etc/nginx/ssl/
 ```
 
-Должны быть два файла: `155.212.164.135.crt` и `155.212.164.135.key`.
+Должны быть два файла: `213.165.38.222.crt` и `213.165.38.222.key`.
 
 ---
 
@@ -65,10 +65,10 @@ sudo nano /etc/nginx/sites-available/default
 ```nginx
 server {
     listen 443 ssl;
-    server_name 155.212.164.135;
+    server_name 213.165.38.222;
 
-    ssl_certificate     /etc/nginx/ssl/155.212.164.135.crt;
-    ssl_certificate_key /etc/nginx/ssl/155.212.164.135.key;
+    ssl_certificate     /etc/nginx/ssl/213.165.38.222.crt;
+    ssl_certificate_key /etc/nginx/ssl/213.165.38.222.key;
 
     location /sub/ {
         proxy_pass http://127.0.0.1:8765;
@@ -135,13 +135,13 @@ sudo systemctl reload nginx
 На сервере выполните (подставьте свой код из бота, если другой):
 
 ```bash
-curl -s -o /dev/null -w "HTTP %{http_code}\n" -k "https://155.212.164.135/sub/yHmESPsZKd76"
+curl -s -o /dev/null -w "HTTP %{http_code}\n" -k "https://213.165.38.222/sub/yHmESPsZKd76"
 ```
 
 Должно вывести: **HTTP 200**.
 
 Откройте в браузере на ПК или телефоне:  
-**https://155.212.164.135/sub/yHmESPsZKd76**  
+**https://213.165.38.222/sub/yHmESPsZKd76**  
 (код подставьте свой из бота). Должна отобразиться длинная строка (конфиг подписки). Браузер может написать «Не защищено» — это из‑за самоподписанного сертификата, для Happ это допустимо.
 
 ---
@@ -149,7 +149,7 @@ curl -s -o /dev/null -w "HTTP %{http_code}\n" -k "https://155.212.164.135/sub/yH
 ## Этап 9. Проверить в приложении Happ
 
 1. Откройте бота в Telegram и возьмите ссылку на подписку (например, «Мой конфиг» или из мини-аппа).
-2. Скопируйте ссылку вида `https://155.212.164.135/sub/XXXXXXXXXXXX`.
+2. Скопируйте ссылку вида `https://213.165.38.222/sub/XXXXXXXXXXXX`.
 3. В приложении Happ добавьте или обновите подписку по этой ссылке (кнопка «Добавить» или обновление сервера).
 4. Ошибки «Not Found» быть не должно; подписка должна подтянуться.
 
@@ -166,7 +166,7 @@ curl -s -o /dev/null -w "HTTP %{http_code}\n" -k "https://155.212.164.135/sub/yH
 | 5 | Вставить блок `server { ... }` (из этапа 5) в конец |
 | 6 | Ctrl+O, Enter, Ctrl+X |
 | 7 | `sudo nginx -t && sudo systemctl reload nginx` |
-| 8 | Проверить: `curl -k "https://155.212.164.135/sub/КОД"` → HTTP 200 |
+| 8 | Проверить: `curl -k "https://213.165.38.222/sub/КОД"` → HTTP 200 |
 | 9 | Вставить ссылку в Happ и проверить подписку |
 
 Если на каком-то этапе появится ошибка — напишите, на каком шаге и что именно пишет терминал или nginx.

@@ -22,7 +22,7 @@ sudo cp "$CONF_SOURCE" "$CONF_DEST"
 echo "Проверка nginx..."
 if ! sudo nginx -t 2>/dev/null; then
     echo "Ошибка nginx -t. Возможно, нет файлов Let's Encrypt для домена."
-    echo "Проверьте: ls /etc/letsencrypt/live/nikolay.lisobyk.fvds.ru/"
+    echo "Проверьте: ls /etc/letsencrypt/live/bitecosystem.ru/"
     echo "Если блок для домена не нужен, отредактируйте $CONF_DEST и закомментируйте последний server { }."
     echo "Восстановление бэкапа..."
     sudo cp "${CONF_DEST}.bak" "$CONF_DEST"
@@ -31,4 +31,4 @@ fi
 
 echo "Перезагрузка nginx..."
 sudo systemctl reload nginx
-echo "Готово. Проверьте: https://nikolay.lisobyk.fvds.ru/api/miniapp/plans и https://155.212.164.135/sub/КОД"
+echo "Готово. Проверьте: https://bitecosystem.ru/api/miniapp/plans и https://213.165.38.222/sub/КОД"

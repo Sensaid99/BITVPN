@@ -3,7 +3,7 @@
 ═══════════════════════════════════════════════════════════════
 
   Сейчас у вас:
-  • Бот и API мини-приложения — на вашем сервере (nikolay.lisobyk.fvds.ru).
+  • Бот и API мини-приложения — на вашем сервере (bitecosystem.ru).
   • Страница мини-приложения (HTML/JS) — на Vercel (bitvpn.vercel.app),
     запросы к API идут на ваш сервер (?api=...).
 
@@ -52,7 +52,7 @@
 
   ПРОВЕРКА СЕРВЕРА (выполнять по SSH)
   ───────────────────────────────────
-  Подключитесь: ssh -o ServerAliveInterval=60 root@155.212.164.135
+  Подключитесь: ssh -o ServerAliveInterval=60 root@213.165.38.222
 
   1. Сервисы запущены:
        systemctl status vpn-bot miniapp-api nginx
@@ -63,7 +63,7 @@
      Должны быть строки с :80 и :443 (nginx).
 
   3. API отвечает:
-       curl -s -o /dev/null -w "%{http_code}" https://nikolay.lisobyk.fvds.ru/api/miniapp/plans
+       curl -s -o /dev/null -w "%{http_code}" https://bitecosystem.ru/api/miniapp/plans
      Должно вывести 200.
 
   4. Последние логи API (если что-то не так):

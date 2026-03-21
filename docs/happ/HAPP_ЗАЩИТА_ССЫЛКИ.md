@@ -24,7 +24,7 @@
    ```env
    HAPP_SUBSCRIPTION_REDIRECT_BASE=https://ваш-домен-api
    ```
-   Например: `https://nikolay.lisobyk.fvds.ru` (без слэша в конце).
+   Например: `https://bitecosystem.ru` (без слэша в конце).
 
 2. Пользователь получает ссылку вида:
    ```text
@@ -40,7 +40,7 @@
 
 - **На API-сервере** в `.env`:
   ```env
-  HAPP_SUBSCRIPTION_REDIRECT_BASE=https://nikolay.lisobyk.fvds.ru
+  HAPP_SUBSCRIPTION_REDIRECT_BASE=https://bitecosystem.ru
   ```
   (подставьте свой домен API, тот же, что в `MINIAPP_API_URL` / `WEBAPP_URL`.)
 

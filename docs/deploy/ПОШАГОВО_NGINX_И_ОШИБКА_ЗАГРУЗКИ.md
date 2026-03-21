@@ -21,9 +21,9 @@ git push origin main
 
 ## Этап 2. Подключение к серверу
 
-**Шаг 2.1.** Подключитесь по SSH к серверу (IP: `155.212.164.135`, домен: `nikolay.lisobyk.fvds.ru`):
+**Шаг 2.1.** Подключитесь по SSH к серверу (IP: `213.165.38.222`, домен: `bitecosystem.ru`):
 ```bash
-ssh user@155.212.164.135
+ssh user@213.165.38.222
 ```
 (подставьте своего пользователя вместо `user`)
 
@@ -52,7 +52,7 @@ ls -la deploy/nginx-default-full.conf deploy/apply-nginx-default.sh
 
 ## Этап 4. Сертификат для доступа по IP (один раз)
 
-Нужен для работы ссылок вида `https://155.212.164.135/sub/КОД`.
+Нужен для работы ссылок вида `https://213.165.38.222/sub/КОД`.
 
 **Шаг 4.1.** Создайте каталог для сертификатов (если его нет):
 ```bash
@@ -62,21 +62,21 @@ sudo mkdir -p /etc/nginx/ssl
 **Шаг 4.2.** Создайте самоподписанный сертификат для IP:
 ```bash
 sudo openssl req -x509 -nodes -days 3650 -newkey rsa:2048 \
-  -keyout /etc/nginx/ssl/155.212.164.135.key \
-  -out /etc/nginx/ssl/155.212.164.135.crt \
-  -subj "/CN=155.212.164.135" -addext "subjectAltName=IP:155.212.164.135"
+  -keyout /etc/nginx/ssl/213.165.38.222.key \
+  -out /etc/nginx/ssl/213.165.38.222.crt \
+  -subj "/CN=213.165.38.222" -addext "subjectAltName=IP:213.165.38.222"
 ```
 
 **Шаг 4.3.** Проверьте, что файлы созданы:
 ```bash
-ls -la /etc/nginx/ssl/155.212.164.135.*
+ls -la /etc/nginx/ssl/213.165.38.222.*
 ```
 
 ---
 
 ## Этап 5. Сертификат для домена (если ещё нет)
 
-Нужен для мини-аппа с `?api=https://nikolay.lisobyk.fvds.ru`.
+Нужен для мини-аппа с `?api=https://bitecosystem.ru`.
 
 **Шаг 5.1.** Если Let's Encrypt для домена уже настроен — переходите к этапу 6.
 
@@ -88,12 +88,12 @@ sudo apt install -y certbot python3-certbot-nginx
 
 **Шаг 5.3.** Получите сертификат (nginx на время остановится или будет перезаписан — лучше делать до применения нашего конфига или после временного отключения блоков для домена):
 ```bash
-sudo certbot certonly --nginx -d nikolay.lisobyk.fvds.ru
+sudo certbot certonly --nginx -d bitecosystem.ru
 ```
 
 **Шаг 5.4.** Проверьте, что сертификаты на месте:
 ```bash
-sudo ls -la /etc/letsencrypt/live/nikolay.lisobyk.fvds.ru/
+sudo ls -la /etc/letsencrypt/live/bitecosystem.ru/
 ```
 Должны быть `fullchain.pem` и `privkey.pem`.
 
@@ -108,7 +108,7 @@ sudo bash /opt/vpn-bot/deploy/apply-nginx-default.sh
 
 **Шаг 6.2.** Если скрипт выдал ошибку `nginx -t`:
 - Проверьте, что сертификат для IP создан (этап 4).
-- Если домен ещё не настроен — откройте конфиг и закомментируйте весь блок `server { ... server_name nikolay.lisobyk.fvds.ru; ... }` в конце файла:
+- Если домен ещё не настроен — откройте конфиг и закомментируйте весь блок `server { ... server_name bitecosystem.ru; ... }` в конце файла:
   ```bash
   sudo nano /etc/nginx/sites-available/default
   ```
@@ -129,19 +129,19 @@ sudo systemctl status nginx
 
 **Шаг 7.1.** Проверка по IP (с сервера или с ПК):
 ```bash
-curl -k -s -o /dev/null -w "%{http_code}" https://155.212.164.135/api/miniapp/plans
+curl -k -s -o /dev/null -w "%{http_code}" https://213.165.38.222/api/miniapp/plans
 ```
 Ожидается `200`.
 
 **Шаг 7.2.** Проверка по домену (если блок для домена включён):
 ```bash
-curl -s -o /dev/null -w "%{http_code}" https://nikolay.lisobyk.fvds.ru/api/miniapp/plans
+curl -s -o /dev/null -w "%{http_code}" https://bitecosystem.ru/api/miniapp/plans
 ```
 Ожидается `200`.
 
 **Шаг 7.3.** В браузере откройте мини-апп из бота. В `.env` на сервере (или в ссылке мини-аппа) должен быть указан API по домену, например:
 ```
-WEBAPP_URL=https://ваш-мини-апп.vercel.app?api=https://nikolay.lisobyk.fvds.ru
+WEBAPP_URL=https://ваш-мини-апп.vercel.app?api=https://bitecosystem.ru
 ```
 После этого «Ошибка загрузки» должна пропасть, если причина была в недоступности API по домену.
 
@@ -153,7 +153,7 @@ WEBAPP_URL=https://ваш-мини-апп.vercel.app?api=https://nikolay.lisobyk
 2. Сервер: `cd /opt/vpn-bot && git pull`
 3. Сервер: один раз создать сертификат для IP (этап 4), при необходимости — для домена (этап 5)
 4. Сервер: `sudo bash /opt/vpn-bot/deploy/apply-nginx-default.sh`
-5. Проверка: `curl -k -s -o /dev/null -w "%{http_code}" https://155.212.164.135/api/miniapp/plans` → 200
+5. Проверка: `curl -k -s -o /dev/null -w "%{http_code}" https://213.165.38.222/api/miniapp/plans` → 200
 
 ---
 

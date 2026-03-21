@@ -1,6 +1,6 @@
-# Вариант 2: чтобы ссылка https://155.212.164.135/sub/КОД работала
+# Вариант 2: чтобы ссылка https://213.165.38.222/sub/КОД работала
 
-Чтобы по **IP** открывалась ссылка из бота (https://155.212.164.135/sub/...) и не было 404, нужен отдельный блок **server** в nginx для этого IP с `location /sub/` и `location /api/`. Для HTTPS по IP используют **самоподписанный сертификат** — браузер покажет «Не защищено», но ссылка будет открываться; приложение Happ обычно не проверяет сертификат и подписка подтягивается.
+Чтобы по **IP** открывалась ссылка из бота (https://213.165.38.222/sub/...) и не было 404, нужен отдельный блок **server** в nginx для этого IP с `location /sub/` и `location /api/`. Для HTTPS по IP используют **самоподписанный сертификат** — браузер покажет «Не защищено», но ссылка будет открываться; приложение Happ обычно не проверяет сертификат и подписка подтягивается.
 
 ---
 
@@ -11,9 +11,9 @@
 ```bash
 sudo mkdir -p /etc/nginx/ssl
 sudo openssl req -x509 -nodes -days 3650 -newkey rsa:2048 \
-  -keyout /etc/nginx/ssl/155.212.164.135.key \
-  -out /etc/nginx/ssl/155.212.164.135.crt \
-  -subj "/CN=155.212.164.135" -addext "subjectAltName=IP:155.212.164.135"
+  -keyout /etc/nginx/ssl/213.165.38.222.key \
+  -out /etc/nginx/ssl/213.165.38.222.crt \
+  -subj "/CN=213.165.38.222" -addext "subjectAltName=IP:213.165.38.222"
 ```
 
 Проверьте, что файлы появились:
@@ -37,10 +37,10 @@ sudo nano /etc/nginx/sites-available/default
 ```nginx
 server {
     listen 443 ssl;
-    server_name 155.212.164.135;
+    server_name 213.165.38.222;
 
-    ssl_certificate     /etc/nginx/ssl/155.212.164.135.crt;
-    ssl_certificate_key /etc/nginx/ssl/155.212.164.135.key;
+    ssl_certificate     /etc/nginx/ssl/213.165.38.222.crt;
+    ssl_certificate_key /etc/nginx/ssl/213.165.38.222.key;
 
     location /sub/ {
         proxy_pass http://127.0.0.1:8765;
@@ -85,13 +85,13 @@ sudo nginx -t && sudo systemctl reload nginx
 На сервере или с ПК:
 
 ```bash
-curl -s -o /dev/null -w "HTTP %{http_code}\n" -k "https://155.212.164.135/sub/yHmESPsZKd76"
+curl -s -o /dev/null -w "HTTP %{http_code}\n" -k "https://213.165.38.222/sub/yHmESPsZKd76"
 ```
 
-Должно быть **HTTP 200**. В браузере по адресу https://155.212.164.135/sub/КОД откроется контент подписки; предупреждение «Не защищено» из‑за самоподписанного сертификата — нормально. В Happ ссылка из бота должна подтягиваться без ошибки.
+Должно быть **HTTP 200**. В браузере по адресу https://213.165.38.222/sub/КОД откроется контент подписки; предупреждение «Не защищено» из‑за самоподписанного сертификата — нормально. В Happ ссылка из бота должна подтягиваться без ошибки.
 
 ---
 
 ## Если не хотите «Не защищено» по IP
 
-Тогда удобнее **вариант 1**: в `.env` задать `HAPP_SUBSCRIPTION_REDIRECT_BASE=https://nikolay.lisobyk.fvds.ru` и выдавать ссылки с доменом; для домена у вас уже есть нормальный сертификат Let's Encrypt.
+Тогда удобнее **вариант 1**: в `.env` задать `HAPP_SUBSCRIPTION_REDIRECT_BASE=https://bitecosystem.ru` и выдавать ссылки с доменом; для домена у вас уже есть нормальный сертификат Let's Encrypt.

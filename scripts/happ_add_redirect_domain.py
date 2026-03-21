@@ -40,7 +40,7 @@ def main():
         print("Задайте в .env: HAPP_PROVIDER_CODE, HAPP_AUTH_KEY")
         sys.exit(1)
     if not redirect_base:
-        print("Задайте в .env: HAPP_SUBSCRIPTION_REDIRECT_BASE (например https://155.212.164.135)")
+        print("Задайте в .env: HAPP_SUBSCRIPTION_REDIRECT_BASE (например https://bitecosystem.ru)")
         sys.exit(1)
 
     parsed = urlparse(redirect_base if "://" in redirect_base else "https://" + redirect_base)
