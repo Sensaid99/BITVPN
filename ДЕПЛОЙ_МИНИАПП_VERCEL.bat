@@ -31,7 +31,7 @@ if exist "api" copy /Y "public\index.html" "api\root_index.html" >nul 2>nul
 echo    Готово.
 echo.
 
-echo 2. Пуш на GitHub (Vercel привязан к репо — подхватит сборку)...
+echo 2. Пуш на GitHub — Vercel привязан к репо и подхватит сборку...
 if exist "%~dp0deploy_config.cmd" call "%~dp0deploy_config.cmd"
 if not defined GIT_BRANCH (
     for /f "tokens=*" %%i in ('git rev-parse --abbrev-ref HEAD 2^>nul') do set GIT_BRANCH=%%i
@@ -39,7 +39,7 @@ if not defined GIT_BRANCH (
 if not defined GIT_BRANCH set GIT_BRANCH=main
 where git >nul 2>&1
 if errorlevel 1 (
-    echo    Git не найден — шаг 2 пропущен (только Vercel CLI).
+    echo    Git не найден — шаг 2 пропущен, только Vercel CLI.
     goto :vercel_cli
 )
 git add -A
@@ -58,7 +58,7 @@ if errorlevel 1 (
 echo.
 
 :vercel_cli
-echo 3. Деплой папки webapp на Vercel (npx vercel --prod)...
+echo 3. Деплой папки webapp на Vercel — npx vercel --prod...
 where npx >nul 2>&1
 if errorlevel 1 (
     echo [ОШИБКА] npx не найден. Установите Node.js: https://nodejs.org/
@@ -77,7 +77,7 @@ echo.
 echo ========================================
 echo   Готово.
 echo   • Проект на Vercel: https://vercel.com/dashboard
-echo   • Обычно URL: https://bitvpn.vercel.app (см. настройки проекта)
+echo   • Обычно URL: https://bitvpn.vercel.app — см. настройки проекта Vercel
 echo   • WEBAPP_URL в .env должен совпадать с этим URL + ?api=https://ваш-API
 echo ========================================
 goto :finish

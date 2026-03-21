@@ -40,7 +40,7 @@ if "%SERVER_IP%"=="" (
     goto :error
 )
 
-echo 1. Синхронизация Mini App (webapp -^> public -^> index, api)...
+echo 1. Синхронизация Mini App: webapp -^> public -^> index, api...
 if exist "webapp\index.html" (
     copy /Y "webapp\index.html" "public\index.html" >nul 2>nul
 )
@@ -53,7 +53,7 @@ if exist "public\index.html" (
 )
 echo.
 
-echo 2. Пуш на GitHub (ветка %GIT_BRANCH%) — в репозиторий попадут все файлы: код, deploy/, docs/, public, webapp...
+echo 2. Пуш на GitHub, ветка %GIT_BRANCH% — в репозиторий попадут все файлы: код, deploy/, docs/, public, webapp...
 where git >nul 2>&1
 if errorlevel 1 goto :git_skip
 git add -A
@@ -90,7 +90,7 @@ if "%COPY_ENV_TO_SERVER%"=="1" (
 )
 echo.
 
-echo 4. На сервере: обновление из GitHub (ветка %GIT_BRANCH%) и перезапуск...
+echo 4. На сервере: обновление из GitHub, ветка %GIT_BRANCH%, и перезапуск...
 echo    Введите пароль от сервера, если попросит.
 ssh %SERVER_USER%@%SERVER_IP% "cd %BOT_PATH% && git fetch origin && git checkout %GIT_BRANCH% && git reset --hard origin/%GIT_BRANCH% && %RESTART_CMD% && %RESTART_MINIAPP_CMD% && (sudo bash deploy/apply-nginx-sub.sh 2>/dev/null || true) && echo Готово."
 if errorlevel 1 (

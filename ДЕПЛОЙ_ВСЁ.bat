@@ -5,7 +5,7 @@ cd /d "%~dp0"
 echo.
 echo ========================================
 echo   Деплой всего: синхронизация, GitHub, сервер, Vercel
-echo   (чтобы нигде не оставалась старая версия)
+echo   Чтобы нигде не оставалась старая версия
 echo ========================================
 echo.
 
@@ -21,11 +21,11 @@ if exist "webapp\index.html" (
 )
 echo.
 
-echo 1. Деплой на сервер (пуш в GitHub + копирование .env + обновление на сервере + nginx)...
+echo 1. Деплой на сервер: пуш GitHub, копирование .env, обновление на сервере, nginx...
 call "%~dp0ДЕПЛОЙ_НА_СЕРВЕР.bat" KEEPOPEN
 echo.
 
-echo 2. Деплой мини-аппа на Vercel (bitvpn.vercel.app)...
+echo 2. Деплой мини-аппа на Vercel bitvpn.vercel.app...
 call "%~dp0ДЕПЛОЙ_МИНИАПП_VERCEL.bat" KEEPOPEN
 echo.
 

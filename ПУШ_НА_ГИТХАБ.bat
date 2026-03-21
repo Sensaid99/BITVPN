@@ -20,7 +20,7 @@ if errorlevel 1 (
     goto :error
 )
 
-echo 1. Синхронизация Mini App (webapp -^> public -^> index, api)...
+echo 1. Синхронизация Mini App: webapp -^> public -^> index, api...
 if exist "webapp\index.html" (
     copy /Y "webapp\index.html" "public\index.html" >nul 2>nul
 )

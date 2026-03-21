@@ -15,13 +15,13 @@ if errorlevel 1 (
 echo.
 echo ========================================
 echo   Фронт + GitHub + Vercel + только miniapp-api на сервере
-echo   (бот vpn-bot НЕ перезапускается — см. ДЕПЛОЙ_НА_СЕРВЕР.bat)
+echo   Внимание: бот vpn-bot НЕ перезапускается — см. ДЕПЛОЙ_НА_СЕРВЕР.bat
 echo   Папка: %CD%
 echo ========================================
 echo.
 
 REM 1. Синхронизация Mini App (webapp -> public -> index, api)
-echo 1. Синхронизация Mini App (webapp -^> public -^> index, api)...
+echo 1. Синхронизация Mini App: webapp -^> public -^> index, api...
 if not exist "webapp\index.html" (
     echo    [ОШИБКА] Нет webapp\index.html. Создайте или восстановите файл.
     goto :error
@@ -44,7 +44,7 @@ echo    Скопировано: webapp -^> public, index.html, api\root_index.ht
 echo.
 
 REM 2. Пуш на GitHub
-echo 2. Пуш на GitHub (ветка %GIT_BRANCH%)...
+echo 2. Пуш на GitHub, ветка %GIT_BRANCH%...
 if not exist "%~dp0deploy_config.cmd" goto :skip_config_api
 call "%~dp0deploy_config.cmd"
 :skip_config_api
@@ -72,7 +72,7 @@ if errorlevel 1 (
 echo.
 
 REM 2.5 Деплой мини-аппа на Vercel (bitvpn.vercel.app)
-echo 2.5 Деплой мини-аппа на Vercel (bitvpn.vercel.app)...
+echo 2.5 Деплой мини-аппа на Vercel bitvpn.vercel.app...
 where npx >nul 2>&1
 if errorlevel 1 (
     echo    npx не найден - деплой Vercel пропущен. Установите Node.js.
@@ -82,7 +82,7 @@ if errorlevel 1 (
         echo    [ОШИБКА] Папка webapp не найдена.
     ) else (
         echo    Запуск: npx vercel --prod --yes --no-wait
-        echo    (деплой уходит на Vercel, скрипт не ждёт сборки — окно закроется за ~5 сек)
+        echo    Деплой уходит на Vercel, скрипт не ждёт сборки — окно закроется за ~5 сек
         call npx vercel --prod --yes --no-wait
         if errorlevel 1 (
             echo    [ВНИМАНИЕ] Vercel вернул ошибку. Проверьте вывод выше. Логин: vercel login
