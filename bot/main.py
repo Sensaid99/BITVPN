@@ -9,6 +9,7 @@ import asyncio
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from telegram import BotCommand, MenuButtonWebApp, WebAppInfo
+from telegram.request import HTTPXRequest
 from telegram.ext import (
     Application, 
     CommandHandler, 
@@ -54,8 +55,21 @@ def create_application() -> Application:
     # Validate configuration
     Config.validate()
     
-    # Create application
-    application = Application.builder().token(Config.BOT_TOKEN).build()
+    # Таймауты HTTP к api.telegram.org: на части VPS дефолт ~5 с даёт TimedOut при getMe() на старте
+    _tg_t = float(os.getenv("TG_HTTP_TIMEOUT", "30"))
+    _request = HTTPXRequest(
+        connect_timeout=_tg_t,
+        read_timeout=_tg_t,
+        write_timeout=_tg_t,
+    )
+    # concurrent_updates: несколько апдейтов обрабатываются параллельно (иначе один медленный запрос блокирует всех)
+    application = (
+        Application.builder()
+        .token(Config.BOT_TOKEN)
+        .request(_request)
+        .concurrent_updates(True)
+        .build()
+    )
     
     payout_conversation = ConversationHandler(
         entry_points=[CallbackQueryHandler(request_payout_start, pattern='^request_payout$')],

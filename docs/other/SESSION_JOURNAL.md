@@ -597,3 +597,33 @@
 
 ### Файлы
 - `bot/config/settings.py`, `bot/utils/subscription_card.py`, `bot/handlers/main.py`, `api_miniapp.py`, `bot/utils/happ_client.py`, `.env.example`, `README_ДЕПЛОЙ.txt`, `ДЕПЛОЙ_МИНИАПП_API_ТОЛЬКО.bat`, `Запустить_деплой_миниапп_Vercel.vbs`, `docs/happ/ЗАШИФРОВКА_ССЫЛКИ_КРАТКО.md`, `docs/README.md`, `docs/other/КНОПКИ_И_СКРИПТЫ.txt`, `docs/deploy/Запуск_и_первый_деплой.md`, `docs/other/SESSION_JOURNAL.md`
+
+---
+## Бот долго отвечает / не реагирует на команды
+
+### Причина
+- `_happ_devices_html_line` вызывал синхронный **Happ list-install** при каждом `/start` и в главном меню — блокировал event loop (до ~5 с на запрос).
+- **crypto.happ.su** при `HAPP_ENCRYPT_SUBSCRIPTION_LINKS` — таймаут 20 с на запрос при сборке карточки.
+
+### Сделано
+- `_happ_devices_html_line`: только лимит из тарифа, без HTTP; счётчик — в мини-аппе / кнопка «Мои устройства».
+- `encrypt_subscription_url_to_crypto`: timeout **5** с.
+- `Application.builder().concurrent_updates(True)`.
+
+### Файлы
+- `bot/handlers/main.py`, `bot/utils/happ_client.py`, `bot/main.py`, `docs/other/SESSION_JOURNAL.md`
+
+---
+## TimedOut при старте бота (getMe)
+
+### Причина
+- До `api.telegram.org` с VPS дефолтный таймаут httpx мал — `telegram.error.TimedOut`, сервис падает.
+
+### Сделано
+- `HTTPXRequest` с `TG_HTTP_TIMEOUT` (по умолчанию 30 с), переменная в `.env.example`.
+
+### Файлы
+- `bot/main.py`, `.env.example`, `docs/other/SESSION_JOURNAL.md`
+
+### Если не помогло
+- Проверить с VPS: `curl -sS -o /dev/null -w "%{http_code}" https://api.telegram.org` (ожидается 404 или 200), DNS, firewall, маршрут; при блокировке Telegram — прокси для исходящего HTTPS.

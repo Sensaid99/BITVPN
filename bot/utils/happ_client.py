@@ -235,7 +235,7 @@ def encrypt_subscription_url_to_crypto(https_url: str) -> str | None:
             "https://crypto.happ.su/api-v2.php",
             json={"url": u},
             headers={"Content-Type": "application/json", "Accept": "application/json"},
-            timeout=20,
+            timeout=5,
         )
         if not r.ok:
             logger.warning("Happ crypto API HTTP %s: %s", r.status_code, (r.text or "")[:200])

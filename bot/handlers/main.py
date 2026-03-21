@@ -118,8 +118,9 @@ def get_webapp_url():
 
 def _happ_devices_html_line(sub) -> str:
     """
-    Дополнительная строка (HTML) для сообщений бота: сколько устройств подключено к Happ по install_code.
-    Пустая строка, если Happ не настроен или нет кода в ссылке.
+    Строка (HTML) про устройства Happ — только из тарифа, без HTTP к Happ API.
+    Раньше здесь был синхронный get_install_stats (до 5+ с), из‑за чего бот «висел» на /start и не отвечал другим.
+    Актуальный счётчик — в мини-аппе и по кнопке «Мои устройства» в карточке подписки.
     """
     if not sub or getattr(sub, "server_location", None) == ADMIN_SERVER_LOCATION:
         return ""
@@ -130,21 +131,8 @@ def _happ_devices_html_line(sub) -> str:
         return ""
     install_code = happ_client.parse_install_code_from_happ_link(vpn_cfg)
     limit_from_plan = happ_client.devices_from_plan_type(sub.plan_type)
-    if not install_code:
-        if limit_from_plan > 1:
-            return f"\n📱 Лимит устройств: <b>{limit_from_plan}</b>"
-        return ""
-    api_url = Config.HAPP_LIST_INSTALL_URL or Config.HAPP_API_URL
-    used, limit = happ_client.get_install_stats(
-        api_url,
-        Config.HAPP_PROVIDER_CODE,
-        Config.HAPP_AUTH_KEY,
-        install_code,
-    )
-    if used is not None and limit is not None:
-        return f"\n📱 Подключено устройств: <b>{used}/{limit}</b>"
-    if used is not None:
-        return f"\n📱 Подключено устройств: <b>{used}/{limit_from_plan}</b>"
+    if install_code:
+        return f"\n📱 По тарифу: до <b>{limit_from_plan}</b> устр. · Счётчик: мини-апп → Устройства"
     if limit_from_plan > 1:
         return f"\n📱 Лимит устройств: <b>{limit_from_plan}</b>"
     return ""
