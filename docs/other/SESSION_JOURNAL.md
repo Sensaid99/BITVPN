@@ -567,3 +567,33 @@
 
 ### Файлы
 - `bot/utils/subscription_card.py`, `bot/handlers/main.py`, `api_miniapp.py`, `docs/other/SESSION_JOURNAL.md`
+
+---
+## Деплой «одной кнопкой»: сервер и Vercel
+
+### Запрос
+- Один скрипт — весь деплой на VPS; второй — весь деплой мини-аппа (Vercel).
+
+### Сделано
+- `deploy_config.cmd`: `RESTART_MINIAPP_CMD`; `ДЕПЛОЙ_НА_СЕРВЕР.bat` использует его вместо хардкода.
+- `ДЕПЛОЙ_МИНИАПП_VERCEL.bat`: webapp→public→index→api, git push, `npx vercel --prod`; режим `KEEPOPEN` + отдельное окно при двойном клике; `ДЕПЛОЙ_ВСЁ.bat` вызывает с `KEEPOPEN`.
+- `README_ДЕПЛОЙ.txt`, `Запустить_деплой_миниапп_Vercel.vbs` (позже дубли bat убраны — см. блок «Деплой без дублей»).
+- Обновлены `docs/other/КНОПКИ_И_СКРИПТЫ.txt`, `docs/deploy/Запуск_и_первый_деплой.md`.
+
+### Файлы
+- `deploy_config.cmd`, `ДЕПЛОЙ_НА_СЕРВЕР.bat`, `ДЕПЛОЙ_МИНИАПП_VERCEL.bat`, `ДЕПЛОЙ_ВСЁ.bat`, `README_ДЕПЛОЙ.txt`, `Запустить_деплой_миниапп_Vercel.vbs`, `docs/other/SESSION_JOURNAL.md`
+
+---
+## Деплой без дублей, шифрование ссылок, счётчик
+
+### Запрос
+- Объединить дублирующиеся bat; проверить деплои; шифровать выдаваемые HTTPS `/sub/...`; счётчик устройств в боте и мини-аппе.
+
+### Сделано
+- Удалены `ДЕПЛОЙ_СЕРВЕР_ОДНА_КНОПКА.bat`, `ДЕПЛОЙ_МИНИАПП_ОДНА_КНОПКА.bat`; vbs → `ДЕПЛОЙ_МИНИАПП_VERCEL.bat`; README_ДЕПЛОЙ и доки обновлены.
+- `ДЕПЛОЙ_МИНИАПП_API_ТОЛЬКО.bat`: `RESTART_MINIAPP_CMD` из deploy_config; заголовок про отличие от полного серверного деплоя.
+- `Config.HAPP_ENCRYPT_SUBSCRIPTION_LINKS`; `subscription_card`: `link_for_user_display`, кнопка «Подключиться» через crypto deep link; файл после оплаты и `my_sub_connect` — crypto при включённом флаге; api webhook — `link_for_user_display` для .txt.
+- `happ_client` list-install timeout 5 с; `.env.example` HAPP_ENCRYPT=true; `docs/happ/ЗАШИФРОВКА_ССЫЛКИ_КРАТКО.md`.
+
+### Файлы
+- `bot/config/settings.py`, `bot/utils/subscription_card.py`, `bot/handlers/main.py`, `api_miniapp.py`, `bot/utils/happ_client.py`, `.env.example`, `README_ДЕПЛОЙ.txt`, `ДЕПЛОЙ_МИНИАПП_API_ТОЛЬКО.bat`, `Запустить_деплой_миниапп_Vercel.vbs`, `docs/happ/ЗАШИФРОВКА_ССЫЛКИ_КРАТКО.md`, `docs/README.md`, `docs/other/КНОПКИ_И_СКРИПТЫ.txt`, `docs/deploy/Запуск_и_первый_деплой.md`, `docs/other/SESSION_JOURNAL.md`

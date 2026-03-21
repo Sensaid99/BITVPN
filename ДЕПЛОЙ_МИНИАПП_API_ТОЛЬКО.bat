@@ -14,7 +14,8 @@ if errorlevel 1 (
 
 echo.
 echo ========================================
-echo   Деплой только miniapp-API на сервер
+echo   Фронт + GitHub + Vercel + только miniapp-api на сервере
+echo   (бот vpn-bot НЕ перезапускается — см. ДЕПЛОЙ_НА_СЕРВЕР.bat)
 echo   Папка: %CD%
 echo ========================================
 echo.
@@ -100,6 +101,7 @@ if not exist "%~dp0deploy_config.cmd" (
     goto :error
 )
 call "%~dp0deploy_config.cmd"
+if not defined RESTART_MINIAPP_CMD set RESTART_MINIAPP_CMD=sudo systemctl restart miniapp-api
 
 if "%SERVER_IP%"=="" (
     echo    Укажите SERVER_IP в deploy_config.cmd.
@@ -107,7 +109,7 @@ if "%SERVER_IP%"=="" (
 )
 
 echo    Введите пароль от сервера, если попросит.
-ssh %SERVER_USER%@%SERVER_IP% "cd %BOT_PATH% && git fetch origin && git checkout %GIT_BRANCH% && git reset --hard origin/%GIT_BRANCH% && sudo systemctl restart miniapp-api && (sudo bash deploy/apply-nginx-sub.sh 2>/dev/null || true) && echo Готово."
+ssh %SERVER_USER%@%SERVER_IP% "cd %BOT_PATH% && git fetch origin && git checkout %GIT_BRANCH% && git reset --hard origin/%GIT_BRANCH% && %RESTART_MINIAPP_CMD% && (sudo bash deploy/apply-nginx-sub.sh 2>/dev/null || true) && echo Готово."
 if errorlevel 1 (
     echo    [ВНИМАНИЕ] SSH или команды на сервере не удались. Vercel уже обновлён, если шаг 2.5 прошёл.
     echo    Проверьте deploy_config.cmd и доступ по SSH.

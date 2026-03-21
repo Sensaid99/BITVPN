@@ -1566,7 +1566,7 @@ def _complete_payment_and_send_link(payment_db_id: int) -> bool:
 
         session.commit()
 
-        from bot.utils.subscription_card import build_my_subscription_card
+        from bot.utils.subscription_card import build_my_subscription_card, link_for_user_display
 
         card_text, card_kb = build_my_subscription_card(subscription, fetch_device_counts=False)
         base_url = f"https://api.telegram.org/bot{BOT_TOKEN}"
@@ -1585,7 +1585,7 @@ def _complete_payment_and_send_link(payment_db_id: int) -> bool:
 
         if use_happ and happ_link:
             config_filename = f"happ_subscription_{telegram_id}.txt"
-            file_buffer = create_config_file(happ_link, config_filename)
+            file_buffer = create_config_file(link_for_user_display(happ_link), config_filename)
             file_buffer.seek(0)
             requests.post(
                 base_url + "/sendDocument",

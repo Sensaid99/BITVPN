@@ -34,7 +34,7 @@ from bot.utils.helpers import (
 )
 from bot.utils.payments import payment_manager, PaymentError
 from bot.utils import happ_client
-from bot.utils.subscription_card import build_my_subscription_card, inline_keyboard_dict_to_ptb
+from bot.utils.subscription_card import build_my_subscription_card, inline_keyboard_dict_to_ptb, link_for_user_display
 from locales.ru import get_message, format_price_per_month, format_savings
 
 logger = logging.getLogger(__name__)
@@ -727,9 +727,9 @@ async def verify_payment(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
             )
             
             if use_happ and happ_link:
-                # Файл .txt со ссылкой (дублирование текста в чате не шлём — ссылка уже в карточке)
+                # Файл .txt: при HAPP_ENCRYPT_SUBSCRIPTION_LINKS — happ://crypt* (как в карточке)
                 config_filename = f"happ_subscription_{user.telegram_id}.txt"
-                config_file = create_config_file(happ_link, config_filename)
+                config_file = create_config_file(link_for_user_display(happ_link), config_filename)
                 await context.bot.send_document(
                     chat_id=update.effective_chat.id,
                     document=config_file,
@@ -878,7 +878,8 @@ async def my_sub_connect_handler(update: Update, context: ContextTypes.DEFAULT_T
         await query.answer("Ссылка не найдена", show_alert=True)
         return
     await query.answer()
-    safe = escape_html(link[:4000])
+    show = link_for_user_display(link)
+    safe = escape_html(show[:4000])
     await context.bot.send_message(
         chat_id=update.effective_chat.id,
         text="Скопируйте и вставьте в Happ → Подписки → + :\n\n<code>" + safe + "</code>",

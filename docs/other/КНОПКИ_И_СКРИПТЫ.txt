@@ -10,9 +10,17 @@
   НУЖНЫЕ СКРИПТЫ (лежат в КОРНЕ проекта, не в docs)
   ───────────────────────────────────
   • ДЕПЛОЙ_НА_СЕРВЕР.bat
-    Синхронизирует webapp → public → index, пушит в GitHub, на сервере
-    подтягивает код и перезапускает бота. Нужен файл deploy_config.cmd
-    (SERVER_USER, SERVER_IP, BOT_PATH, RESTART_CMD).
+    Весь код на VPS: бот (vpn-bot) + miniapp-api, синхронизация
+    webapp → public → index → api, git push, .env на сервер (опционально).
+    deploy_config.cmd: SERVER_USER, SERVER_IP, BOT_PATH, RESTART_CMD,
+    RESTART_MINIAPP_CMD, GIT_BRANCH, COPY_ENV_TO_SERVER.
+
+  • ДЕПЛОЙ_МИНИАПП_VERCEL.bat
+    Фронт мини-аппа: webapp → public → index → api, git push, npx vercel --prod.
+
+  • ДЕПЛОЙ_МИНИАПП_API_ТОЛЬКО.bat — фронт + Vercel + только перезапуск miniapp-api (бот не трогать).
+
+  • ДЕПЛОЙ_ВСЁ.bat — сначала деплой на сервер, затем Vercel (одно окно, KEEPOPEN).
 
   • ПУШ_НА_ГИТХАБ.bat
     Только синхронизация webapp → public → index и git push. Удобно, когда
@@ -20,7 +28,10 @@
     пересоберёт bitvpn.vercel.app).
 
   • Запустить_деплой_на_сервер.vbs  — запускает ДЕПЛОЙ_НА_СЕРВЕР.bat.
+  • Запустить_деплой_миниапп_Vercel.vbs — ДЕПЛОЙ_МИНИАПП_VERCEL.bat.
   • Запустить_пуш_на_гитхаб.vbs     — запускает ПУШ_НА_ГИТХАБ.bat.
+
+  Кратко: README_ДЕПЛОЙ.txt в корне проекта.
 
   • ПЕРЕЗАПУСК_НА_СЕРВЕРЕ.bat
     Перезапуск сервисов на сервере (по deploy_config.cmd / deploy_config).

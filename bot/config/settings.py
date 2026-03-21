@@ -51,6 +51,8 @@ class Config:
     # Имя и описание подписки в приложении (Happ): подменяем ps/remark в контенте подписки при прокси через /sub/
     SUBSCRIPTION_DISPLAY_NAME = (os.getenv('SUBSCRIPTION_DISPLAY_NAME') or 'BIT VPN').strip() or 'BIT VPN'
     SUBSCRIPTION_DESCRIPTION = (os.getenv('SUBSCRIPTION_DESCRIPTION') or '').strip() or None
+    # В боте и мини-аппе показывать happ://crypt* вместо HTTPS (API crypto.happ.su); счётчик устройств считает по HTTPS из БД
+    HAPP_ENCRYPT_SUBSCRIPTION_LINKS = (os.getenv('HAPP_ENCRYPT_SUBSCRIPTION_LINKS') or '').strip().lower() in ('1', 'true', 'yes')
 
     # Bot Settings
     DEFAULT_LANGUAGE = os.getenv('DEFAULT_LANGUAGE', 'ru')

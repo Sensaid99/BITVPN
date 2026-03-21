@@ -33,6 +33,7 @@ if not exist "%~dp0deploy_config.cmd" (
     goto :error
 )
 call "%~dp0deploy_config.cmd"
+if not defined RESTART_MINIAPP_CMD set RESTART_MINIAPP_CMD=sudo systemctl restart miniapp-api
 
 if "%SERVER_IP%"=="" (
     echo Укажите SERVER_IP в deploy_config.cmd.
@@ -91,7 +92,7 @@ echo.
 
 echo 4. На сервере: обновление из GitHub (ветка %GIT_BRANCH%) и перезапуск...
 echo    Введите пароль от сервера, если попросит.
-ssh %SERVER_USER%@%SERVER_IP% "cd %BOT_PATH% && git fetch origin && git checkout %GIT_BRANCH% && git reset --hard origin/%GIT_BRANCH% && %RESTART_CMD% && (sudo systemctl restart miniapp-api 2>/dev/null || true) && (sudo bash deploy/apply-nginx-sub.sh 2>/dev/null || true) && echo Готово."
+ssh %SERVER_USER%@%SERVER_IP% "cd %BOT_PATH% && git fetch origin && git checkout %GIT_BRANCH% && git reset --hard origin/%GIT_BRANCH% && %RESTART_CMD% && %RESTART_MINIAPP_CMD% && (sudo bash deploy/apply-nginx-sub.sh 2>/dev/null || true) && echo Готово."
 if errorlevel 1 (
     echo [ОШИБКА] Подключение к серверу не удалось. Проверьте deploy_config.cmd.
     goto :error

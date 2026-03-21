@@ -36,6 +36,35 @@ def is_url_like_subscription(s: str) -> bool:
     return t.startswith("http://") or t.startswith("https://") or t.startswith("happ://")
 
 
+def link_for_user_display(raw_link: str) -> str:
+    """Текст ссылки в чате: при HAPP_ENCRYPT_SUBSCRIPTION_LINKS — happ://crypt*, иначе как в БД."""
+    s = (raw_link or "").strip()
+    if not s:
+        return s
+    if getattr(Config, "HAPP_ENCRYPT_SUBSCRIPTION_LINKS", False) and s.lower().startswith("http"):
+        c = happ_client.encrypt_subscription_url_to_crypto(s)
+        if c:
+            return c
+    return s
+
+
+def _deeplink_for_redirect_app(raw_link: str) -> str | None:
+    """Цель для redirect-to-app: happ://… (crypto или happ://add/https…)."""
+    s = (raw_link or "").strip()
+    if not s:
+        return None
+    sl = s.lower()
+    if sl.startswith("happ://"):
+        return s
+    if sl.startswith("http"):
+        if getattr(Config, "HAPP_ENCRYPT_SUBSCRIPTION_LINKS", False):
+            c = happ_client.encrypt_subscription_url_to_crypto(s)
+            if c:
+                return c
+        return "happ://add/" + s
+    return None
+
+
 def get_device_counts_display(sub) -> tuple[int | None, int]:
     """(used, limit) для подписи «Мои устройства (3/5)»."""
     limit = happ_client.devices_from_plan_type(getattr(sub, "plan_type", "") or "")
@@ -58,15 +87,15 @@ def get_device_counts_display(sub) -> tuple[int | None, int]:
 
 
 def build_connect_url(subscription_link: str) -> str | None:
-    """HTTPS URL редиректа на happ://add/... для кнопки «Подключиться»."""
-    if not subscription_link or not is_url_like_subscription(subscription_link):
+    """HTTPS URL редиректа на happ://… для кнопки «Подключиться» (subscription_link — сырая HTTPS из БД)."""
+    if not subscription_link:
+        return None
+    deep = _deeplink_for_redirect_app(subscription_link)
+    if not deep or not is_url_like_subscription(deep):
         return None
     base = (getattr(Config, "MINIAPP_API_URL", None) or os.getenv("MINIAPP_API_URL") or "").strip().rstrip("/")
     if not base:
         return None
-    deep = subscription_link.strip()
-    if not deep.lower().startswith("happ://"):
-        deep = "happ://add/" + deep
     return base + "/api/miniapp/redirect-to-app?url=" + quote(deep, safe="")
 
 
@@ -99,13 +128,14 @@ def build_my_subscription_card(sub, *, fetch_device_counts: bool = True) -> tupl
         rows = [[{"text": "◀️ Вернуться назад", "callback_data": "main_menu"}]]
         return text, {"inline_keyboard": rows}
 
-    link_short = link if len(link) <= 64 else (link[:48] + "…")
+    display_link = link_for_user_display(link)
+    link_short = display_link if len(display_link) <= 64 else (display_link[:48] + "…")
     text = get_message(
         "my_subscription_card",
         brand=brand,
         end_date=end_date,
         days_left=days,
-        link=link,
+        link=display_link,
         link_short=link_short,
     )
 

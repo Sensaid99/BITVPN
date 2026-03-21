@@ -26,7 +26,7 @@ call "%~dp0ДЕПЛОЙ_НА_СЕРВЕР.bat" KEEPOPEN
 echo.
 
 echo 2. Деплой мини-аппа на Vercel (bitvpn.vercel.app)...
-call "%~dp0ДЕПЛОЙ_МИНИАПП_VERCEL.bat"
+call "%~dp0ДЕПЛОЙ_МИНИАПП_VERCEL.bat" KEEPOPEN
 echo.
 
 echo ========================================

@@ -32,7 +32,7 @@ def get_install_stats(
                 "auth_key": auth_key,
             },
             headers=HAPP_HEADERS,
-            timeout=10,
+            timeout=5,
         )
         data = r.json() if r.ok else {}
         if data.get("rc") != 1:
@@ -91,7 +91,7 @@ def get_install_stats_debug(
             f"{api_url}/api/list-install",
             params={"provider_code": provider_code, "auth_key": auth_key},
             headers=HAPP_HEADERS,
-            timeout=10,
+            timeout=5,
         )
         data = r.json() if r.ok else {}
         out["rc"] = data.get("rc")
