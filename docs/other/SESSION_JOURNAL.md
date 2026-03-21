@@ -530,3 +530,16 @@
 
 ### Файлы
 - `bot/utils/subscription_card.py`, `bot/handlers/main.py`, `bot/main.py`, `api_miniapp.py`, `locales/ru.py`, четыре `index.html`
+
+---
+## Кнопка «Моя подписка» в мини-аппе не открывала бота
+
+### Причина
+- В `index.html` в `botUsername` подставлялся первый сегмент `start_param` до `_`. Для `my_subscription` получалось `my` → ссылка `t.me/my?start=...` (неверно), `openTelegramLink` ничего не делал.
+
+### Сделано
+- Убрано присвоение username из `start_param`; оставлен только referrer `t.me/...` + дефолт/API.
+- Для кнопки добавлены fallback: `openLink`, `location.href`, `window.open`.
+
+### Файлы
+- `public/index.html`, `webapp/index.html`, `index.html`, `api/root_index.html`, `docs/other/SESSION_JOURNAL.md`

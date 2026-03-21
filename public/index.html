@@ -1746,14 +1746,9 @@
 
       var botUsername = '';
       try {
-        if (tg && tg.initDataUnsafe && tg.initDataUnsafe.user) {
-          var sp = (tg.initDataUnsafe.start_param || '').split('_')[0];
-          if (sp) botUsername = sp;
-        }
-        if (!botUsername) {
-          var match = /t\.me\/([a-zA-Z0-9_]+)/.exec(document.referrer || '');
-          if (match) botUsername = match[1];
-        }
+        // Не брать username из start_param: для my_subscription / pay_1month_1 получится «my» / «pay» — ломает t.me/... ссылки.
+        var match = /t\.me\/([a-zA-Z0-9_]+)/.exec(document.referrer || '');
+        if (match) botUsername = match[1];
       } catch (e) {}
       window.MINIAPP_API_DEFAULT = '';
       window.MINIAPP_BOT_DEFAULT = 'Bitvpnproxy_bot';
@@ -3364,9 +3359,15 @@
           var bot = getBotForPay();
           if (bot) {
             var link = 'https://t.me/' + bot + '?start=my_subscription';
-            if (typeof tg !== 'undefined' && tg && tg.openTelegramLink) tg.openTelegramLink(link);
-            else window.open(link, '_blank');
-          } else if (typeof tg !== 'undefined' && tg && tg.showAlert) {
+            try {
+              if (tg && tg.openTelegramLink) { tg.openTelegramLink(link); return; }
+            } catch (err) {}
+            try {
+              if (tg && tg.openLink) { tg.openLink(link); return; }
+            } catch (err2) {}
+            try { window.location.href = link; return; } catch (err3) {}
+            window.open(link, '_blank');
+          } else if (tg && tg.showAlert) {
             tg.showAlert('Откройте бота из меню Telegram.');
           }
         });
