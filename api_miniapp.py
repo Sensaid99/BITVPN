@@ -1246,6 +1246,19 @@ async def miniapp_me(request: Request):
                         devices_hint = "Нажмите «+ Добавить устройство» — откроется Happ Proxy Client и подписка добавится автоматически. После добавления вернитесь сюда и нажмите ↻."
                 except Exception:
                     pass
+            # Опционально: отдать в мини-апп зашифрованную happ://crypt* ссылку (скрывает исходный HTTPS от глаз пользователя).
+            subscription_link_out = subscription_link
+            try:
+                if subscription_link and str(subscription_link).strip().lower().startswith("http"):
+                    if (os.getenv("HAPP_ENCRYPT_SUBSCRIPTION_LINKS") or "").strip().lower() in ("1", "true", "yes"):
+                        from bot.utils import happ_client as _happ_crypto
+                        crypto_link = _happ_crypto.encrypt_subscription_url_to_crypto(subscription_link)
+                        if crypto_link:
+                            subscription_link_out = crypto_link
+                            logger.info("miniapp_me: encrypted subscription link for user %s", user.telegram_id)
+            except Exception as e:
+                logger.warning("miniapp_me: HAPP_ENCRYPT_SUBSCRIPTION_LINKS: %s", e)
+
             sub_payload = {
                 "plan_type": sub.plan_type,
                 "plan_name": plan_type_to_name(sub.plan_type, ctx),
@@ -1254,7 +1267,7 @@ async def miniapp_me(request: Request):
                 "days_remaining": sub.days_remaining,
                 "server_location": sub.server_location or "",
                 "server_flag": get_server_flag(sub.server_location or "") if get_server_flag and sub.server_location else "🌍",
-                "subscription_link": subscription_link,
+                "subscription_link": subscription_link_out,
                 "subscription_link_has_install_limit": bool(
                     subscription_link
                     and (

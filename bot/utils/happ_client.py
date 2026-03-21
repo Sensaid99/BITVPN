@@ -219,3 +219,46 @@ def create_happ_install_link(
 def devices_from_plan_type(plan_type: str) -> int:
     """Публичная обёртка для использования в handlers."""
     return _devices_from_plan_type(plan_type)
+
+
+def encrypt_subscription_url_to_crypto(https_url: str) -> str | None:
+    """
+    Преобразует HTTPS-ссылку подписки в зашифрованную happ://crypt4|crypt5/...
+    через официальный API Happ (см. https://www.happ.su/main/dev-docs/crypto-link).
+    Пользователь не видит исходный URL сервера в интерфейсе Happ после добавления.
+    """
+    u = (https_url or "").strip()
+    if not u.startswith("http"):
+        return None
+    try:
+        r = requests.post(
+            "https://crypto.happ.su/api-v2.php",
+            json={"url": u},
+            headers={"Content-Type": "application/json", "Accept": "application/json"},
+            timeout=20,
+        )
+        if not r.ok:
+            logger.warning("Happ crypto API HTTP %s: %s", r.status_code, (r.text or "")[:200])
+            return None
+        text = (r.text or "").strip()
+        if text.startswith("happ://"):
+            return text
+        try:
+            data = r.json()
+        except Exception:
+            return None
+        if isinstance(data, dict):
+            for key in ("data", "url", "result", "encrypted", "link", "crypto"):
+                v = data.get(key)
+                if isinstance(v, str) and v.strip().startswith("happ://"):
+                    return v.strip()
+            # иногда ответ: {"rc":1,"msg":"...","data":"happ://..."}
+            if data.get("rc") == 1 and isinstance(data.get("data"), str):
+                v = data["data"].strip()
+                if v.startswith("happ://"):
+                    return v
+        if isinstance(data, str) and data.startswith("happ://"):
+            return data
+    except Exception as e:
+        logger.warning("Happ crypto encrypt error: %s", e)
+    return None

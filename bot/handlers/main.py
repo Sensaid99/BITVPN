@@ -115,6 +115,40 @@ def get_webapp_url():
     return MINI_APP_URL
 
 
+def _happ_devices_html_line(sub) -> str:
+    """
+    Дополнительная строка (HTML) для сообщений бота: сколько устройств подключено к Happ по install_code.
+    Пустая строка, если Happ не настроен или нет кода в ссылке.
+    """
+    if not sub or getattr(sub, "server_location", None) == ADMIN_SERVER_LOCATION:
+        return ""
+    if not Config.HAPP_PROVIDER_CODE or not Config.HAPP_AUTH_KEY:
+        return ""
+    vpn_cfg = getattr(sub, "vpn_config", None) or ""
+    if not vpn_cfg:
+        return ""
+    install_code = happ_client.parse_install_code_from_happ_link(vpn_cfg)
+    limit_from_plan = happ_client.devices_from_plan_type(sub.plan_type)
+    if not install_code:
+        if limit_from_plan > 1:
+            return f"\n📱 Лимит устройств: <b>{limit_from_plan}</b>"
+        return ""
+    api_url = Config.HAPP_LIST_INSTALL_URL or Config.HAPP_API_URL
+    used, limit = happ_client.get_install_stats(
+        api_url,
+        Config.HAPP_PROVIDER_CODE,
+        Config.HAPP_AUTH_KEY,
+        install_code,
+    )
+    if used is not None and limit is not None:
+        return f"\n📱 Подключено устройств: <b>{used}/{limit}</b>"
+    if used is not None:
+        return f"\n📱 Подключено устройств: <b>{used}/{limit_from_plan}</b>"
+    if limit_from_plan > 1:
+        return f"\n📱 Лимит устройств: <b>{limit_from_plan}</b>"
+    return ""
+
+
 def get_persistent_keyboard(telegram_id=None):
     """Постоянная клавиатура внизу: кнопка «Открыть VPN» с отображением ID пользователя."""
     url = get_webapp_url()
@@ -259,6 +293,9 @@ async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
         message_text = get_message('welcome_back_short', name=user.first_name or 'друг')
     else:
         message_text = get_message('welcome_short')
+    
+    if user.has_active_subscription and user.active_subscription:
+        message_text += _happ_devices_html_line(user.active_subscription)
     
     await update.message.reply_text(
         message_text,
@@ -769,23 +806,7 @@ async def show_profile(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
                 time_remaining=sub.time_remaining_text,
                 server_location=f"{get_server_flag(sub.server_location)} {sub.server_location}"
             )
-            # Для подписки через Happ: показать «Подключено X/Y устройств»
-            if Config.HAPP_PROVIDER_CODE and Config.HAPP_AUTH_KEY and getattr(sub, 'vpn_config', None):
-                install_code = happ_client.parse_install_code_from_happ_link(sub.vpn_config)
-                limit_from_plan = happ_client.devices_from_plan_type(sub.plan_type)
-                if install_code:
-                    used, limit = happ_client.get_install_stats(
-                        Config.HAPP_API_URL,
-                        Config.HAPP_PROVIDER_CODE,
-                        Config.HAPP_AUTH_KEY,
-                        install_code,
-                    )
-                    if used is not None and limit is not None:
-                        subscription_info += f"\n📱 Подключено устройств: <b>{used}/{limit}</b>"
-                    elif used is not None:
-                        subscription_info += f"\n📱 Подключено устройств: <b>{used}/{limit_from_plan}</b>"
-                elif limit_from_plan > 1:
-                    subscription_info += f"\n📱 Лимит устройств: <b>{limit_from_plan}</b>"
+            subscription_info += _happ_devices_html_line(sub)
     else:
         subscription_info = get_message('subscription_inactive')
     
@@ -1094,6 +1115,8 @@ async def main_menu(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     reply_markup = InlineKeyboardMarkup(keyboard)
     
     message_text = get_message('welcome_back_short', name=user.first_name or 'друг')
+    if user.has_active_subscription and user.active_subscription:
+        message_text += _happ_devices_html_line(user.active_subscription)
     
     if query:
         try:

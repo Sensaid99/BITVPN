@@ -487,3 +487,34 @@
 - `webapp/index.html`
 - `index.html`
 - `api/root_index.html`
+
+---
+## Задачи дня — бот, устройства, crypto-ссылка, документация по серверам
+
+### Запрос пользователя
+- Сменить сервер бота и API; показать количество устройств в боте; закупка VPS (DE «без рекламы», LTE); зашифровать ссылку для Happ чтобы не светился IP.
+
+### Что сделано в коде
+- **Устройства в боте:** общая логика Happ `list-install` в `_happ_devices_html_line()`; учёт `HAPP_LIST_INSTALL_URL`; строка в **профиле**, в **/start** и **главном меню** при активной подписке.
+- **Зашифрованная ссылка для мини-аппа:** `happ_client.encrypt_subscription_url_to_crypto()` → POST `https://crypto.happ.su/api-v2.php`; в `api_miniapp.py` при `HAPP_ENCRYPT_SUBSCRIPTION_LINKS=true` в ответе `/api/miniapp/me` поле `subscription_link` — `happ://crypt*` (HTTPS для расчёта счётчика внутри не меняется в БД).
+- **Документация:** `docs/deploy/СМЕНА_СЕРВЕРА_БОТ_И_MINIAPP.md`, `docs/infra/ЗАМЕТКИ_YOUTUBE_И_LTE.md`; обновлены `docs/README.md`, `.env.example`.
+
+### Файлы
+- `bot/handlers/main.py`, `bot/utils/happ_client.py`, `api_miniapp.py`, `.env.example`, `docs/README.md`, `docs/deploy/СМЕНА_СЕРВЕРА_БОТ_И_MINIAPP.md`, `docs/infra/ЗАМЕТКИ_YOUTUBE_И_LTE.md`
+
+### Что проверить
+- Включить на сервере `HAPP_ENCRYPT_SUBSCRIPTION_LINKS=true`, перезапустить miniapp-api; в мини-аппе подписка открывается в Happ, счётчик устройств живой.
+- После смены VPS: `WEBAPP_URL`, `MINIAPP_API_URL`, `HAPP_SUBSCRIPTION_REDIRECT_BASE`, BotFather, перезапуск сервисов.
+
+---
+## Установка клиента: «Добавить подписку» — снова модалка с копированием
+
+### Запрос
+- Вернуть поведение белой кнопки «Добавить подписку»: не автопереход в Happ, а окно с инструкцией и «Скопировать ссылку».
+
+### Сделано
+- Во всех 4 копиях `index.html` обработчик `platform-btn-add-sub` снова вызывает `showLinkCopiedModal` (+ копирование в буфер), без `openHappAddSubscription`.
+- Кнопка «Установить» в листе подтверждения снова использует `openHappLink` (копирование + модалка, на Android запуск оболочки Happ), без `openHappAddSubscription`.
+
+### Файлы
+- `public/index.html`, `webapp/index.html`, `index.html`, `api/root_index.html`
