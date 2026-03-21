@@ -387,6 +387,8 @@
     .stat-item span { white-space: nowrap; }
     .stat-item svg { width: 16px; height: 16px; fill: var(--text-muted); flex-shrink: 0; }
     .main-card .btn-primary { margin-top: 10px; margin-bottom: 6px; padding: 10px 14px; font-size: 0.9rem; }
+    .subs-mysub-wrap { margin-top: 10px; }
+    .subs-mysub-wrap .btn-secondary { width: 100%; margin-top: 0; margin-bottom: 0; text-align: center; display: block; box-sizing: border-box; }
     .btn-row { display: flex; gap: 8px; margin-top: 6px; }
     .btn-row .btn { flex: 1; margin: 0; padding: 10px 12px; font-size: 0.88rem; }
     .main-card .btn-tertiary { margin-top: 6px; padding: 9px 12px; font-size: 0.85rem; }
@@ -970,6 +972,9 @@
         <div id="subs-empty-active" class="subs-empty" style="display:none;">Нет активных подписок. Оформите подписку на главном экране.</div>
         <div class="subs-extend">
           <a href="#" id="btn-subs-extend" class="btn btn-primary">Продлить подписку</a>
+        </div>
+        <div class="subs-mysub-wrap">
+          <a href="#" id="btn-subs-my-subscription" class="btn btn-secondary">Моя подписка</a>
         </div>
       </div>
       <div id="subs-content-inactive" class="subs-content" style="display:none;">
@@ -3352,6 +3357,20 @@
       var btnSubsExtendInactive = document.getElementById('btn-subs-extend-inactive');
       if (btnSubsExtend) { btnSubsExtend.href = '#'; btnSubsExtend.addEventListener('click', function(e) { e.preventDefault(); openSubscribeSheet(); }); }
       if (btnSubsExtendInactive) { btnSubsExtendInactive.href = '#'; btnSubsExtendInactive.addEventListener('click', function(e) { e.preventDefault(); openSubscribeSheet(); }); }
+      var btnSubsMySubscription = document.getElementById('btn-subs-my-subscription');
+      if (btnSubsMySubscription) {
+        btnSubsMySubscription.addEventListener('click', function(e) {
+          e.preventDefault();
+          var bot = getBotForPay();
+          if (bot) {
+            var link = 'https://t.me/' + bot + '?start=my_subscription';
+            if (typeof tg !== 'undefined' && tg && tg.openTelegramLink) tg.openTelegramLink(link);
+            else window.open(link, '_blank');
+          } else if (typeof tg !== 'undefined' && tg && tg.showAlert) {
+            tg.showAlert('Откройте бота из меню Telegram.');
+          }
+        });
+      }
 
       var refStatsBtn = document.getElementById('ref-screen-btn-stats');
       var refStatsPopup = document.getElementById('ref-stats-popup-overlay');

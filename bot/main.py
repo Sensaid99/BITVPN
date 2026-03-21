@@ -24,6 +24,8 @@ from bot.handlers.main import (
     show_profile,
     show_my_config,
     setup_device_handler,
+    my_subscription_refresh_handler,
+    my_sub_connect_handler,
     show_referral_info,
     request_payout_start,
     request_payout_done,
@@ -80,6 +82,8 @@ def create_application() -> Application:
     application.add_handler(CallbackQueryHandler(show_help, pattern='^help$'), group=-1)
     application.add_handler(CallbackQueryHandler(show_support, pattern='^support$'), group=-1)
     application.add_handler(CallbackQueryHandler(main_menu, pattern='^main_menu$'), group=-1)
+    application.add_handler(CallbackQueryHandler(my_subscription_refresh_handler, pattern='^my_sub_refresh$'), group=-1)
+    application.add_handler(CallbackQueryHandler(my_sub_connect_handler, pattern='^my_sub_connect$'), group=-1)
     
     # Покупка и оплата — только в мини-приложении
     application.add_handler(payout_conversation)

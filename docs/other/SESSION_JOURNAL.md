@@ -518,3 +518,15 @@
 
 ### Файлы
 - `public/index.html`, `webapp/index.html`, `index.html`, `api/root_index.html`
+
+---
+## Карточка «Моя подписка» после оплаты + кнопка в мини-аппе
+
+### Запрос
+- После оплаты сообщение со ссылкой, сроком, кнопками «Подключиться», «Мои устройства (x/y)», «Назад»; в разделе «Подписки» кнопка «Моя подписка» → бот с `start=my_subscription`.
+
+### Сделано
+- `bot/utils/subscription_card.py`, локали `my_subscription_card*`, отправка карточки в `verify_payment` и `api_miniapp._complete_payment_and_send_link`; `/start my_subscription`; callback `my_sub_refresh`, `my_sub_connect`; кнопка в 4× `index.html`.
+
+### Файлы
+- `bot/utils/subscription_card.py`, `bot/handlers/main.py`, `bot/main.py`, `api_miniapp.py`, `locales/ru.py`, четыре `index.html`

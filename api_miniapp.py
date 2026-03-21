@@ -1557,28 +1557,24 @@ def _complete_payment_and_send_link(payment_db_id: int) -> bool:
 
         session.commit()
 
-        plan = SUBSCRIPTION_PLANS.get(get_plan_duration_key(payment.plan_type), SUBSCRIPTION_PLANS.get("1_month", {}))
-        success_message = get_message(
-            "payment_success",
-            plan_name=plan.get("name", payment.plan_type),
-            end_date=format_date(subscription.end_date),
-            server_location=f"{get_server_flag(server_location)} {server_location}",
-        )
+        from bot.utils.subscription_card import build_my_subscription_card
+
+        card_text, card_kb = build_my_subscription_card(subscription)
         base_url = f"https://api.telegram.org/bot{BOT_TOKEN}"
 
         requests.post(
             base_url + "/sendMessage",
-            json={"chat_id": telegram_id, "text": success_message, "parse_mode": "HTML"},
+            json={
+                "chat_id": telegram_id,
+                "text": card_text,
+                "reply_markup": card_kb,
+                "parse_mode": "HTML",
+                "disable_web_page_preview": True,
+            },
             timeout=10,
         )
 
         if use_happ and happ_link:
-            caption = get_message("happ_link_caption") + f"\n\n<code>{happ_link}</code>"
-            requests.post(
-                base_url + "/sendMessage",
-                json={"chat_id": telegram_id, "text": caption, "parse_mode": "HTML"},
-                timeout=10,
-            )
             config_filename = f"happ_subscription_{telegram_id}.txt"
             file_buffer = create_config_file(happ_link, config_filename)
             file_buffer.seek(0)

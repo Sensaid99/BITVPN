@@ -34,6 +34,7 @@ from bot.utils.helpers import (
 )
 from bot.utils.payments import payment_manager, PaymentError
 from bot.utils import happ_client
+from bot.utils.subscription_card import build_my_subscription_card, inline_keyboard_dict_to_ptb
 from locales.ru import get_message, format_price_per_month, format_savings
 
 logger = logging.getLogger(__name__)
@@ -229,6 +230,24 @@ async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
         ensure_admin_unlimited_subscription(user.telegram_id)
         user = get_or_create_user(update.effective_user)
     
+    # Deep link: «Моя подписка» — карточка со ссылкой и кнопками (как после оплаты)
+    if context.args and context.args[0].lower() == 'my_subscription':
+        if user.is_admin and not user.has_active_subscription:
+            ensure_admin_unlimited_subscription(user.telegram_id)
+            user = get_or_create_user(update.effective_user)
+        if not user.has_active_subscription:
+            await update.message.reply_text("❌ Нет активной подписки.", parse_mode='HTML')
+            return
+        sub = user.active_subscription
+        card_text, card_kb = build_my_subscription_card(sub)
+        await update.message.reply_text(
+            card_text,
+            reply_markup=inline_keyboard_dict_to_ptb(card_kb),
+            parse_mode='HTML',
+            disable_web_page_preview=True,
+        )
+        return
+
     # Deep link из Mini App «Настроить здесь» — одно сообщение «Настроить VPN» с кнопками (без /start и без файлов)
     if context.args and context.args[0].lower() == 'config':
         if user.is_admin and not user.has_active_subscription:
@@ -697,23 +716,17 @@ async def verify_payment(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
             
             session.commit()
             
-            # Send success message
-            plan = SUBSCRIPTION_PLANS.get(get_plan_duration_key(payment.plan_type), SUBSCRIPTION_PLANS.get('1_month'))
-            success_message = get_message('payment_success',
-                plan_name=plan['name'],
-                end_date=format_date(subscription.end_date),
-                server_location=f"{get_server_flag(server_location)} {server_location}"
+            # Карточка «Моя подписка» со ссылкой, «Подключиться», счётчик устройств
+            card_text, card_kb = build_my_subscription_card(subscription)
+            await query.edit_message_text(
+                card_text,
+                reply_markup=inline_keyboard_dict_to_ptb(card_kb),
+                parse_mode='HTML',
+                disable_web_page_preview=True,
             )
             
-            await query.edit_message_text(success_message, parse_mode='HTML')
-            
             if use_happ and happ_link:
-                # Выдача ссылки Happ — отправляем ссылку и файл .txt
-                await context.bot.send_message(
-                    chat_id=update.effective_chat.id,
-                    text=get_message('happ_link_caption') + f"\n\n<code>{happ_link}</code>",
-                    parse_mode='HTML'
-                )
+                # Файл .txt со ссылкой (дублирование текста в чате не шлём — ссылка уже в карточке)
                 config_filename = f"happ_subscription_{user.telegram_id}.txt"
                 config_file = create_config_file(happ_link, config_filename)
                 await context.bot.send_document(
@@ -744,8 +757,6 @@ async def verify_payment(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
             
             # Одно сообщение «Настроить VPN» с кнопками выбора устройства
             await send_setup_device_choice(context.bot, update.effective_chat.id)
-            # Send main menu
-            await main_menu(update, context)
             
         elif payment_status == 'failed':
             payment.status = 'failed'
@@ -829,6 +840,48 @@ async def show_profile(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
         ),
         reply_markup=reply_markup,
         parse_mode='HTML'
+    )
+
+
+async def my_subscription_refresh_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    """Обновить карточку «Моя подписка» (кнопка «Мои устройства»)."""
+    query = update.callback_query
+    await query.answer()
+    user = get_or_create_user(update.effective_user)
+    if not user.has_active_subscription:
+        await query.edit_message_text("❌ Нет активной подписки.", parse_mode='HTML')
+        return
+    text, kb = build_my_subscription_card(user.active_subscription)
+    try:
+        await query.edit_message_text(
+            text=text,
+            reply_markup=inline_keyboard_dict_to_ptb(kb),
+            parse_mode='HTML',
+            disable_web_page_preview=True,
+        )
+    except BadRequest as e:
+        if "not modified" in str(e).lower():
+            return
+        raise
+
+
+async def my_sub_connect_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    """Если нет MINIAPP_API_URL — подсказка и ссылка в чат."""
+    query = update.callback_query
+    user = get_or_create_user(update.effective_user)
+    if not user.has_active_subscription:
+        await query.answer("Нет активной подписки", show_alert=True)
+        return
+    link = (getattr(user.active_subscription, "vpn_config", None) or "").strip()
+    if not link:
+        await query.answer("Ссылка не найдена", show_alert=True)
+        return
+    await query.answer()
+    safe = escape_html(link[:4000])
+    await context.bot.send_message(
+        chat_id=update.effective_chat.id,
+        text="Скопируйте и вставьте в Happ → Подписки → + :\n\n<code>" + safe + "</code>",
+        parse_mode='HTML',
     )
 
 
