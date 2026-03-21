@@ -2,8 +2,10 @@
   Деплой (Windows, скрипты в корне проекта)
 ═══════════════════════════════════════════════════════════════
 
-  Настройте deploy_config.cmd: SERVER_USER, SERVER_IP, BOT_PATH,
-  GIT_BRANCH=main, COPY_ENV_TO_SERVER, RESTART_CMD, RESTART_MINIAPP_CMD.
+  Скопируйте deploy_config.example.cmd → deploy_config.cmd (или запустите
+  ДЕПЛОЙ_НА_СЕРВЕР.bat — создастся из примера). Задайте SERVER_USER, SERVER_IP,
+  BOT_PATH, GIT_BRANCH, COPY_ENV_TO_SERVER, RESTART_CMD, RESTART_MINIAPP_CMD.
+  deploy_config.cmd в Git не храните с реальным IP (в .gitignore).
 
 ───────────────────────────────────────────────────────────────
   Сервер: бот + miniapp-api + весь код с GitHub

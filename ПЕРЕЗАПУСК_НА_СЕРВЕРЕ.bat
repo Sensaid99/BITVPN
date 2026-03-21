@@ -17,7 +17,13 @@ if errorlevel 1 (
 )
 
 if not exist "deploy_config.cmd" (
-    echo Нет deploy_config.cmd. Создайте его (SERVER_USER, SERVER_IP, RESTART_CMD).
+    if exist "deploy_config.example.cmd" (
+        copy /Y "deploy_config.example.cmd" "deploy_config.cmd" >nul
+        echo Создан deploy_config.cmd из примера — укажите SERVER_IP и запустите снова.
+        pause
+        exit /b 1
+    )
+    echo Нет deploy_config.cmd. Скопируйте deploy_config.example.cmd
     pause
     exit /b 1
 )

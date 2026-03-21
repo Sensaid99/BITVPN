@@ -2,6 +2,8 @@
 .env
 .env.local
 *.db
+# Локальный IP/путь сервера — не пушить (шаблон: deploy_config.example.cmd)
+deploy_config.cmd
 
 # Python
 __pycache__/

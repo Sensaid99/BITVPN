@@ -2,6 +2,7 @@
 """Клиент API Happ-Proxy: создание лимитированных ссылок для приложения Happ."""
 
 import logging
+import re
 import urllib.parse
 
 import requests
@@ -121,20 +122,91 @@ def get_install_stats_debug(
         return out
 
 
+def list_hwids(
+    api_url: str,
+    provider_code: str,
+    auth_key: str,
+    install_code: str,
+) -> list[dict]:
+    """
+    GET /api/list-hwid — список устройств по лимитированной ссылке.
+    Каждый элемент: hwid, date, device_name (как в API Happ).
+    """
+    if not install_code or len(install_code) != 12:
+        return []
+    try:
+        r = requests.get(
+            f"{api_url.rstrip('/')}/api/list-hwid",
+            params={
+                "provider_code": provider_code,
+                "auth_key": auth_key,
+                "install_code": install_code.strip(),
+            },
+            headers=HAPP_HEADERS,
+            timeout=10,
+        )
+        data = r.json() if r.ok else {}
+        if data.get("rc") != 1:
+            return []
+        items = data.get("data") or []
+        if not isinstance(items, list):
+            return []
+        out = []
+        for item in items:
+            if not isinstance(item, dict):
+                continue
+            out.append(
+                {
+                    "hwid": (item.get("hwid") or item.get("HWID") or "").strip(),
+                    "date": (item.get("date") or item.get("created_at") or "").strip(),
+                    "device_name": (item.get("device_name") or item.get("deviceName") or "").strip() or "Устройство",
+                }
+            )
+        return [x for x in out if x.get("hwid")]
+    except Exception as e:
+        logger.warning("Happ list-hwid error: %s", e)
+        return []
+
+
+def delete_hwid(
+    api_url: str,
+    provider_code: str,
+    auth_key: str,
+    install_code: str,
+    hwid: str,
+) -> tuple[bool, str]:
+    """GET /api/delete-hwid — отвязать устройство (HWID) от ссылки."""
+    if not install_code or not hwid:
+        return False, "missing params"
+    try:
+        r = requests.get(
+            f"{api_url.rstrip('/')}/api/delete-hwid",
+            params={
+                "provider_code": provider_code,
+                "auth_key": auth_key,
+                "install_code": install_code.strip(),
+                "hwid": hwid.strip(),
+            },
+            headers=HAPP_HEADERS,
+            timeout=10,
+        )
+        data = r.json() if r.ok else {}
+        if data.get("rc") == 1:
+            return True, "ok"
+        return False, str(data.get("msg") or r.text[:120])
+    except Exception as e:
+        logger.warning("Happ delete-hwid error: %s", e)
+        return False, str(e)
+
+
 def parse_install_code_from_happ_link(happ_link: str | None) -> str | None:
     """
-    Извлекает install_code из ссылки:
-    - ...?installid=ABC123 или ...&installid=ABC123
-    - или .../sub/XXXXXXXXXXXX (редирект-ссылка, 12 символов)
+    Извлекает install_code из ссылки.
+    Сначала путь .../sub/XXXXXXXXXXXX (без дублирования в query), затем ?installid=.
     """
     if not happ_link:
         return None
     try:
-        if "installid=" in happ_link:
-            parsed = urllib.parse.urlparse(happ_link)
-            qs = urllib.parse.parse_qs(parsed.query)
-            codes = qs.get("installid") or qs.get("install_id") or []
-            return (codes[0] or "").strip() or None
         if "/sub/" in happ_link:
             parsed = urllib.parse.urlparse(happ_link)
             path = (parsed.path or "").strip("/")
@@ -144,10 +216,34 @@ def parse_install_code_from_happ_link(happ_link: str | None) -> str | None:
                     code = (parts[i + 1] or "").strip().split("/")[0]
                     if len(code) == 12 and code.isalnum():
                         return code
-            return None
+        if "installid=" in happ_link:
+            parsed = urllib.parse.urlparse(happ_link)
+            qs = urllib.parse.parse_qs(parsed.query)
+            codes = qs.get("installid") or qs.get("install_id") or []
+            return (codes[0] or "").strip() or None
     except Exception:
         pass
     return None
+
+
+def public_subscription_url(url: str | None) -> str | None:
+    """
+    Публичная ссылка для пользователя: только https://хост/sub/CODE без ?installid=.
+    Код уже в пути; дублирование в query позволяет «обрезать» query и пытаться обойти лимит.
+    """
+    if not url or not isinstance(url, str):
+        return url
+    s = url.strip()
+    if "/sub/" not in s:
+        return s
+    m = re.search(r"/sub/([A-Za-z0-9]{12})", s)
+    if not m:
+        return s
+    try:
+        parsed = urllib.parse.urlparse(s)
+        return f"{parsed.scheme}://{parsed.netloc}/sub/{m.group(1)}"
+    except Exception:
+        return s.split("?")[0] if "?" in s else s
 
 
 def _devices_from_plan_type(plan_type: str) -> int:

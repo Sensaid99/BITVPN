@@ -854,6 +854,137 @@ async def my_subscription_refresh_handler(update: Update, context: ContextTypes.
         raise
 
 
+async def _edit_message_hap_devices(query, user) -> None:
+    """Список устройств Happ (list-hwid) + кнопки отключить."""
+    if not user.has_active_subscription:
+        await query.edit_message_text("❌ Нет активной подписки.", parse_mode='HTML')
+        return
+    sub = user.active_subscription
+    link = (getattr(sub, "vpn_config", None) or "").strip()
+    if not link:
+        await query.edit_message_text(
+            "❌ Ссылка подписки не найдена. Откройте «Мой конфиг» в боте.",
+            parse_mode='HTML',
+        )
+        return
+    install_code = happ_client.parse_install_code_from_happ_link(link)
+    if not install_code:
+        await query.edit_message_text(
+            "❌ Не удалось определить код подписки.",
+            parse_mode='HTML',
+        )
+        return
+    list_url = (getattr(Config, "HAPP_LIST_INSTALL_URL", None) or "").strip()
+    api_url = (list_url or getattr(Config, "HAPP_API_URL", None) or "https://happ-proxy.com").strip().rstrip("/")
+    if not Config.HAPP_PROVIDER_CODE or not Config.HAPP_AUTH_KEY:
+        await query.edit_message_text("❌ Happ API не настроен на сервере.", parse_mode='HTML')
+        return
+    items = happ_client.list_hwids(api_url, Config.HAPP_PROVIDER_CODE, Config.HAPP_AUTH_KEY, install_code)
+    back_row = [InlineKeyboardButton("◀️ Назад к подписке", callback_data="my_sub_refresh")]
+    if not items:
+        text = (
+            "📱 <b>Список ваших устройств</b>\n\n"
+            "Подключённых устройств пока нет.\n\n"
+            "Добавьте подписку в Happ — устройства появятся здесь."
+        )
+        await query.edit_message_text(
+            text=text,
+            reply_markup=InlineKeyboardMarkup([back_row]),
+            parse_mode='HTML',
+        )
+        return
+    lines = ["📱 <b>Список ваших устройств</b>\n"]
+    rows = []
+    for i, item in enumerate(items[:20]):
+        name = item.get("device_name") or "Устройство"
+        dt = item.get("date") or "—"
+        hw = item.get("hwid") or ""
+        hw_short = (hw[:8] + "…" + hw[-6:]) if len(hw) > 18 else hw
+        lines.append(
+            f"{i + 1}. <b>{escape_html(name)}</b>\n"
+            f"   📅 {escape_html(dt)}\n"
+            f"   <code>{escape_html(hw_short)}</code>"
+        )
+        rows.append([InlineKeyboardButton(f"🚫 Отключить ({i + 1})", callback_data=f"hap_d{i}")])
+    note = (
+        "\n\n<blockquote>Если отключили устройство, при следующем запуске Happ оно может снова учитываться. "
+        "Удалите подписку в приложении на том устройстве.</blockquote>"
+    )
+    text = "\n\n".join(lines) + note
+    if len(text) > 4000:
+        text = text[:3950] + "…"
+    rows.append(back_row)
+    await query.edit_message_text(
+        text=text,
+        reply_markup=InlineKeyboardMarkup(rows),
+        parse_mode='HTML',
+    )
+
+
+async def hap_devices_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    """Экран списка устройств (как в конкурентах)."""
+    query = update.callback_query
+    await query.answer()
+    user = get_or_create_user(update.effective_user)
+    try:
+        await _edit_message_hap_devices(query, user)
+    except BadRequest as e:
+        if "not modified" in str(e).lower():
+            return
+        raise
+
+
+async def hap_device_remove_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    """Отключить устройство по индексу (Happ delete-hwid)."""
+    query = update.callback_query
+    m = re.match(r"^hap_d(\d+)$", query.data or "")
+    if not m:
+        return
+    idx = int(m.group(1))
+    await query.answer()
+    user = get_or_create_user(update.effective_user)
+    if not user.has_active_subscription:
+        await context.bot.send_message(
+            chat_id=update.effective_chat.id,
+            text="❌ Нет активной подписки.",
+            parse_mode='HTML',
+        )
+        return
+    sub = user.active_subscription
+    link = (getattr(sub, "vpn_config", None) or "").strip()
+    install_code = happ_client.parse_install_code_from_happ_link(link)
+    if not install_code:
+        await context.bot.send_message(
+            chat_id=update.effective_chat.id,
+            text="❌ Нет кода подписки в ссылке.",
+            parse_mode='HTML',
+        )
+        return
+    list_url = (getattr(Config, "HAPP_LIST_INSTALL_URL", None) or "").strip()
+    api_url = (list_url or getattr(Config, "HAPP_API_URL", None) or "https://happ-proxy.com").strip().rstrip("/")
+    items = happ_client.list_hwids(api_url, Config.HAPP_PROVIDER_CODE, Config.HAPP_AUTH_KEY, install_code)
+    if idx < 0 or idx >= len(items):
+        await _edit_message_hap_devices(query, user)
+        return
+    hwid = items[idx].get("hwid") or ""
+    if not hwid:
+        await context.bot.send_message(chat_id=update.effective_chat.id, text="❌ Ошибка HWID.", parse_mode='HTML')
+        return
+    ok, msg = happ_client.delete_hwid(api_url, Config.HAPP_PROVIDER_CODE, Config.HAPP_AUTH_KEY, install_code, hwid)
+    if not ok:
+        await context.bot.send_message(
+            chat_id=update.effective_chat.id,
+            text=f"❌ Не удалось отключить: {escape_html(msg[:500])}",
+            parse_mode='HTML',
+        )
+        return
+    try:
+        await _edit_message_hap_devices(query, user)
+    except BadRequest as e:
+        if "not modified" not in str(e).lower():
+            raise
+
+
 async def my_sub_connect_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """Если нет MINIAPP_API_URL — подсказка и ссылка в чат."""
     query = update.callback_query

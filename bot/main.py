@@ -9,6 +9,7 @@ import asyncio
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from telegram import BotCommand, MenuButtonWebApp, WebAppInfo
+from telegram.error import TimedOut
 from telegram.request import HTTPXRequest
 from telegram.ext import (
     Application, 
@@ -26,6 +27,8 @@ from bot.handlers.main import (
     show_my_config,
     setup_device_handler,
     my_subscription_refresh_handler,
+    hap_devices_handler,
+    hap_device_remove_handler,
     my_sub_connect_handler,
     show_referral_info,
     request_payout_start,
@@ -57,16 +60,24 @@ def create_application() -> Application:
     
     # Таймауты HTTP к api.telegram.org: на части VPS дефолт ~5 с даёт TimedOut при getMe() на старте
     _tg_t = float(os.getenv("TG_HTTP_TIMEOUT", "30"))
+    # Прокси (если с VPS до api.telegram.org нет маршрута / блок — см. TG_PROXY или HTTPS_PROXY в .env)
+    _proxy = (os.getenv("TG_PROXY") or os.getenv("HTTPS_PROXY") or os.getenv("ALL_PROXY") or "").strip() or None
     _request = HTTPXRequest(
         connect_timeout=_tg_t,
         read_timeout=_tg_t,
         write_timeout=_tg_t,
+        pool_timeout=_tg_t,
+        proxy=_proxy,
     )
+    if _proxy:
+        logger.info("Telegram API: используется прокси (TG_PROXY / HTTPS_PROXY / ALL_PROXY)")
     # concurrent_updates: несколько апдейтов обрабатываются параллельно (иначе один медленный запрос блокирует всех)
+    # Один и тот же request для Bot API и long polling (таймауты/прокси применяются к getUpdates)
     application = (
         Application.builder()
         .token(Config.BOT_TOKEN)
         .request(_request)
+        .get_updates_request(_request)
         .concurrent_updates(True)
         .build()
     )
@@ -96,6 +107,8 @@ def create_application() -> Application:
     application.add_handler(CallbackQueryHandler(show_help, pattern='^help$'), group=-1)
     application.add_handler(CallbackQueryHandler(show_support, pattern='^support$'), group=-1)
     application.add_handler(CallbackQueryHandler(main_menu, pattern='^main_menu$'), group=-1)
+    application.add_handler(CallbackQueryHandler(hap_device_remove_handler, pattern=r'^hap_d\d+$'), group=-1)
+    application.add_handler(CallbackQueryHandler(hap_devices_handler, pattern='^hap_devices$'), group=-1)
     application.add_handler(CallbackQueryHandler(my_subscription_refresh_handler, pattern='^my_sub_refresh$'), group=-1)
     application.add_handler(CallbackQueryHandler(my_sub_connect_handler, pattern='^my_sub_connect$'), group=-1)
     
@@ -271,6 +284,9 @@ async def post_shutdown(application: Application) -> None:
             except Exception as e:
                 logger.warning(f"Failed to send shutdown message to admin {admin_id}: {e}")
                 
+    except TimedOut:
+        # Нет связи с Telegram (как при падении на getMe) — не ждём повторно и не спамим WARNING
+        logger.info("Shutdown: пропуск уведомления админам — нет ответа от Telegram API (TimedOut)")
     except Exception as e:
         # При остановке бота httpx/telegram часто дают RuntimeError — не считаем это критичной ошибкой
         if "HTTPXRequest" in str(e) or "not initialized" in str(e):

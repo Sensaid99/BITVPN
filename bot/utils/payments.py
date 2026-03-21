@@ -180,6 +180,50 @@ class YooKassaPayment:
             logger.error(f"YooKassa payment check error: {e}")
             return "unknown"
 
+    def get_payment(self, payment_id: str) -> Optional[Dict[str, Any]]:
+        """Полный объект платежа из API ЮKassa (для проверки вебхука)."""
+        try:
+            url = f"{self.base_url}/payments/{payment_id}"
+            headers = {
+                "Authorization": self._auth_header(),
+                "Content-Type": "application/json",
+            }
+            response = requests.get(url, headers=headers, timeout=15)
+            if not response.ok:
+                logger.warning("YooKassa get_payment HTTP %s: %s", response.status_code, response.text[:200])
+                return None
+            return response.json()
+        except Exception as e:
+            logger.error("YooKassa get_payment error: %s", e)
+            return None
+
+    def verify_webhook_payment(self, payment_id: str, expected_amount_kop: int) -> bool:
+        """
+        Подтвердить платёж по данным ЮKassa API (не доверять только телу вебхука).
+        Совпадение суммы в копейках и статус succeeded.
+        """
+        data = self.get_payment(payment_id)
+        if not data:
+            return False
+        if (data.get("status") or "").lower() != "succeeded":
+            logger.warning("YooKassa verify: status is not succeeded: %s", data.get("status"))
+            return False
+        val = (data.get("amount") or {}).get("value")
+        if val is None:
+            return False
+        try:
+            rub = float(str(val).replace(",", "."))
+            kop = int(round(rub * 100))
+        except (ValueError, TypeError):
+            return False
+        if kop != int(expected_amount_kop):
+            logger.warning(
+                "YooKassa verify: amount mismatch api_kop=%s db_kop=%s payment_id=%s",
+                kop, expected_amount_kop, payment_id,
+            )
+            return False
+        return True
+
 
 class QiwiPayment:
     """QIWI payment processor"""

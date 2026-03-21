@@ -626,4 +626,41 @@
 - `bot/main.py`, `.env.example`, `docs/other/SESSION_JOURNAL.md`
 
 ### Если не помогло
-- Проверить с VPS: `curl -sS -o /dev/null -w "%{http_code}" https://api.telegram.org` (ожидается 404 или 200), DNS, firewall, маршрут; при блокировке Telegram — прокси для исходящего HTTPS.
+- В логах **`httpcore.ConnectTimeout`** на **`start_tls`** — TLS до `api.telegram.org` не поднимается (часто блокировка/маршрут с датацентра, не «мало секунд»). Проверить: `curl -v --connect-timeout 15 https://api.telegram.org`.
+- Задать **HTTPS-прокси** в `.env`: `TG_PROXY=http://...` или `HTTPS_PROXY=...`, перезапустить бота. В коде: один `HTTPXRequest` и для Bot API, и для **get_updates** (`get_updates_request`).
+- `post_shutdown`: при **TimedOut** не дублировать ожидание и не писать лишний WARNING.
+
+---
+## Аудит безопасности и синхронизации (март 2026)
+
+### Запрос
+- Проверить папки, синхронизацию бот ↔ мини-апп, безопасность, GitHub, оплату.
+
+### Сделано
+- **ЮKassa webhook:** после `payment.succeeded` платёж проверяется через **API ЮKassa** (`verify_webhook_payment`: статус + сумма в копейках). `YooKassaPayment.get_payment` в `bot/utils/payments.py`.
+- **api_miniapp:** CORS из **`MINIAPP_CORS_ORIGINS`**; **`API_EXPOSE_DOCS`** (по умолчанию docs выкл); отладочные маршруты только при **`MINIAPP_EXPOSE_DEBUG=1`**; rate limit **`MINIAPP_CREATE_PAYMENT_RATE`** на create-payment.
+- **Деплой:** **`deploy_config.cmd`** в `.gitignore`; в репо **`deploy_config.example.cmd`**; **`ДЕПЛОЙ_НА_СЕРВЕР.bat`** и **`ПЕРЕЗАПУСК_НА_СЕРВЕРЕ.bat`** создают `deploy_config.cmd` из примера при отсутствии.
+- Документация: **`docs/other/АУДИТ_ПРОЕКТА.md`** переписан; **`.env.example`** — новые переменные API.
+
+### Файлы
+- `bot/utils/payments.py`, `api_miniapp.py`, `.gitignore`, `deploy_config.example.cmd`, `README_ДЕПЛОЙ.txt`, `ДЕПЛОЙ_НА_СЕРВЕР.bat`, `ПЕРЕЗАПУСК_НА_СЕРВЕРЕ.bat`, `.env.example`, `docs/other/АУДИТ_ПРОЕКТА.md`, `docs/other/SESSION_JOURNAL.md`
+
+### Что сделать на сервере после pull
+- Скопировать **`deploy_config.example.cmd` → `deploy_config.cmd`**, указать **SERVER_IP** (локальный файл не в Git).
+- В `.env` API: при проде задать **`MINIAPP_CORS_ORIGINS`**, оставить **`API_EXPOSE_DOCS=0`**, **`MINIAPP_EXPOSE_DEBUG=0`**.
+
+---
+## Ссылки /sub без дублирующего installid, список устройств в боте и мини-аппе
+
+### Запрос
+- Не светить `?installid=` в URL (код уже в пути `/sub/CODE`); список устройств как у конкурента — отключение; синхронизация бот ↔ мини-апп.
+
+### Сделано
+- **`happ_client.public_subscription_url`**, **`parse_install_code`**: сначала путь `/sub/`, потом query.
+- **`list_hwids` / `delete_hwid`** (Happ API `list-hwid`, `delete-hwid`).
+- **`api_miniapp`**: сохранение/нормализация ссылок без `?installid=`; в **`/api/miniapp/me`** поле **`subscription.devices`**; **`POST /api/miniapp/remove-device`** (initData + hwid).
+- **Бот:** кнопка **«📱 Устройства (x/y)»** → **`hap_devices`**, экран списка + **`hap_d{N}`** отключить; **`my_sub_refresh`** — назад к карточке.
+- **Мини-апп (`webapp/index.html` + копии):** список устройств из API, кнопка **✕**, после удаления — **`loadMeFromApi`**.
+
+### Файлы
+- `bot/utils/happ_client.py`, `api_miniapp.py`, `bot/utils/subscription_card.py`, `bot/handlers/main.py`, `bot/main.py`, `webapp/index.html`, `public/index.html`, `api/root_index.html`, `index.html`, `docs/other/SESSION_JOURNAL.md`

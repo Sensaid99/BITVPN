@@ -145,7 +145,7 @@ def build_my_subscription_card(sub, *, fetch_device_counts: bool = True) -> tupl
         used = None
         limit = happ_client.devices_from_plan_type(getattr(sub, "plan_type", "") or "")
     u_disp = used if used is not None else "—"
-    dev_label = f"📱 Мои устройства ({u_disp}/{limit})"
+    dev_label = f"📱 Устройства ({u_disp}/{limit})"
 
     rows = []
     connect = build_connect_url(link)
@@ -153,7 +153,7 @@ def build_my_subscription_card(sub, *, fetch_device_counts: bool = True) -> tupl
         rows.append([{"text": "🔌 Подключиться", "url": connect}])
     else:
         rows.append([{"text": "🔌 Подключиться", "callback_data": "my_sub_connect"}])
-    rows.append([{"text": dev_label, "callback_data": "my_sub_refresh"}])
+    rows.append([{"text": dev_label, "callback_data": "hap_devices"}])
     rows.append([{"text": "◀️ Вернуться назад", "callback_data": "main_menu"}])
 
     return text, {"inline_keyboard": rows}

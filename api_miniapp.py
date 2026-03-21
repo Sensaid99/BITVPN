@@ -12,6 +12,8 @@ import base64
 import hmac
 import hashlib
 import logging
+import time
+from collections import defaultdict
 from urllib.parse import unquote, quote, urlparse, urlunparse
 from datetime import datetime, timedelta
 
@@ -26,21 +28,97 @@ try:
 except Exception:
     pass
 
-from fastapi import FastAPI, HTTPException, Header, Request
+from fastapi import FastAPI, HTTPException, Header, Request, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import Response, StreamingResponse, HTMLResponse, RedirectResponse
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-app = FastAPI(title="Bit VPN Mini App API", version="1.0")
+# CORS: в проде задайте MINIAPP_CORS_ORIGINS=https://bitvpn.vercel.app,https://web.telegram.org (через запятую). "*" — только для отладки.
+_cors_raw = (os.getenv("MINIAPP_CORS_ORIGINS") or "*").strip()
+if _cors_raw == "*":
+    _cors_allow = ["*"]
+else:
+    _cors_allow = [o.strip() for o in _cors_raw.split(",") if o.strip()]
+if not _cors_allow:
+    _cors_allow = ["*"]
+
+# Документация OpenAPI: по умолчанию выключена в проде (не светить схему API).
+_expose_docs = (os.getenv("API_EXPOSE_DOCS", "0").strip().lower() in ("1", "true", "yes", "on"))
+
+app = FastAPI(
+    title="Bit VPN Mini App API",
+    version="1.0",
+    docs_url="/docs" if _expose_docs else None,
+    redoc_url="/redoc" if _expose_docs else None,
+    openapi_url="/openapi.json" if _expose_docs else None,
+)
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=_cors_allow,
     allow_credentials=True,
-    allow_methods=["*"],
+    allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
     allow_headers=["*"],
 )
+
+
+def _env_truthy(name: str, default: bool = False) -> bool:
+    v = (os.getenv(name) or "").strip().lower()
+    if v in ("1", "true", "yes", "on"):
+        return True
+    if v in ("0", "false", "no", "off"):
+        return False
+    return default
+
+
+def require_debug_endpoints():
+    """Отладочные URL только при MINIAPP_EXPOSE_DEBUG=1 (иначе 404)."""
+    if not _env_truthy("MINIAPP_EXPOSE_DEBUG", False):
+        raise HTTPException(status_code=404, detail="Not Found")
+
+
+# Простой rate limit для create-payment: IP → список timestamp за последнюю минуту
+_create_payment_hits: dict[str, list[float]] = defaultdict(list)
+_CREATE_PAYMENT_MAX = int(os.getenv("MINIAPP_CREATE_PAYMENT_RATE", "8"))  # запросов в минуту с одного IP
+
+
+def _client_ip(request: Request) -> str:
+    raw = (
+        request.headers.get("x-forwarded-for")
+        or request.headers.get("x-real-ip")
+        or request.headers.get("cf-connecting-ip")
+        or ""
+    )
+    if raw:
+        return raw.split(",")[0].strip()
+    return (request.client.host if request.client else "") or "unknown"
+
+
+def _rate_limit_create_payment(ip: str) -> bool:
+    now = time.time()
+    window = 60.0
+    lst = _create_payment_hits[ip]
+    lst[:] = [t for t in lst if now - t < window]
+    if len(lst) >= _CREATE_PAYMENT_MAX:
+        return False
+    lst.append(now)
+    return True
+
+
+_remove_device_hits: dict[str, list[float]] = defaultdict(list)
+_REMOVE_DEVICE_MAX = 24
+
+
+def _rate_limit_remove_device(ip: str) -> bool:
+    now = time.time()
+    window = 60.0
+    lst = _remove_device_hits[ip]
+    lst[:] = [t for t in lst if now - t < window]
+    if len(lst) >= _REMOVE_DEVICE_MAX:
+        return False
+    lst.append(now)
+    return True
 
 
 @app.middleware("http")
@@ -510,7 +588,7 @@ def sub_redirect(install_code: str, request: Request):
         raise HTTPException(status_code=503, detail="Redirect unavailable")
 
 
-@app.get("/api/miniapp/check-happ-env")
+@app.get("/api/miniapp/check-happ-env", dependencies=[Depends(require_debug_endpoints)])
 def check_happ_env():
     """
     Проверка: видит ли API переменные Happ (для отладки).
@@ -536,7 +614,7 @@ def check_happ_env():
         return {"ok": False, "message": str(e), "env_set": {}}
 
 
-@app.get("/api/miniapp/debug-link-format")
+@app.get("/api/miniapp/debug-link-format", dependencies=[Depends(require_debug_endpoints)])
 async def debug_link_format(request: Request):
     """
     Отладка: какой redirect_base использует API для ссылок /sub/CODE.
@@ -794,7 +872,7 @@ def _redirect_base_from_request(request: Request) -> str:
         return str(request.base_url).rstrip("/") if request else ""
 
 
-@app.post("/api/miniapp/debug-subscription")
+@app.post("/api/miniapp/debug-subscription", dependencies=[Depends(require_debug_endpoints)])
 async def debug_subscription(request: Request):
     """
     Отладка «Нет подписки»: принять initData и вернуть короткий статус (есть ли пользователь,
@@ -855,7 +933,7 @@ async def debug_subscription(request: Request):
         return {"ok": False, "reason": "error", "message": str(e)}
 
 
-@app.get("/api/miniapp/debug-install-stats")
+@app.get("/api/miniapp/debug-install-stats", dependencies=[Depends(require_debug_endpoints)])
 def debug_install_stats(install_code: str = ""):
     """
     Отладка счётчика «Подключено»: проверка, видит ли API ваш install в ответе Happ.
@@ -906,7 +984,7 @@ def debug_install_stats(install_code: str = ""):
         return {"ok": False, "message": str(e), "install_code_sent": code[:6] + "***"}
 
 
-@app.get("/api/miniapp/debug-sub-content")
+@app.get("/api/miniapp/debug-sub-content", dependencies=[Depends(require_debug_endpoints)])
 def debug_sub_content(install_code: str = ""):
     """
     Отладка: проксирует ли наш API подписку по /sub/{CODE} и добавляет ли ProviderID
@@ -1105,7 +1183,9 @@ async def miniapp_me(request: Request):
                     _code = happ_client.parse_install_code_from_happ_link(subscription_link)
                     redirect_base = _redirect_base_from_request(request)
                     if _code and redirect_base:
-                        new_link = redirect_base.rstrip("/") + "/sub/" + _code + "?installid=" + _code
+                        new_link = happ_client.public_subscription_url(
+                            redirect_base.rstrip("/") + "/sub/" + _code
+                        )
                         subscription_link = new_link
                         sub.vpn_config = new_link
                         session.commit()
@@ -1130,7 +1210,9 @@ async def miniapp_me(request: Request):
                         cfg_base = (os.environ.get("HAPP_SUBSCRIPTION_REDIRECT_BASE", "") or "").strip().rstrip("/")
                     redirect_base = cfg_base or _redirect_base_from_request(request)
                     if _code and redirect_base:
-                        normalized = redirect_base.rstrip("/") + "/sub/" + _code + "?installid=" + _code
+                        normalized = happ_client.public_subscription_url(
+                            redirect_base.rstrip("/") + "/sub/" + _code
+                        )
                         if normalized != subscription_link:
                             subscription_link = normalized
                             sub.vpn_config = normalized
@@ -1138,19 +1220,18 @@ async def miniapp_me(request: Request):
                             logger.info("miniapp_me: Normalized /sub link host for user %s -> %s/sub/***", user.telegram_id, redirect_base[:40])
             except Exception as e:
                 logger.warning("miniapp_me: normalize /sub link failed for user %s: %s", user.telegram_id, e)
-            # Если в БД уже хранится /sub/<code>, но без ?installid=<code> — доклеиваем installid (для учёта devices).
-            if subscription_link and "/sub/" in subscription_link and "installid=" not in subscription_link:
+            # Убрать дублирующий ?installid= у ссылок /sub/CODE (код только в пути)
+            if subscription_link and "/sub/" in subscription_link:
                 try:
                     from bot.utils import happ_client
-                    _code = happ_client.parse_install_code_from_happ_link(subscription_link)
-                    if _code:
-                        sep = "&" if "?" in subscription_link else "?"
-                        subscription_link = subscription_link + sep + "installid=" + _code
-                        sub.vpn_config = subscription_link
+                    cleaned = happ_client.public_subscription_url(subscription_link)
+                    if cleaned and cleaned != subscription_link:
+                        subscription_link = cleaned
+                        sub.vpn_config = cleaned
                         session.commit()
-                        logger.info("miniapp_me: Added missing installid to redirect link for user %s", user.telegram_id)
+                        logger.info("miniapp_me: Stripped redundant installid query for user %s", user.telegram_id)
                 except Exception as e:
-                    logger.warning("miniapp_me: failed to append installid to /sub link for user %s: %s", user.telegram_id, e)
+                    logger.warning("miniapp_me: strip installid query: %s", e)
             # Гарантированно отдать в ответе ссылку в формате редиректа (если ещё осталась старая — подменяем только в ответе)
             if subscription_link and "installid=" in subscription_link and "/sub/" not in subscription_link:
                 try:
@@ -1158,7 +1239,9 @@ async def miniapp_me(request: Request):
                     _code = happ_client.parse_install_code_from_happ_link(subscription_link)
                     redirect_base = _redirect_base_from_request(request)
                     if _code and redirect_base:
-                        subscription_link = redirect_base.rstrip("/") + "/sub/" + _code + "?installid=" + _code
+                        subscription_link = happ_client.public_subscription_url(
+                            redirect_base.rstrip("/") + "/sub/" + _code
+                        )
                         logger.info("miniapp_me: Response link forced to redirect format for user %s", user.telegram_id)
                 except Exception:
                     pass
@@ -1187,8 +1270,14 @@ async def miniapp_me(request: Request):
                         )
                         if happ_link:
                             redirect_base = _redirect_base_from_request(request)
-                            subscription_link = (redirect_base.rstrip("/") + "/sub/" + install_code + "?installid=" + install_code) if (redirect_base and install_code) else happ_link
-                            sub.vpn_config = happ_link
+                            if redirect_base and install_code:
+                                subscription_link = happ_client.public_subscription_url(
+                                    redirect_base.rstrip("/") + "/sub/" + install_code
+                                )
+                                sub.vpn_config = subscription_link
+                            else:
+                                subscription_link = happ_link
+                                sub.vpn_config = happ_link
                             session.commit()
                             logger.info("miniapp_me: Happ link generated and saved for user %s", user.telegram_id)
                         else:
@@ -1268,6 +1357,23 @@ async def miniapp_me(request: Request):
             except Exception as e:
                 logger.warning("miniapp_me: HAPP_ENCRYPT_SUBSCRIPTION_LINKS: %s", e)
 
+            from bot.utils import happ_client as _happ_for_payload
+
+            devices_detail: list = []
+            if subscription_link:
+                try:
+                    _ic = _happ_for_payload.parse_install_code_from_happ_link(subscription_link)
+                    if _ic:
+                        from bot.config.settings import Config
+                        list_url = getattr(Config, "HAPP_LIST_INSTALL_URL", None) or os.environ.get("HAPP_LIST_INSTALL_URL", "")
+                        api_url = (list_url or getattr(Config, "HAPP_API_URL", None) or os.environ.get("HAPP_API_URL", "") or "").strip().rstrip("/")
+                        if api_url and getattr(Config, "HAPP_PROVIDER_CODE", None) and getattr(Config, "HAPP_AUTH_KEY", None):
+                            devices_detail = _happ_for_payload.list_hwids(
+                                api_url, Config.HAPP_PROVIDER_CODE, Config.HAPP_AUTH_KEY, _ic
+                            )
+                except Exception as e:
+                    logger.debug("miniapp_me: list_hwids: %s", e)
+
             sub_payload = {
                 "plan_type": sub.plan_type,
                 "plan_name": plan_type_to_name(sub.plan_type, ctx),
@@ -1280,10 +1386,11 @@ async def miniapp_me(request: Request):
                 "subscription_link_has_install_limit": bool(
                     subscription_link
                     and (
-                        "installid=" in subscription_link
-                        or ("/sub/" in subscription_link and happ_client.parse_install_code_from_happ_link(subscription_link))
+                        ("/sub/" in subscription_link and _happ_for_payload.parse_install_code_from_happ_link(subscription_link))
+                        or ("installid=" in subscription_link)
                     )
                 ),
+                "devices": devices_detail,
                 "devices_used": devices_used,
                 "devices_limit": devices_limit,
                 "devices_hint": devices_hint,
@@ -1347,12 +1454,71 @@ async def miniapp_plans():
         raise HTTPException(status_code=500, detail="Internal error. Check Vercel logs.")
 
 
+@app.post("/api/miniapp/remove-device")
+async def miniapp_remove_device(request: Request):
+    """Отвязать устройство (HWID) от лимитированной ссылки Happ — см. API /api/delete-hwid."""
+    if not _rate_limit_remove_device(_client_ip(request)):
+        raise HTTPException(status_code=429, detail="Слишком много запросов. Подождите.")
+    try:
+        body = await request.json()
+    except Exception:
+        raise HTTPException(status_code=400, detail="Invalid JSON")
+    init_data = (body.get("initData") or "").strip()
+    hwid = (body.get("hwid") or "").strip()
+    if not init_data or not hwid:
+        raise HTTPException(status_code=400, detail="initData and hwid required")
+    if len(hwid) > 220:
+        raise HTTPException(status_code=400, detail="Invalid hwid")
+    parsed = validate_init_data(init_data)
+    if not parsed:
+        raise HTTPException(status_code=401, detail="Invalid initData")
+    telegram_id, _ = get_telegram_user_from_init(parsed)
+    if not telegram_id:
+        raise HTTPException(status_code=400, detail="No user in initData")
+
+    ctx = _get_db()
+    db_manager = ctx.get("db_manager") if isinstance(ctx, dict) else None
+    User = ctx.get("User") if isinstance(ctx, dict) else None
+    if not db_manager or not User:
+        raise HTTPException(status_code=503, detail="Database not configured")
+
+    from bot.utils import happ_client
+    from bot.config.settings import Config
+
+    session = db_manager.get_session()
+    try:
+        user = session.query(User).filter_by(telegram_id=telegram_id).first()
+        if not user:
+            return {"ok": False, "message": "Пользователь не найден"}
+        sub = user.active_subscription
+        if not sub:
+            return {"ok": False, "message": "Нет активной подписки"}
+        link = (getattr(sub, "vpn_config", None) or "").strip()
+        install_code = happ_client.parse_install_code_from_happ_link(link)
+        if not install_code:
+            return {"ok": False, "message": "Нет ссылки Happ в подписке"}
+        list_url = getattr(Config, "HAPP_LIST_INSTALL_URL", None) or os.environ.get("HAPP_LIST_INSTALL_URL", "")
+        api_url = (list_url or getattr(Config, "HAPP_API_URL", None) or os.environ.get("HAPP_API_URL", "") or "").strip().rstrip("/")
+        if not api_url or not getattr(Config, "HAPP_PROVIDER_CODE", None) or not getattr(Config, "HAPP_AUTH_KEY", None):
+            return {"ok": False, "message": "Happ API не настроен на сервере"}
+        ok, msg = happ_client.delete_hwid(
+            api_url, Config.HAPP_PROVIDER_CODE, Config.HAPP_AUTH_KEY, install_code, hwid
+        )
+        if ok:
+            return {"ok": True, "message": "ok"}
+        return {"ok": False, "message": msg or "Ошибка Happ API"}
+    finally:
+        session.close()
+
+
 @app.post("/api/miniapp/create-payment")
 async def miniapp_create_payment(request: Request):
     """
     Создать платёж из мини-апп: initData, months, devices, payment_method.
     Возвращает payment_url для открытия в браузере (openLink).
     """
+    if not _rate_limit_create_payment(_client_ip(request)):
+        raise HTTPException(status_code=429, detail="Слишком много запросов. Подождите минуту.")
     logger.info("create-payment: request started")
     print("[MINIAPP] create-payment called", flush=True)  # всегда в stdout для Vercel Logs
     try:
@@ -1527,7 +1693,12 @@ def _complete_payment_and_send_link(payment_db_id: int) -> bool:
             )
             if _happ_link:
                 redirect_base = getattr(Config, "HAPP_SUBSCRIPTION_REDIRECT_BASE", None) or os.environ.get("HAPP_SUBSCRIPTION_REDIRECT_BASE", "").strip()
-                happ_link = (redirect_base.rstrip("/") + "/sub/" + install_code + "?installid=" + install_code) if (redirect_base and install_code) else _happ_link
+                if redirect_base and install_code:
+                    happ_link = happ_client.public_subscription_url(
+                        redirect_base.rstrip("/") + "/sub/" + install_code
+                    )
+                else:
+                    happ_link = _happ_link
             if not happ_link:
                 use_happ = False
         server_location = get_random_server_location()
@@ -1666,8 +1837,23 @@ async def webhook_yookassa(request: Request):
         if not payment:
             return Response(status_code=200)
         payment_db_id = payment.id
+        expected_kop = int(payment.amount)
     finally:
         session.close()
+
+    # Не доверять телу POST: подтвердить платёж через API ЮKassa (статус + сумма).
+    try:
+        from bot.utils.payments import YooKassaPayment
+        yk = YooKassaPayment()
+        if not yk.shop_id or not yk.secret_key:
+            logger.warning("webhook_yookassa: YOOKASSA_* не заданы — пропуск обработки")
+            return Response(status_code=200)
+        if not yk.verify_webhook_payment(yookassa_payment_id, expected_kop):
+            logger.warning("webhook_yookassa: проверка API не прошла payment_id=%s", yookassa_payment_id)
+            return Response(status_code=200)
+    except Exception as e:
+        logger.exception("webhook_yookassa verify: %s", e)
+        return Response(status_code=200)
 
     _complete_payment_and_send_link(payment_db_id)
     return Response(status_code=200)

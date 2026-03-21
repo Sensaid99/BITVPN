@@ -27,9 +27,13 @@ if errorlevel 1 (
 )
 
 if not exist "%~dp0deploy_config.cmd" (
-    echo Нет deploy_config.cmd в папке скрипта. Создайте его с переменными:
-    echo   SERVER_USER, SERVER_IP, BOT_PATH, RESTART_CMD
-    echo Пример: SERVER_USER=root  SERVER_IP=ваш.ip  BOT_PATH=/opt/vpn-bot  RESTART_CMD=sudo systemctl restart vpn-bot
+    if exist "%~dp0deploy_config.example.cmd" (
+        copy /Y "%~dp0deploy_config.example.cmd" "%~dp0deploy_config.cmd" >nul
+        echo Создан deploy_config.cmd из deploy_config.example.cmd — укажите SERVER_IP и при необходимости пути, затем запустите снова.
+    )
+)
+if not exist "%~dp0deploy_config.cmd" (
+    echo Нет deploy_config.cmd. Скопируйте deploy_config.example.cmd -^> deploy_config.cmd и задайте SERVER_USER, SERVER_IP, BOT_PATH, RESTART_CMD
     goto :error
 )
 call "%~dp0deploy_config.cmd"
