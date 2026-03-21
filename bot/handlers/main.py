@@ -239,7 +239,8 @@ async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
             await update.message.reply_text("❌ Нет активной подписки.", parse_mode='HTML')
             return
         sub = user.active_subscription
-        card_text, card_kb = build_my_subscription_card(sub)
+        # Без запроса Happ list-install — иначе ответ на /start задерживается на секунды (синхронный HTTP).
+        card_text, card_kb = build_my_subscription_card(sub, fetch_device_counts=False)
         await update.message.reply_text(
             card_text,
             reply_markup=inline_keyboard_dict_to_ptb(card_kb),
@@ -716,8 +717,8 @@ async def verify_payment(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
             
             session.commit()
             
-            # Карточка «Моя подписка» со ссылкой, «Подключиться», счётчик устройств
-            card_text, card_kb = build_my_subscription_card(subscription)
+            # Карточка «Моя подписка» — без ожидания Happ list-install (быстрее после оплаты)
+            card_text, card_kb = build_my_subscription_card(subscription, fetch_device_counts=False)
             await query.edit_message_text(
                 card_text,
                 reply_markup=inline_keyboard_dict_to_ptb(card_kb),

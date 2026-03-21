@@ -543,3 +543,27 @@
 
 ### Файлы
 - `public/index.html`, `webapp/index.html`, `index.html`, `api/root_index.html`, `docs/other/SESSION_JOURNAL.md`
+
+---
+## 404 на GET /health за nginx
+
+### Причина
+- Nginx проксирует на miniapp-api только `/api/` и `/sub/`; `GET /health` попадает в `location /` (статика) → 404.
+
+### Сделано
+- В `api_miniapp.py` добавлен `GET /api/health` (тот же ответ, что `/health`). Проверка: `https://домен/api/health`.
+
+### Файлы
+- `api_miniapp.py`, `deploy/nginx-miniapp-api.conf`, `docs/deploy/СМЕНА_СЕРВЕРА_БОТ_И_MINIAPP.md`, `docs/other/SESSION_JOURNAL.md`
+
+---
+## Долгий ответ после «Моя подписка»
+
+### Причина
+- При сборке карточки вызывался Happ `list-install` (синхронный HTTP до ~10 с), блокировал ответ на `/start my_subscription`.
+
+### Сделано
+- `build_my_subscription_card(..., fetch_device_counts=False)` для deep link и после оплаты (бот + webhook); лимит из тарифа, в кнопке «—/N» до обновления. Полный счётчик — по callback `my_sub_refresh` (как раньше).
+
+### Файлы
+- `bot/utils/subscription_card.py`, `bot/handlers/main.py`, `api_miniapp.py`, `docs/other/SESSION_JOURNAL.md`

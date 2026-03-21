@@ -311,6 +311,15 @@ def health():
     return {"service": "Bit VPN Mini App API", "status": "ok"}
 
 
+@app.get("/api/health")
+def health_under_api_prefix():
+    """
+    Тот же health, но под префиксом /api/ — чтобы проверка работала за типовым nginx,
+    который проксирует только /api/ и /sub/, а корень отдаёт статику (иначе GET /health → 404).
+    """
+    return health()
+
+
 REDIRECT_TO_APP_HTML = """<!DOCTYPE html>
 <html lang="ru"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Открытие приложения</title>
 <style>body{font-family:system-ui,sans-serif;background:#0f172a;color:#fff;margin:0;min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:20px;box-sizing:border-box;}
@@ -1559,7 +1568,7 @@ def _complete_payment_and_send_link(payment_db_id: int) -> bool:
 
         from bot.utils.subscription_card import build_my_subscription_card
 
-        card_text, card_kb = build_my_subscription_card(subscription)
+        card_text, card_kb = build_my_subscription_card(subscription, fetch_device_counts=False)
         base_url = f"https://api.telegram.org/bot{BOT_TOKEN}"
 
         requests.post(

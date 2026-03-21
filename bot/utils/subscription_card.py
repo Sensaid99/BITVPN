@@ -70,9 +70,12 @@ def build_connect_url(subscription_link: str) -> str | None:
     return base + "/api/miniapp/redirect-to-app?url=" + quote(deep, safe="")
 
 
-def build_my_subscription_card(sub) -> tuple[str, dict]:
+def build_my_subscription_card(sub, *, fetch_device_counts: bool = True) -> tuple[str, dict]:
     """
     Возвращает (html_text, reply_markup как dict для Telegram Bot API / PTB).
+
+    fetch_device_counts: если False — не вызывать Happ list-install (быстрый ответ).
+    Счётчик покажет «—/N»; актуальные цифры — по кнопке «Мои устройства» (обновление).
     """
     from locales.ru import get_message
 
@@ -106,7 +109,11 @@ def build_my_subscription_card(sub) -> tuple[str, dict]:
         link_short=link_short,
     )
 
-    used, limit = get_device_counts_display(sub)
+    if fetch_device_counts:
+        used, limit = get_device_counts_display(sub)
+    else:
+        used = None
+        limit = happ_client.devices_from_plan_type(getattr(sub, "plan_type", "") or "")
     u_disp = used if used is not None else "—"
     dev_label = f"📱 Мои устройства ({u_disp}/{limit})"
 
