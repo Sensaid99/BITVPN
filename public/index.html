@@ -791,6 +791,36 @@
     .link-copied-toast-card .btn-link-copied-copy svg { width: 14px; height: 14px; fill: currentColor; flex-shrink: 0; }
     .link-copied-toast-card .btn-link-copied-close { display: inline-block; padding: 12px 24px; border-radius: 12px; background: linear-gradient(135deg, #00ff88, #00cc6a); color: #0d0d0d; font-weight: 600; font-size: 0.9rem; border: none; cursor: pointer; }
     .link-copied-toast-card .btn-link-copied-close:active { opacity: 0.9; }
+    /* Промежуточный шаг «Добавить подписку» (перед копированием ссылки) */
+    .add-sub-hint-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.82); z-index: 210; display: flex; align-items: center; justify-content: center; padding: 20px; box-sizing: border-box; }
+    .add-sub-hint-overlay.add-sub-hint-hidden { display: none !important; }
+    .add-sub-hint-card {
+      width: 100%; max-width: 340px; padding: 26px 22px 22px;
+      border-radius: 22px;
+      background: linear-gradient(165deg, rgba(18,24,22,0.98) 0%, rgba(8,12,10,0.99) 100%);
+      border: 1px solid rgba(0,255,136,0.28);
+      box-shadow: 0 0 0 1px rgba(0,255,136,0.06), 0 20px 50px rgba(0,0,0,0.55);
+      text-align: center;
+    }
+    .add-sub-hint-title { font-family: 'Unbounded', sans-serif; font-size: 1.18rem; font-weight: 700; color: var(--text); margin: 0 0 12px; letter-spacing: -0.02em; line-height: 1.25; }
+    .add-sub-hint-text { font-size: 0.86rem; color: var(--text-muted); line-height: 1.5; margin: 0 0 22px; padding: 0 4px; }
+    .add-sub-hint-actions { display: flex; flex-direction: column; gap: 10px; }
+    .add-sub-hint-btn-primary {
+      width: 100%; padding: 14px 18px; border: none; border-radius: 999px; cursor: pointer;
+      font-weight: 700; font-size: 0.92rem;
+      background: linear-gradient(135deg, #00ff88, #00b86b);
+      color: #06120e;
+      box-shadow: 0 4px 18px rgba(0,255,136,0.25);
+    }
+    .add-sub-hint-btn-primary:active { opacity: 0.92; transform: scale(0.99); }
+    .add-sub-hint-btn-back {
+      width: 100%; padding: 12px 18px; border-radius: 999px; cursor: pointer;
+      font-weight: 600; font-size: 0.88rem;
+      background: rgba(255,255,255,0.06);
+      border: 1px solid rgba(255,255,255,0.14);
+      color: var(--text);
+    }
+    .add-sub-hint-btn-back:active { background: rgba(255,255,255,0.1); }
     .app-alert-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.85); z-index: 210; display: none; align-items: center; justify-content: center; padding: 20px; box-sizing: border-box; }
     .app-alert-overlay.open { display: flex; }
     .app-alert-card { background: var(--bg-card); border: 1px solid var(--border); border-radius: 20px; padding: 24px 22px; max-width: 340px; width: 100%; box-shadow: 0 24px 48px rgba(0,0,0,0.5); position: relative; }
@@ -1394,6 +1424,18 @@
           <button type="button" id="platform-btn-back" class="btn-back-platform">Назад</button>
           <button type="button" id="platform-btn-add-sub" class="btn-add-sub-platform">Добавить подписку</button>
         </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Шаг перед копированием: подтверждение «Добавить подписку» -->
+  <div id="add-sub-hint-overlay" class="add-sub-hint-overlay add-sub-hint-hidden" aria-hidden="true" role="dialog" aria-label="Добавить подписку">
+    <div class="add-sub-hint-card" onclick="event.stopPropagation()">
+      <h2 class="add-sub-hint-title">Добавить подписку</h2>
+      <p class="add-sub-hint-text">Чтобы подписка появилась в клиенте Happ, нажмите «Добавить» — мы подготовим ссылку и подскажем, куда её вставить.</p>
+      <div class="add-sub-hint-actions">
+        <button type="button" id="add-sub-hint-btn-confirm" class="add-sub-hint-btn-primary">Добавить</button>
+        <button type="button" id="add-sub-hint-btn-back" class="add-sub-hint-btn-back">Назад</button>
       </div>
     </div>
   </div>
@@ -3093,6 +3135,17 @@
           if (platformTrigger) platformTrigger.classList.remove('open');
         }, 320);
       }
+      var addSubHintOverlay = document.getElementById('add-sub-hint-overlay');
+      function openAddSubHintModal() {
+        if (!addSubHintOverlay) return;
+        addSubHintOverlay.classList.remove('add-sub-hint-hidden');
+        addSubHintOverlay.setAttribute('aria-hidden', 'false');
+      }
+      function closeAddSubHintModal() {
+        if (!addSubHintOverlay) return;
+        addSubHintOverlay.classList.add('add-sub-hint-hidden');
+        addSubHintOverlay.setAttribute('aria-hidden', 'true');
+      }
       if (platformTrigger && platformDropdown) {
         platformTrigger.addEventListener('click', function() {
           var open = platformDropdown.style.display === 'block';
@@ -3126,8 +3179,16 @@
       }
       if (platformBtnAddSub) {
         platformBtnAddSub.addEventListener('click', function() {
-          var subLink = (typeof API_ME !== 'undefined' && API_ME && API_ME.subscription && API_ME.subscription.subscription_link) ? API_ME.subscription.subscription_link : '';
           closePlatformAppSheet();
+          setTimeout(function() { openAddSubHintModal(); }, 320);
+        });
+      }
+      var addSubHintBtnConfirm = document.getElementById('add-sub-hint-btn-confirm');
+      var addSubHintBtnBack = document.getElementById('add-sub-hint-btn-back');
+      if (addSubHintBtnConfirm) {
+        addSubHintBtnConfirm.addEventListener('click', function() {
+          var subLink = (typeof API_ME !== 'undefined' && API_ME && API_ME.subscription && API_ME.subscription.subscription_link) ? API_ME.subscription.subscription_link : '';
+          closeAddSubHintModal();
           setTimeout(function() {
             if (subLink && typeof showLinkCopiedModal === 'function') {
               try {
@@ -3139,7 +3200,19 @@
             } else if (typeof tg !== 'undefined' && tg && tg.showAlert) {
               tg.showAlert('Ссылка подписки появится после оплаты.');
             }
-          }, 320);
+          }, 200);
+        });
+      }
+      if (addSubHintBtnBack) {
+        addSubHintBtnBack.addEventListener('click', function() {
+          closeAddSubHintModal();
+          setTimeout(function() { openPlatformAppSheet(); }, 200);
+        });
+      }
+      if (addSubHintOverlay) {
+        addSubHintOverlay.addEventListener('click', function() {
+          closeAddSubHintModal();
+          setTimeout(function() { openPlatformAppSheet(); }, 200);
         });
       }
       var confirmInstalledSheet = document.getElementById('confirm-installed-sheet');
