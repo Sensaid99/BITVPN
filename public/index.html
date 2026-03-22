@@ -3387,6 +3387,21 @@
         var base = (window.MINIAPP_API_BASE || (typeof apiBase !== 'undefined' ? apiBase : '') || '').replace(/\/+$/, '');
         if (base) {
           var redirectUrl = base + '/api/miniapp/redirect-to-app?url=' + encodeURIComponent(deep) + '&return_url=' + encodeURIComponent(window.location.href);
+          var tgWeb = window.Telegram && window.Telegram.WebApp;
+          // В Telegram WebView window.open часто блокируется, а location.href уводит со страницы мини-аппа —
+          // после возврата сбрасывается сессия и /api/miniapp/me может не загрузиться → «Ошибка загрузки».
+          if (tgWeb && tgWeb.openLink) {
+            try {
+              tgWeb.openLink(redirectUrl);
+              try {
+                setTimeout(function() {
+                  try { document.removeEventListener('visibilitychange', visHandler); } catch (e3) {}
+                  if (!wentHidden && typeof showLinkCopiedModal === 'function') showLinkCopiedModal(subUrl);
+                }, 950);
+              } catch (e4) {}
+              return;
+            } catch (eTg) {}
+          }
           var w = null;
           try { w = window.open(redirectUrl, '_blank'); } catch (e1) {}
           if (!w) {
