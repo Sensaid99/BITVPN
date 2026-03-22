@@ -11,6 +11,19 @@
 
 ---
 
+## 2026-03-17 — убран блок «Сейчас в Happ подключено» на главной
+
+### Запрос
+Убрать с главного экрана карточку «Сейчас в Happ подключено: N / M».
+
+### Что сделано
+- Удалены разметка `#main-devices-summary`, стили `.main-devices-summary*` и код в `renderSubsAndPayFromApi`. Файлы: `webapp/index.html`, `public/index.html`, `index.html`, `api/root_index.html`.
+
+### Проверить
+Деплой мини-аппа на Vercel.
+
+---
+
 ## 2026-03-17 (вторник)
 
 ### Запрос
