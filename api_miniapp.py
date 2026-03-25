@@ -544,12 +544,46 @@ def sub_redirect(install_code: str, request: Request):
         raise HTTPException(status_code=404, detail="Invalid or missing install code")
     try:
         from bot.config.settings import Config
-        base = (getattr(Config, "HAPP_SUBSCRIPTION_URL", None) or os.environ.get("HAPP_SUBSCRIPTION_URL") or "").strip().rstrip("/")
-        if not base:
+
+        def _parse_upstream_bases() -> list[str]:
+            """
+            Upstream базы подписок 3x-ui.
+            - HAPP_SUBSCRIPTION_URLS: список через запятую/пробел/перевод строки (предпочтительно)
+            - fallback: HAPP_SUBSCRIPTION_URL (одна база, как раньше)
+            """
+            raw = (
+                (os.environ.get("HAPP_SUBSCRIPTION_URLS") or "").strip()
+                or (getattr(Config, "HAPP_SUBSCRIPTION_URLS", None) or "").strip()
+            )
+            if raw:
+                items = []
+                for part in raw.replace("\n", ",").replace(" ", ",").split(","):
+                    p = (part or "").strip()
+                    if p:
+                        items.append(p.rstrip("/"))
+                # дедуп по порядку
+                out = []
+                seen = set()
+                for p in items:
+                    if p not in seen:
+                        out.append(p)
+                        seen.add(p)
+                return out
+            base1 = (getattr(Config, "HAPP_SUBSCRIPTION_URL", None) or os.environ.get("HAPP_SUBSCRIPTION_URL") or "").strip().rstrip("/")
+            return [base1] if base1 else []
+
+        bases = _parse_upstream_bases()
+        if not bases:
             raise HTTPException(status_code=503, detail="Subscription URL not configured")
-        if base.lower().startswith("happ://"):
+        if any((b or "").lower().startswith("happ://") for b in bases):
+            # Если в проде решат использовать happ://crypt* как upstream, то /sub/ прокси не подойдёт
             raise HTTPException(status_code=404, detail="Direct Happ link in use; /sub/ redirect not available")
-        target = f"{base}?installid={code}" if "?" not in base else f"{base}&installid={code}"
+
+        def _build_target(base_url: str) -> str:
+            return f"{base_url}?installid={code}" if "?" not in base_url else f"{base_url}&installid={code}"
+
+        # Первый base используем как fallback для RedirectResponse (как раньше)
+        target = _build_target(bases[0])
         display_name = (getattr(Config, "SUBSCRIPTION_DISPLAY_NAME", None) or os.environ.get("SUBSCRIPTION_DISPLAY_NAME") or "BIT VPN").strip()
         description = (getattr(Config, "SUBSCRIPTION_DESCRIPTION", None) or os.environ.get("SUBSCRIPTION_DESCRIPTION") or "").strip() or None
         if description and "\\n" in description:
@@ -557,21 +591,63 @@ def sub_redirect(install_code: str, request: Request):
         # Проксируем контент подписки, чтобы клиенты (Happ и др.) получали конфиг без перехода по редиректу
         provider_code = (getattr(Config, "HAPP_PROVIDER_CODE", None) or os.environ.get("HAPP_PROVIDER_CODE") or "").strip()
         try:
-            r = requests.get(target, timeout=15, headers={"User-Agent": request.headers.get("User-Agent", "BitVPN-MiniApp/1.0")})
-            if r.status_code == 200 and r.content:
-                content = _rewrite_subscription_remark(r.content, display_name, description, provider_id=provider_code or None)
-                # Happ на iOS иногда капризничает с обработкой content-type/заголовков, поэтому
-                # явно задаём text/plain + Content-Disposition.
+            # 1) Забираем подписки со всех upstream’ов
+            decoded_lines: list[str] = []
+            ua = request.headers.get("User-Agent", "BitVPN-MiniApp/1.0")
+            for base in bases:
+                t = _build_target(base)
+                try:
+                    r = requests.get(t, timeout=15, headers={"User-Agent": ua})
+                except Exception as e:
+                    logger.debug("sub proxy upstream error base=%s***: %s", (base[:30] if base else ""), e)
+                    continue
+                if r.status_code != 200 or not r.content:
+                    logger.debug("sub proxy upstream non-200 base=%s*** status=%s", (base[:30] if base else ""), r.status_code)
+                    continue
+                # 2) Применяем единые remark/описание и providerid к КАЖДОЙ части
+                rewritten_b64 = _rewrite_subscription_remark(r.content, display_name, description, provider_id=provider_code or None)
+                try:
+                    rewritten_text = base64.standard_b64decode(rewritten_b64).decode("utf-8", errors="replace")
+                except Exception:
+                    continue
+                for line in rewritten_text.replace("\r", "\n").split("\n"):
+                    s = (line or "").strip()
+                    if not s:
+                        continue
+                    # Чтобы providerid был ровно один раз в начале общего файла
+                    if s.lower().startswith("#providerid"):
+                        continue
+                    decoded_lines.append(s)
+
+            # 3) Склеиваем и дедупаем ноды (vless/vmess/trojan/ss), сохраняя порядок
+            if decoded_lines:
+                node_prefixes = ("vless://", "vmess://", "trojan://", "ss://")
+                merged: list[str] = []
+                seen_nodes = set()
+                for s in decoded_lines:
+                    if s.startswith(node_prefixes):
+                        if s in seen_nodes:
+                            continue
+                        seen_nodes.add(s)
+                        merged.append(s)
+                    else:
+                        # прочие строки (если вдруг есть) оставляем, но тоже без дублей
+                        key = ("misc", s)
+                        if key in seen_nodes:
+                            continue
+                        seen_nodes.add(key)
+                        merged.append(s)
+
+                text = "\n".join(merged)
+                if provider_code:
+                    text = "#providerid " + provider_code + "\n" + text
+                content_str = base64.standard_b64encode(text.encode("utf-8")).decode("utf-8")
+
                 out_headers = {}
                 if provider_code:
                     out_headers["providerid"] = provider_code
                 out_headers["Content-Disposition"] = f'attachment; filename="{code}.txt"'
                 out_headers["Cache-Control"] = "no-store"
-
-                content_str = content
-                if isinstance(content, (bytes, bytearray)):
-                    content_str = content.decode("utf-8", errors="ignore")
-
                 return Response(
                     content=content_str,
                     status_code=200,
