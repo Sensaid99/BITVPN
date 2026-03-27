@@ -47,6 +47,7 @@ from bot.handlers.admin import (
     admin_broadcast_confirm
 )
 from bot.utils.helpers import setup_logging
+from bot.utils.telegram_notify import notify_admins
 
 # Setup logging
 setup_logging()
@@ -133,50 +134,28 @@ def create_application() -> Application:
 
 
 async def error_handler(update: object, context) -> None:
-    """Логируем ошибки и отправляем пользователю сообщение. В лог пишем причину для отладки."""
+    """Логируем ошибку; клиентам не пишем технические тексты — только админам."""
     import traceback
     err = context.error
     err_type = type(err).__name__
     tb = "".join(traceback.format_exception(type(err), err, err.__traceback__))
-    # Контекст: что делал пользователь (чтобы искать причину "через раз")
     ctx_info = ""
+    uid = ""
     if update is not None:
+        if hasattr(update, "effective_user") and update.effective_user:
+            uid = str(update.effective_user.id)
         if hasattr(update, "callback_query") and update.callback_query is not None:
-            ctx_info = f" callback_data={getattr(update.callback_query, 'data', '')}"
+            ctx_info = f"callback_data={getattr(update.callback_query, 'data', '')}"
         elif hasattr(update, "message") and update.message is not None:
-            ctx_info = f" message_text={getattr(update.message, 'text', '') or '(не текст)'}"
-    # Тип исключения в первой строке — удобно искать в journalctl при ошибке /start
-    logger.error("[%s] Exception while handling an update%s: %s\n%s", err_type, ctx_info, err, tb)
-    
-    support = getattr(Config, "SUPPORT_USERNAME", None) or "HelpBit_bot"
-    support = support.lstrip("@")
-    # Временные сетевые/БД ошибки — дружелюбнее формулировка
-    err_name = type(context.error).__name__
-    err_msg = str(context.error).lower()
-    is_temporary = (
-        "Timeout" in err_name or "Network" in err_name or "Connection" in err_name
-        or "OperationalError" in err_name
-        or "timeout" in err_msg or "connection" in err_msg
-    )
-    if is_temporary:
-        user_text = (
-            "⚠️ Временная ошибка связи.\n\n"
-            "Попробуйте через минуту. Если повторится — напишите в поддержку: @{support}"
-        ).format(support=support)
-    else:
-        user_text = (
-            "❌ Произошла техническая ошибка. Мы уже работаем над её устранением.\n\n"
-            "Попробуйте позже или обратитесь в поддержку: @{support}"
-        ).format(support=support)
-    
+            ctx_info = f"message_text={getattr(update.message, 'text', '') or '(не текст)'}"
+
+    logger.error("[%s] Exception while handling an update user=%s %s: %s\n%s", err_type, uid, ctx_info, err, tb)
+
+    body = f"user_id={uid}\n{ctx_info}\n\n{err_type}: {err}\n\n{tb}"
     try:
-        if update and hasattr(update, "effective_chat") and update.effective_chat:
-            await context.bot.send_message(
-                chat_id=update.effective_chat.id,
-                text=user_text
-            )
+        await notify_admins(context.bot, "Ошибка обработки апдейта", body)
     except Exception as e:
-        logger.error("Failed to send error message to user: %s", e)
+        logger.error("notify_admins failed: %s", e)
 
 
 async def post_init(application: Application) -> None:

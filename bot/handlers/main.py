@@ -34,6 +34,7 @@ from bot.utils.helpers import (
     escape_html,
 )
 from bot.utils.payments import payment_manager, PaymentError
+from bot.utils.telegram_notify import notify_admins
 from bot.utils import happ_client
 from bot.utils.subscription_card import build_my_subscription_card, inline_keyboard_dict_to_ptb, link_for_user_display
 from locales.ru import get_message, format_price_per_month, format_savings
@@ -327,17 +328,16 @@ async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
             parse_mode='HTML'
         )
     except DataError as e:
-        logger.exception(
-            "start_command: DataError — проверьте в PostgreSQL: "
-            "ALTER TABLE public.users ALTER COLUMN telegram_id TYPE BIGINT; (%s)",
-            e,
-        )
+        logger.exception("start_command: DataError %s", e)
         try:
-            await msg.reply_text(
-                "⚠️ Ошибка сохранения профиля. Попробуйте через минуту или напишите в поддержку."
+            uid = update.effective_user.id if update.effective_user else "?"
+            await notify_admins(
+                context.bot,
+                "DataError при /start (часто BIGINT для telegram_id)",
+                f"user_id={uid}\n\n{e!s}",
             )
         except Exception as e2:
-            logger.error("start_command: could not send DataError reply: %s", e2)
+            logger.error("start_command: notify_admins failed: %s", e2)
 
 
 async def show_plans(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
