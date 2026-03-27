@@ -22,6 +22,11 @@
 ### Проверить
 После деплоя перезапуск `vpn-bot`, повторный `/start` от пользователя с большим ID; при необходимости миграция вручную в Neon.
 
+### Дополнение (если всё ещё «тишина»)
+- Миграция через `current_schema()` могла не тронуть колонку — заменено на **`DO $$` + `public.users`** и исправлен синтаксис `END;` в PL/pgSQL.
+- В **`/start`**: `effective_message`, перехват **`sqlalchemy.exc.DataError`**, ответ пользователю + лог с подсказкой про BIGINT.
+- Ручной SQL: **`deploy/postgres-alter-telegram-id-bigint.sql`**.
+
 ---
 
 ## 2026-03-27 — бот «молчит» на /start: webhook vs polling

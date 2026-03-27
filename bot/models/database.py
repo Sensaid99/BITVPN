@@ -233,33 +233,34 @@ class DatabaseManager:
         self.SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=self.engine)
     
     def _migrate_postgres_telegram_id_bigint(self) -> None:
-        """ALTER users.telegram_id INTEGER → BIGINT (Telegram ID может быть > 2147483647)."""
+        """ALTER public.users.telegram_id INTEGER → BIGINT (Telegram ID может быть > 2147483647)."""
         logger = logging.getLogger(__name__)
+        if self.engine.dialect.name != "postgresql":
+            return
         try:
-            insp = inspect(self.engine)
-            if "users" not in insp.get_table_names():
-                return
-            with self.engine.connect() as conn:
-                row = conn.execute(
-                    text(
-                        "SELECT data_type FROM information_schema.columns "
-                        "WHERE table_schema = current_schema() AND table_name = 'users' "
-                        "AND column_name = 'telegram_id'"
-                    )
-                ).fetchone()
-            if not row or not row[0]:
-                return
-            dt = str(row[0]).lower()
-            if dt in ("bigint", "int8"):
-                return
-            if dt not in ("integer", "int4", "int"):
-                logger.warning("users.telegram_id has unexpected type %s; skip BIGINT migration", row[0])
-                return
+            # Явно public: на Neon/current_schema() иногда не совпадает с таблицей — миграция молча пропускалась
             with self.engine.begin() as conn:
-                conn.execute(text("ALTER TABLE users ALTER COLUMN telegram_id TYPE BIGINT"))
-            logger.info("Migrated users.telegram_id to BIGINT (large Telegram user IDs)")
+                conn.execute(
+                    text(
+                        """
+                        DO $migrate$
+                        BEGIN
+                            IF EXISTS (
+                                SELECT 1 FROM information_schema.columns
+                                WHERE table_schema = 'public' AND table_name = 'users'
+                                  AND column_name = 'telegram_id'
+                                  AND data_type IN ('integer', 'smallint')
+                            ) THEN
+                                ALTER TABLE public.users ALTER COLUMN telegram_id TYPE BIGINT;
+                            END IF;
+                        END;
+                        $migrate$;
+                        """
+                    )
+                )
+            logger.info("PostgreSQL: users.telegram_id checked → BIGINT (public.users)")
         except Exception as e:
-            logger.warning("PostgreSQL telegram_id BIGINT migration skipped or failed: %s", e)
+            logger.error("PostgreSQL telegram_id BIGINT migration failed: %s", e, exc_info=True)
 
     def _schema_ok(self) -> bool:
         """Проверка, что таблица users имеет нужную схему (telegram_id)."""

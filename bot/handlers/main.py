@@ -9,6 +9,7 @@ from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup, WebAppI
 from telegram.ext import ContextTypes, ConversationHandler
 from telegram.error import BadRequest
 from sqlalchemy.orm import sessionmaker, joinedload
+from sqlalchemy.exc import DataError
 
 from bot.models.database import DatabaseManager, User, Subscription, Payment, ReferralPayout
 from bot.config.settings import Config, SUBSCRIPTION_PLANS, PAYMENT_METHODS, calc_subscription_price
@@ -216,115 +217,127 @@ def _is_db_retryable_error(exc: Exception) -> bool:
 
 async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """Handle /start command"""
-    user = None
-    for attempt in range(2):
-        try:
-            user = get_or_create_user(update.effective_user)
-            break
-        except Exception as e:
-            if attempt == 0 and _is_db_retryable_error(e):
-                logger.warning("start_command: DB/connection error on first attempt, retrying: %s", e)
-                await asyncio.sleep(1.5)
-                continue
-            raise
-    if user is None:
-        raise RuntimeError("get_or_create_user failed")
-    if user.is_admin:
-        ensure_admin_unlimited_subscription(user.telegram_id)
-        user = get_or_create_user(update.effective_user)
-    
-    # Deep link: «Моя подписка» — карточка со ссылкой и кнопками (как после оплаты)
-    if context.args and context.args[0].lower() == 'my_subscription':
-        if user.is_admin and not user.has_active_subscription:
+    msg = update.effective_message
+    if not msg:
+        logger.error("start_command: no effective_message (update_id=%s)", getattr(update, "update_id", None))
+        return
+    try:
+        user = None
+        for attempt in range(2):
+            try:
+                user = get_or_create_user(update.effective_user)
+                break
+            except Exception as e:
+                if attempt == 0 and _is_db_retryable_error(e):
+                    logger.warning("start_command: DB/connection error on first attempt, retrying: %s", e)
+                    await asyncio.sleep(1.5)
+                    continue
+                raise
+        if user is None:
+            raise RuntimeError("get_or_create_user failed")
+        if user.is_admin:
             ensure_admin_unlimited_subscription(user.telegram_id)
             user = get_or_create_user(update.effective_user)
-        if not user.has_active_subscription:
-            await update.message.reply_text("❌ Нет активной подписки.", parse_mode='HTML')
-            return
-        sub = user.active_subscription
-        # Без запроса Happ list-install — иначе ответ на /start задерживается на секунды (синхронный HTTP).
-        card_text, card_kb = build_my_subscription_card(sub, fetch_device_counts=False)
-        await update.message.reply_text(
-            card_text,
-            reply_markup=inline_keyboard_dict_to_ptb(card_kb),
-            parse_mode='HTML',
-            disable_web_page_preview=True,
-        )
-        return
 
-    # Deep link из Mini App «Настроить здесь» — одно сообщение «Настроить VPN» с кнопками (без /start и без файлов)
-    if context.args and context.args[0].lower() == 'config':
-        if user.is_admin and not user.has_active_subscription:
-            ensure_admin_unlimited_subscription(user.telegram_id)
-            user = get_or_create_user(update.effective_user)
-        if not user.has_active_subscription:
-            await update.message.reply_text(get_message('error_no_subscription'), parse_mode='HTML')
+        # Deep link: «Моя подписка» — карточка со ссылкой и кнопками (как после оплаты)
+        if context.args and context.args[0].lower() == 'my_subscription':
+            if user.is_admin and not user.has_active_subscription:
+                ensure_admin_unlimited_subscription(user.telegram_id)
+                user = get_or_create_user(update.effective_user)
+            if not user.has_active_subscription:
+                await msg.reply_text("❌ Нет активной подписки.", parse_mode='HTML')
+                return
+            sub = user.active_subscription
+            card_text, card_kb = build_my_subscription_card(sub, fetch_device_counts=False)
+            await msg.reply_text(
+                card_text,
+                reply_markup=inline_keyboard_dict_to_ptb(card_kb),
+                parse_mode='HTML',
+                disable_web_page_preview=True,
+            )
             return
-        await send_setup_device_choice(context.bot, update.effective_chat.id)
-        return
 
-    # Ссылка из уведомления об истечении: pay_1month_1, pay_3month_1 и т.д. — открыть приложение для оплаты
-    if context.args and context.args[0].lower().startswith('pay_'):
+        if context.args and context.args[0].lower() == 'config':
+            if user.is_admin and not user.has_active_subscription:
+                ensure_admin_unlimited_subscription(user.telegram_id)
+                user = get_or_create_user(update.effective_user)
+            if not user.has_active_subscription:
+                await msg.reply_text(get_message('error_no_subscription'), parse_mode='HTML')
+                return
+            await send_setup_device_choice(context.bot, update.effective_chat.id)
+            return
+
+        if context.args and context.args[0].lower().startswith('pay_'):
+            webapp_url = get_webapp_url()
+            keyboard = [[InlineKeyboardButton(get_message('btn_pay_subscription'), web_app=WebAppInfo(url=webapp_url))]]
+            await msg.reply_text(
+                get_message('renew_via_app'),
+                reply_markup=InlineKeyboardMarkup(keyboard),
+                parse_mode='HTML',
+            )
+            return
+
+        if context.args and user.referrer_id is None:
+            referral_code = context.args[0]
+            session = db_manager.get_session()
+            try:
+                referrer = session.query(User).filter_by(referral_code=referral_code).first()
+                if referrer and referrer.telegram_id != user.telegram_id:
+                    user.referrer_id = referrer.id
+                    referrer.total_referrals += 1
+                    session.commit()
+                    logger.info(f"User {user.telegram_id} referred by {referrer.telegram_id}")
+                    try:
+                        await context.bot.send_message(
+                            chat_id=referrer.telegram_id,
+                            text=get_message('success_referral_registered')
+                        )
+                    except Exception as e:
+                        logger.warning(f"Failed to notify referrer: {e}")
+            except Exception:
+                raise
+            finally:
+                session.close()
+
+        is_returning = user.created_at < datetime.utcnow() - timedelta(hours=1)
         webapp_url = get_webapp_url()
-        keyboard = [[InlineKeyboardButton(get_message('btn_pay_subscription'), web_app=WebAppInfo(url=webapp_url))]]
-        await update.message.reply_text(
-            get_message('renew_via_app'),
-            reply_markup=InlineKeyboardMarkup(keyboard),
-            parse_mode='HTML',
-        )
-        return
+        support_username = (Config.SUPPORT_USERNAME or "").strip()
+        keyboard = [
+            [InlineKeyboardButton("📱 Открыть приложение", web_app=WebAppInfo(url=webapp_url))],
+            [InlineKeyboardButton("🌐 Канал BIT VPN", url="https://t.me/BitVpnProxy")],
+        ]
+        if support_username:
+            support_url = f"https://t.me/{support_username.lstrip('@')}"
+            keyboard.append([InlineKeyboardButton("💬 Поддержка", url=support_url)])
+        else:
+            keyboard.append([InlineKeyboardButton(get_message('btn_support'), callback_data='support')])
+        reply_markup = InlineKeyboardMarkup(keyboard)
 
-    # Handle referral code
-    if context.args and user.referrer_id is None:
-        referral_code = context.args[0]
-        session = db_manager.get_session()
+        if is_returning:
+            message_text = get_message('welcome_back_short', name=user.first_name or 'друг')
+        else:
+            message_text = get_message('welcome_short')
+
+        if user.has_active_subscription and user.active_subscription:
+            message_text += _happ_devices_html_line(user.active_subscription)
+
+        await msg.reply_text(
+            message_text,
+            reply_markup=reply_markup,
+            parse_mode='HTML'
+        )
+    except DataError as e:
+        logger.exception(
+            "start_command: DataError — проверьте в PostgreSQL: "
+            "ALTER TABLE public.users ALTER COLUMN telegram_id TYPE BIGINT; (%s)",
+            e,
+        )
         try:
-            referrer = session.query(User).filter_by(referral_code=referral_code).first()
-            if referrer and referrer.telegram_id != user.telegram_id:
-                user.referrer_id = referrer.id
-                referrer.total_referrals += 1
-                session.commit()
-                logger.info(f"User {user.telegram_id} referred by {referrer.telegram_id}")
-                try:
-                    await context.bot.send_message(
-                        chat_id=referrer.telegram_id,
-                        text=get_message('success_referral_registered')
-                    )
-                except Exception as e:
-                    logger.warning(f"Failed to notify referrer: {e}")
-        except Exception:
-            raise
-        finally:
-            session.close()
-    
-    # Краткое приветствие и две кнопки: Открыть приложение, Поддержка. Всё остальное — в мини-апп.
-    is_returning = user.created_at < datetime.utcnow() - timedelta(hours=1)
-    webapp_url = get_webapp_url()
-    support_username = (Config.SUPPORT_USERNAME or "").strip()
-    keyboard = [
-        [InlineKeyboardButton("📱 Открыть приложение", web_app=WebAppInfo(url=webapp_url))],
-        [InlineKeyboardButton("🌐 Канал BIT VPN", url="https://t.me/BitVpnProxy")],
-    ]
-    if support_username:
-        support_url = f"https://t.me/{support_username.lstrip('@')}"
-        keyboard.append([InlineKeyboardButton("💬 Поддержка", url=support_url)])
-    else:
-        keyboard.append([InlineKeyboardButton(get_message('btn_support'), callback_data='support')])
-    reply_markup = InlineKeyboardMarkup(keyboard)
-    
-    if is_returning:
-        message_text = get_message('welcome_back_short', name=user.first_name or 'друг')
-    else:
-        message_text = get_message('welcome_short')
-    
-    if user.has_active_subscription and user.active_subscription:
-        message_text += _happ_devices_html_line(user.active_subscription)
-    
-    await update.message.reply_text(
-        message_text,
-        reply_markup=reply_markup,
-        parse_mode='HTML'
-    )
+            await msg.reply_text(
+                "⚠️ Ошибка сохранения профиля. Попробуйте через минуту или напишите в поддержку."
+            )
+        except Exception as e2:
+            logger.error("start_command: could not send DataError reply: %s", e2)
 
 
 async def show_plans(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
