@@ -23,6 +23,11 @@
 ### Проверить на VPS
 `cd /opt/vpn-bot && git pull && ls -la website/index.html && sudo systemctl restart miniapp-api` — затем в браузере обновить страницу без кэша (Ctrl+F5).
 
+### Если после pull всё ещё «VPN — Быстро и безопасно» (webapp)
+- В логах при старте/первом запросе: `serve_webapp: /opt/vpn-bot/website/index.html` или предупреждение, что нет файлов.
+- В `.env` можно указать `WEBSITE_INDEX_PATH=/opt/vpn-bot/website/index.html`.
+- В коде: базовый каталог через `os.path.realpath(__file__)`, чтобы symlink не ломал путь к `website/`.
+
 ---
 
 ## 2026-03-25 — запуск полноценного сайта на домене
