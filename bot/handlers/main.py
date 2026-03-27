@@ -4,6 +4,7 @@ import asyncio
 import logging
 import os
 import re
+import time
 from datetime import datetime, timedelta
 from urllib.parse import quote
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup, WebAppInfo, KeyboardButton, ReplyKeyboardMarkup, ReplyKeyboardRemove
@@ -442,13 +443,19 @@ async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
             )
 
         try:
+            logger.info("start_command: send_message begin chat_id=%s", cid)
+            _t_send = time.monotonic()
             await context.bot.send_message(
                 chat_id=cid,
                 text=message_text,
                 reply_markup=reply_markup,
                 parse_mode='HTML',
             )
-            logger.info("start_command: send_message ok chat_id=%s", cid)
+            logger.info(
+                "start_command: send_message ok chat_id=%s dt_s=%.2f",
+                cid,
+                time.monotonic() - _t_send,
+            )
         except BadRequest as e:
             if "parse" in str(e).lower() or "entity" in str(e).lower():
                 logger.warning("start_command: HTML parse failed, sending plain text: %s", e)

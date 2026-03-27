@@ -4,6 +4,37 @@
 
 ---
 
+## 2026-03-27 — /start: много sending reply, нет send_message ok (пул HTTP = 1)
+
+### Причина
+**`HTTPXRequest`** в PTB по умолчанию **`connection_pool_size=1`**. При **`concurrent_updates(True)`** long polling **getUpdates** и параллельные **sendMessage** делят одно соединение — очередь в пуле, ответы не приходят, в логе нет **`send_message ok`**.
+
+### Что сделано
+- **`bot/main.py`**: **`connection_pool_size`** из **`TG_HTTP_POOL_SIZE`** (по умолчанию **16**, минимум **2**); стартовый лог **`TG_HTTP_TIMEOUT`** и размер пула.
+- **`bot/handlers/main.py`**: лог **`send_message begin`** перед **`await send_message`**.
+- **`.env.example`**: комментарий про **`TG_HTTP_POOL_SIZE`**.
+
+### Проверить
+**`git pull`** на VPS, **`restart vpn-bot`**, в логе при старте строка **`Telegram API: TG_HTTP_TIMEOUT=... connection_pool_size=16`**; после **`/start`** — **`send_message begin`** → **`send_message ok`** с **`dt_s`**.
+
+---
+
+## 2026-03-27 — /start: нет send_message ok, пауза ~15 с
+
+### Наблюдение
+В логе есть **`sending reply`**, следующий **`/start`** через **~15 с**, строки **`send_message ok`** в вставке нет.
+
+### Вероятная причина
+В **`.env`** на VPS задано **`TG_HTTP_TIMEOUT=15`** — HTTP к **api.telegram.org** обрывается по таймауту; ответ пользователю может прийти только из фолбэка или позже.
+
+### Что сделано
+- **`bot/handlers/main.py`**: в лог **`send_message ok`** добавлено **`dt_s`** (секунды до ответа Telegram).
+
+### Проверить на VPS
+Убрать жёсткие **15** или выставить **`TG_HTTP_TIMEOUT=90`**, **`systemctl restart vpn-bot`**, смотреть **`dt_s`** в логе.
+
+---
+
 ## 2026-03-27 — send_message TIMEOUT 15 с на VPS
 
 ### Причина

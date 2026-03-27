@@ -63,14 +63,25 @@ def create_application() -> Application:
     # Таймауты HTTP к api.telegram.org: на части VPS дефолт ~5 с даёт TimedOut при getMe() на старте
     # Медленный маршрут VPS→api.telegram.org: 30 с часто даёт ложные таймауты на sendMessage
     _tg_t = float(os.getenv("TG_HTTP_TIMEOUT", "60"))
+    # Дефолт в PTB — 1 соединение: при concurrent_updates + getUpdates + sendMessage второй запрос
+    # ждёт освобождения пула (минутами без ok в логе). Поднимаем пул.
+    _pool = int(os.getenv("TG_HTTP_POOL_SIZE", "16"))
+    if _pool < 2:
+        _pool = 2
     # Прокси (если с VPS до api.telegram.org нет маршрута / блок — см. TG_PROXY или HTTPS_PROXY в .env)
     _proxy = (os.getenv("TG_PROXY") or os.getenv("HTTPS_PROXY") or os.getenv("ALL_PROXY") or "").strip() or None
     _request = HTTPXRequest(
+        connection_pool_size=_pool,
         connect_timeout=_tg_t,
         read_timeout=_tg_t,
         write_timeout=_tg_t,
         pool_timeout=_tg_t,
         proxy=_proxy,
+    )
+    logger.info(
+        "Telegram API: TG_HTTP_TIMEOUT=%.0fs, connection_pool_size=%s",
+        _tg_t,
+        _pool,
     )
     if _proxy:
         logger.info("Telegram API: используется прокси (TG_PROXY / HTTPS_PROXY / ALL_PROXY)")
