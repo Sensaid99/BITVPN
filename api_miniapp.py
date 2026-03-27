@@ -576,6 +576,23 @@ def _rewrite_subscription_remark(raw: bytes, display_name: str, description: str
     return base64.standard_b64encode(text.encode("utf-8"))
 
 
+def _subscription_node_names_list() -> list[str]:
+    """
+    Подписи для нод по порядку баз в HAPP_SUBSCRIPTION_URLS (через запятую).
+    Совпадает по индексу с каждым upstream: первый URL — первое имя, и т.д.
+    """
+    raw = (os.environ.get("HAPP_SUBSCRIPTION_NODE_NAMES") or "").strip()
+    try:
+        from bot.config.settings import Config
+
+        raw = raw or (getattr(Config, "HAPP_SUBSCRIPTION_NODE_NAMES", None) or "").strip()
+    except Exception:
+        pass
+    if not raw:
+        return []
+    return [p.strip() for p in raw.replace("\n", ",").split(",") if (p or "").strip()]
+
+
 def _happ_subscription_upstream_bases() -> list[str]:
     """
     Базовые URL подписок 3x-ui для GET /sub/<CODE> (как в .env).
@@ -613,6 +630,38 @@ def _build_sub_install_target(base_url: str, install_code: str) -> str:
     return f"{b}?installid={install_code}" if "?" not in b else f"{b}&installid={install_code}"
 
 
+def _subscription_upstream_user_agent() -> str:
+    """
+    User-Agent для запросов к 3x-ui при сборке подписки.
+    Не подставляем UA клиента (Happ на телефоне): часть панелей отдаёт одну ноду для «мобильного» UA
+    и полный список для десктопного — на ПК в браузере видели 2 сервера, в Happ на телефоне — 1.
+    Переменная HAPP_SUBSCRIPTION_FETCH_UA — переопределение (например, если панель требует особый UA).
+    """
+    raw = (os.environ.get("HAPP_SUBSCRIPTION_FETCH_UA") or "").strip()
+    if raw:
+        return raw
+    try:
+        from bot.config.settings import Config
+
+        raw = (getattr(Config, "HAPP_SUBSCRIPTION_FETCH_UA", None) or "").strip()
+        if raw:
+            return raw
+    except Exception:
+        pass
+    return (
+        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
+        "(KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36 BitVPN-SubProxy/1.0"
+    )
+
+
+# Заголовки для GET /sub/ — кнопка «обновить» в Happ делает повторный запрос; не кэшировать ответ.
+_SUBSCRIPTION_RESPONSE_NO_CACHE = {
+    "Cache-Control": "no-store, no-cache, must-revalidate",
+    "Pragma": "no-cache",
+    "Expires": "0",
+}
+
+
 @app.get("/sub/{install_code:path}")
 def sub_redirect(install_code: str, request: Request):
     """
@@ -643,11 +692,13 @@ def sub_redirect(install_code: str, request: Request):
             description = description.replace("\\n", "\n")
         # Проксируем контент подписки, чтобы клиенты (Happ и др.) получали конфиг без перехода по редиректу
         provider_code = (getattr(Config, "HAPP_PROVIDER_CODE", None) or os.environ.get("HAPP_PROVIDER_CODE") or "").strip()
+        node_labels = _subscription_node_names_list()
+        multi_labels = len(node_labels) >= 2
         try:
-            # 1) Забираем подписки со всех upstream’ов
+            # 1) Забираем подписки со всех upstream’ов (UA фиксированный — см. _subscription_upstream_user_agent)
             decoded_lines: list[str] = []
-            ua = request.headers.get("User-Agent", "BitVPN-MiniApp/1.0")
-            for base in bases:
+            ua = _subscription_upstream_user_agent()
+            for idx, base in enumerate(bases):
                 t = _build_sub_install_target(base, code)
                 try:
                     r = requests.get(t, timeout=15, headers={"User-Agent": ua})
@@ -657,8 +708,15 @@ def sub_redirect(install_code: str, request: Request):
                 if r.status_code != 200 or not r.content:
                     logger.debug("sub proxy upstream non-200 base=%s*** status=%s", (base[:30] if base else ""), r.status_code)
                     continue
-                # 2) Применяем единые remark/описание и providerid к КАЖДОЙ части
-                rewritten_b64 = _rewrite_subscription_remark(r.content, display_name, description, provider_id=provider_code or None)
+                label = display_name
+                if idx < len(node_labels) and node_labels[idx]:
+                    label = node_labels[idx]
+                # При нескольких своих именах описание (поддержка, бот) — только у первого upstream, иначе дубли в каждой ноде
+                desc_part = description
+                if multi_labels and idx > 0:
+                    desc_part = None
+                # 2) Remark/описание и providerid к части от этого upstream
+                rewritten_b64 = _rewrite_subscription_remark(r.content, label, desc_part, provider_id=provider_code or None)
                 try:
                     rewritten_text = base64.standard_b64decode(rewritten_b64).decode("utf-8", errors="replace")
                 except Exception:
@@ -696,11 +754,10 @@ def sub_redirect(install_code: str, request: Request):
                     text = "#providerid " + provider_code + "\n" + text
                 content_str = base64.standard_b64encode(text.encode("utf-8")).decode("utf-8")
 
-                out_headers = {}
+                out_headers = dict(_SUBSCRIPTION_RESPONSE_NO_CACHE)
                 if provider_code:
                     out_headers["providerid"] = provider_code
                 out_headers["Content-Disposition"] = f'attachment; filename="{code}.txt"'
-                out_headers["Cache-Control"] = "no-store"
                 return Response(
                     content=content_str,
                     status_code=200,
@@ -709,7 +766,7 @@ def sub_redirect(install_code: str, request: Request):
                 )
         except Exception as e:
             logger.debug("sub proxy fetch failed, fallback to redirect: %s", e)
-        return RedirectResponse(url=target, status_code=302)
+        return RedirectResponse(url=target, status_code=302, headers=dict(_SUBSCRIPTION_RESPONSE_NO_CACHE))
     except HTTPException:
         raise
     except Exception as e:
@@ -1158,17 +1215,26 @@ def debug_sub_content(install_code: str = ""):
                     n += 1
             return n
 
-        for base in bases:
+        ua_dbg = _subscription_upstream_user_agent()
+        node_labels = _subscription_node_names_list()
+        multi_labels = len(node_labels) >= 2
+        for idx, base in enumerate(bases):
             target = _build_sub_install_target(base, code)
             try:
-                r = requests.get(target, timeout=15, headers={"User-Agent": "BitVPN-MiniApp/1.0"})
+                r = requests.get(target, timeout=15, headers={"User-Agent": ua_dbg})
             except Exception as ex:
                 per_upstream.append({"base": base.split("?")[0][:48] + "…", "status": None, "nodes": 0, "error": str(ex)[:120]})
                 continue
             st = r.status_code
             nodes = 0
+            label = display_name
+            if idx < len(node_labels) and node_labels[idx]:
+                label = node_labels[idx]
+            desc_part = description
+            if multi_labels and idx > 0:
+                desc_part = None
             if st == 200 and r.content:
-                rw = _rewrite_subscription_remark(r.content, display_name, description, provider_id=provider_code or None)
+                rw = _rewrite_subscription_remark(r.content, label, desc_part, provider_id=provider_code or None)
                 try:
                     dec = base64.standard_b64decode(rw).decode("utf-8", errors="replace")
                     nodes = _count_nodes(dec)

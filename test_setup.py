@@ -29,7 +29,6 @@ def test_project_structure():
         'requirements.txt',
         '.env.example',
         'README.md',
-        'demo_bot.py'
     ]
     
     missing_files = []
@@ -175,8 +174,6 @@ def main():
         print("🎉 Все тесты пройдены! Бот готов к запуску.")
         print("\n🚀 Для запуска выполните:")
         print("python bot/main.py")
-        print("\n📋 Или запустите демонстрацию:")
-        print("python demo_bot.py")
     else:
         print("⚠️  Некоторые тесты не пройдены. Исправьте ошибки перед запуском.")
         print("\n📖 См. README.md для инструкций по настройке")

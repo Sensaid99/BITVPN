@@ -48,11 +48,15 @@ class Config:
     HAPP_SUBSCRIPTION_URL = (os.getenv('HAPP_SUBSCRIPTION_URL') or '').strip() or None
     # Несколько upstream подписок 3x-ui (через запятую) — api_miniapp /sub/<CODE> склеивает ноды в одну выдачу для Happ
     HAPP_SUBSCRIPTION_URLS = (os.getenv('HAPP_SUBSCRIPTION_URLS') or '').strip() or None
+    # Опционально: User-Agent для запросов API к 3x-ui при сборке /sub/ (иначе фиксированный «десктопный»)
+    HAPP_SUBSCRIPTION_FETCH_UA = (os.getenv('HAPP_SUBSCRIPTION_FETCH_UA') or '').strip() or None
     # Если задан — пользователь получает ссылку вида https://этот-домен/sub/КОД (редирект), реальный URL подписки не светится
     HAPP_SUBSCRIPTION_REDIRECT_BASE = (os.getenv('HAPP_SUBSCRIPTION_REDIRECT_BASE') or '').strip() or None
     # Имя и описание подписки в приложении (Happ): подменяем ps/remark в контенте подписки при прокси через /sub/
     SUBSCRIPTION_DISPLAY_NAME = (os.getenv('SUBSCRIPTION_DISPLAY_NAME') or 'BIT VPN').strip() or 'BIT VPN'
     SUBSCRIPTION_DESCRIPTION = (os.getenv('SUBSCRIPTION_DESCRIPTION') or '').strip() or None
+    # Имена нод в Happ по порядку HAPP_SUBSCRIPTION_URLS (через запятую): «Wi‑Fi NL,Wi‑Fi FI». Пусто — везде SUBSCRIPTION_DISPLAY_NAME
+    HAPP_SUBSCRIPTION_NODE_NAMES = (os.getenv('HAPP_SUBSCRIPTION_NODE_NAMES') or '').strip() or None
     # В боте и мини-аппе показывать happ://crypt* вместо HTTPS (API crypto.happ.su); счётчик устройств считает по HTTPS из БД
     HAPP_ENCRYPT_SUBSCRIPTION_LINKS = (os.getenv('HAPP_ENCRYPT_SUBSCRIPTION_LINKS') or '').strip().lower() in ('1', 'true', 'yes')
 

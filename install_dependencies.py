@@ -51,8 +51,6 @@ def main():
         print("🎉 Все зависимости успешно установлены!")
         print("\n✅ Теперь вы можете запустить бота:")
         print("python bot/main.py")
-        print("\n📋 Или запустить демонстрацию:")
-        print("python demo_bot.py")
         return True
     else:
         print(f"⚠️ Не удалось установить {len(failed_packages)} пакетов:")
