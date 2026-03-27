@@ -2,6 +2,7 @@
 
 import asyncio
 import logging
+import os
 import re
 from datetime import datetime, timedelta
 from urllib.parse import quote
@@ -219,12 +220,11 @@ def get_or_create_user(telegram_user) -> User:
         # Всё, что нужно хендлеру из relationship, считаем пока session открыта (после close() lazy-load → DetachedInstanceError).
         # Не используем session.expunge — на части сборок SQLAlchemy он ломает коллекцию subscriptions.
         subs = list(user.subscriptions)
-        has_active = user.has_active_subscription
-        act_sub = user.active_subscription
-        devices_fragment = ""
-        if has_active and act_sub:
-            devices_fragment = _happ_devices_html_line(act_sub)
-        user.__dict__["_start_has_active"] = bool(has_active and act_sub)
+        # Только из списка subs — без свойств User (избегаем скрытых lazy-load на relationship)
+        act_sub = next((s for s in subs if s.is_active and not s.is_expired), None)
+        has_active = act_sub is not None
+        devices_fragment = _happ_devices_html_line(act_sub) if has_active and act_sub else ""
+        user.__dict__["_start_has_active"] = bool(has_active)
         user.__dict__["_start_devices_html"] = devices_fragment
         logger.info(
             "get_or_create_user: done telegram_id=%s subs=%s has_active=%s",
@@ -294,16 +294,34 @@ async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
         list(context.args or []),
     )
     try:
+        # send_chat_action к api.telegram.org иногда зависает на части VPS — не блокируем /start
         try:
-            await context.bot.send_chat_action(chat_id=msg.chat_id, action=ChatAction.TYPING)
-        except Exception:
+            await asyncio.wait_for(
+                context.bot.send_chat_action(chat_id=msg.chat_id, action=ChatAction.TYPING),
+                timeout=3.0,
+            )
+        except (asyncio.TimeoutError, Exception):
             pass
+        logger.info("start_command: before_db telegram_id=%s", eu.id if eu else None)
         user = None
+        db_timeout = float(os.getenv("START_DB_TIMEOUT", "60"))
         for attempt in range(2):
             try:
-                # Сессия создаётся внутри функции — не делим с другими потоками; не блокируем event loop.
-                user = await asyncio.to_thread(get_or_create_user, update.effective_user)
+                user = await asyncio.wait_for(
+                    asyncio.to_thread(get_or_create_user, update.effective_user),
+                    timeout=db_timeout,
+                )
                 break
+            except asyncio.TimeoutError:
+                logger.error(
+                    "start_command: get_or_create_user timed out after %ss (pool/БД?) telegram_id=%s",
+                    db_timeout,
+                    eu.id if eu else None,
+                )
+                await msg.reply_text(
+                    "❌ База данных не ответила вовремя. Попробуйте /start через минуту или проверьте PostgreSQL на сервере.",
+                )
+                return
             except Exception as e:
                 if attempt == 0 and _is_db_retryable_error(e):
                     logger.warning("start_command: DB/connection error on first attempt, retrying: %s", e)

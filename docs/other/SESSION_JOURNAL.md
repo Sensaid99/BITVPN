@@ -4,6 +4,33 @@
 
 ---
 
+## 2026-03-27 — /start: только первый лог в journalctl, нет user loaded
+
+### Причина (вероятные)
+- **`send_chat_action`** к Telegram без таймаута мог долго блокировать шаг до БД.
+- Зависание **`asyncio.to_thread(get_or_create_user)`** (пул потоков / PostgreSQL).
+- В **`get_or_create_user`** обращение к **`user.has_active_subscription`** через свойства User.
+
+### Что сделано
+- **`start_command`**: **`send_chat_action`** обёрнут в **`asyncio.wait_for(..., 3s)`**; лог **`start_command: before_db`**; **`get_or_create_user`** в **`wait_for`** (по умолчанию **60 с**, env **`START_DB_TIMEOUT`**) — при таймауте пользователю уходит текст про БД.
+- **`get_or_create_user`**: активная подписка считается из **`subs`** через **`is_active`/`is_expired`**, без свойств **`User`**.
+
+---
+
+## 2026-03-27 — два домена Happ в .env (api + add-domain)
+
+### Запрос
+Явно задать **api.happ-proxy.com** и вторую базу как **happ add domain** (как в примере env).
+
+### Что сделано
+- **`.env`**: исправлена перепутанная пара — **`HAPP_API_URL=https://api.happ-proxy.com`**, **`HAPP_ADD_DOMAIN_URL=https://happ-proxy.com`**; комментарии.
+- **`.env.example`**, **`bot/config/settings.py`**: уточнены комментарии про два URL.
+
+### Проверить
+На VPS синхронизировать **`.env`**, **`restart vpn-bot`** (и **miniapp-api** при необходимости).
+
+---
+
 ## 2026-03-27 — DetachedInstanceError: subscriptions после get_or_create_user (финал)
 
 ### Причина

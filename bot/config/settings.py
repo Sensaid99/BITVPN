@@ -39,11 +39,11 @@ class Config:
     # VPN Settings
     VPN_SERVER_URL = os.getenv('VPN_SERVER_URL')
     VPN_API_KEY = os.getenv('VPN_API_KEY')
-    # Happ: add-install отдаёт 404 на корне happ-proxy.com — используйте https://api.happ-proxy.com (проверка: curl …/api/add-install → 200)
+    # add-install: https://api.happ-proxy.com/... (на https://happ-proxy.com без api часто 404 на /api/add-install)
     HAPP_API_URL = (os.getenv('HAPP_API_URL') or 'https://api.happ-proxy.com').rstrip('/')
-    # Опционально: отдельный URL для list-install (счётчик «Подключено»). Если не задан — используется HAPP_API_URL.
+    # Опционально: только list-install (если отличается от HAPP_ADD_DOMAIN_URL)
     HAPP_LIST_INSTALL_URL = (os.getenv('HAPP_LIST_INSTALL_URL') or '').strip().rstrip('/') or None
-    # Вторая база Happ (часто https://happ-proxy.com): list-install, list-hwid, delete-hwid, add-domain — там, где api.happ-proxy.com не подходит
+    # Вторая база: list-install / list-hwid / delete-hwid / add-domain — часто https://happ-proxy.com (resolve_* в happ_client)
     HAPP_ADD_DOMAIN_URL = (os.getenv('HAPP_ADD_DOMAIN_URL') or '').strip().rstrip('/') or None
     HAPP_PROVIDER_CODE = (os.getenv('HAPP_PROVIDER_CODE') or '').strip() or None
     HAPP_AUTH_KEY = (os.getenv('HAPP_AUTH_KEY') or '').strip() or None
