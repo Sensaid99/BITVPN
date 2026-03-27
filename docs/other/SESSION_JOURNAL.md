@@ -11,6 +11,36 @@
 
 ---
 
+## 2026-03-27 — лендинг не деплоился: `website/` не был в репозитории
+
+### Причина
+- `website/index.html` лежал только локально и был **untracked** — в GitHub не попадал, на VPS после `git pull` файла не было (`ls: cannot access 'website/index.html'`). Тогда `api_miniapp` отдаёт следующий fallback — мини-приложение/заглушку («Bit VPN»).
+- Ветка `master` на remote отставала от `main`; серверы часто делают `git pull` по `master`.
+
+### Что сделано
+- Закоммичен и запушен `website/index.html`; ветка `master` на GitHub обновлена (fast-forward к `main`), чтобы обычный `git pull` на сервере подтянул лендинг.
+
+### Проверить на VPS
+`cd /opt/vpn-bot && git pull && ls -la website/index.html && sudo systemctl restart miniapp-api` — затем в браузере обновить страницу без кэша (Ctrl+F5).
+
+---
+
+## 2026-03-25 — запуск полноценного сайта на домене
+
+### Запрос
+Сделать отдельный современный сайт на `bitecosystem.ru` (не только mini app).
+
+### Что сделано
+- Добавлен новый лендинг: `website/index.html` в фирменной тёмной стилистике (matrix-fon, parallax, mockup, адаптив), тексты с акцентом на «Безопасный интернет».
+- Кнопки синхронизированы с действующим ботом/кабинетом; цены и username поддержки/бота подтягиваются из `GET /api/miniapp/plans`.
+- Добавлен endpoint `POST /api/site/register` (tg_username, email, phone) с валидацией и сохранением в `logs/site_leads.jsonl`.
+- В `api_miniapp.py` приоритет раздачи корня `/`: сначала `website/index.html`, затем fallback на `webapp/public`.
+
+### Проверить
+Задеплоить код на сервер `213.165.38.222`, перезапустить `miniapp-api`, открыть `https://bitecosystem.ru`.
+
+---
+
 ## 2026-03-25 — одна подписка, несколько серверов (3x-ui)
 
 ### Запрос

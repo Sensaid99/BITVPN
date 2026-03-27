@@ -13,6 +13,7 @@ import hmac
 import hashlib
 import logging
 import time
+import re
 from collections import defaultdict
 from urllib.parse import unquote, quote, urlparse, urlunparse
 from datetime import datetime, timedelta
@@ -116,6 +117,21 @@ def _rate_limit_remove_device(ip: str) -> bool:
     lst = _remove_device_hits[ip]
     lst[:] = [t for t in lst if now - t < window]
     if len(lst) >= _REMOVE_DEVICE_MAX:
+        return False
+    lst.append(now)
+    return True
+
+
+_site_register_hits: dict[str, list[float]] = defaultdict(list)
+_SITE_REGISTER_MAX = 20
+
+
+def _rate_limit_site_register(ip: str) -> bool:
+    now = time.time()
+    window = 60.0
+    lst = _site_register_hits[ip]
+    lst[:] = [t for t in lst if now - t < window]
+    if len(lst) >= _SITE_REGISTER_MAX:
         return False
     lst.append(now)
     return True
@@ -354,16 +370,46 @@ def config_for_miniapp():
 
 # Мини-приложение: на Vercel главная отдаётся из public/index.html (rewrite в vercel.json).
 # Если запрос всё же попал в функцию — отдаём HTML без FileResponse (чтобы не падать).
+_webapp_served_log = None
+_webapp_missing_warned = False
+
+
 def _read_webapp_html():
-    base = os.path.dirname(os.path.abspath(__file__))
-    for rel in ("webapp", "public"):
+    """
+    Корень /: сначала лендинг website/index.html, иначе webapp/public.
+    WEBSITE_INDEX_PATH (абсолютный путь к index.html) переопределяет поиск — удобно на VPS, если
+    репозиторий без папки website/ или api_miniapp.py не рядом с ней (symlink).
+    """
+    global _webapp_served_log, _webapp_missing_warned
+    base = os.path.dirname(os.path.realpath(__file__))
+    override = (os.getenv("WEBSITE_INDEX_PATH") or "").strip()
+    if override and os.path.isfile(override):
+        if _webapp_served_log != override:
+            logger.info("serve_webapp: WEBSITE_INDEX_PATH=%s", override)
+            _webapp_served_log = override
+        try:
+            with open(override, "r", encoding="utf-8") as f:
+                return f.read()
+        except Exception as e:
+            logger.warning("serve_webapp read %s: %s", override, e)
+    # Приоритет: полноценный сайт (website/) -> miniapp (webapp/public) как fallback.
+    for rel in ("website", "webapp", "public"):
         path = os.path.join(base, rel, "index.html")
         try:
             if os.path.isfile(path):
+                if _webapp_served_log != path:
+                    logger.info("serve_webapp: %s", path)
+                    _webapp_served_log = path
                 with open(path, "r", encoding="utf-8") as f:
                     return f.read()
         except Exception as e:
             logger.warning("serve_webapp read %s: %s", path, e)
+    if not _webapp_missing_warned:
+        logger.warning(
+            "serve_webapp: нет index.html (website/webapp/public) в %s — сделайте git pull с website/ или задайте WEBSITE_INDEX_PATH в .env",
+            base,
+        )
+        _webapp_missing_warned = True
     return None
 
 
@@ -1695,6 +1741,57 @@ async def miniapp_create_payment(request: Request):
             status_code=500,
             detail="Ошибка при создании платежа. Укажите DATABASE_URL и BOT_TOKEN в настройках или запустите API на своём сервере (ЛОГИ_API_НА_СЕРВЕРЕ.txt)."
         )
+
+
+@app.post("/api/site/register")
+async def site_register(request: Request):
+    """
+    Простая регистрация/лид с сайта:
+    - tg_username
+    - email
+    - phone
+    """
+    if not _rate_limit_site_register(_client_ip(request)):
+        raise HTTPException(status_code=429, detail="Слишком много запросов. Подождите минуту.")
+    try:
+        body = await request.json()
+    except Exception:
+        raise HTTPException(status_code=400, detail="Invalid JSON")
+
+    tg_username = (body.get("tg_username") or "").strip().lstrip("@")
+    email = (body.get("email") or "").strip()
+    phone = (body.get("phone") or "").strip()
+
+    if not tg_username or not email or not phone:
+        raise HTTPException(status_code=400, detail="Заполните tg_username, email и phone")
+    if not re.match(r"^[a-zA-Z0-9_]{4,64}$", tg_username):
+        raise HTTPException(status_code=400, detail="Некорректный username Telegram")
+    if not re.match(r"^[^\s@]+@[^\s@]+\.[^\s@]+$", email):
+        raise HTTPException(status_code=400, detail="Некорректный email")
+    if not re.match(r"^[+\d][\d\s()\-]{7,24}$", phone):
+        raise HTTPException(status_code=400, detail="Некорректный телефон")
+
+    base_dir = os.path.dirname(os.path.abspath(__file__))
+    logs_dir = os.path.join(base_dir, "logs")
+    os.makedirs(logs_dir, exist_ok=True)
+    leads_file = os.path.join(logs_dir, "site_leads.jsonl")
+
+    payload = {
+        "created_at": datetime.utcnow().isoformat() + "Z",
+        "ip": _client_ip(request),
+        "user_agent": request.headers.get("user-agent", ""),
+        "tg_username": tg_username,
+        "email": email,
+        "phone": phone,
+    }
+    try:
+        with open(leads_file, "a", encoding="utf-8") as f:
+            f.write(json.dumps(payload, ensure_ascii=False) + "\n")
+    except Exception as e:
+        logger.warning("site_register write failed: %s", e)
+        raise HTTPException(status_code=500, detail="Не удалось сохранить заявку")
+
+    return {"ok": True, "message": "saved"}
 
 
 def _complete_payment_and_send_link(payment_db_id: int) -> bool:
