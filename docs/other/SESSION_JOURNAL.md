@@ -4,6 +4,17 @@
 
 ---
 
+## 2026-03-27 — send_message TIMEOUT 15 с на VPS
+
+### Причина
+**`asyncio.wait_for(..., 15)`** обрывал **`sendMessage`**, пока до **api.telegram.org** с VPS ответ не приходил за 15 с.
+
+### Что сделано
+- **`bot/handlers/main.py`**: убран **`wait_for`** вокруг **`send_message`** — один таймаут через **`TG_HTTP_TIMEOUT`**.
+- **`bot/main.py`**: дефолт **`TG_HTTP_TIMEOUT`** **30 → 60** с.
+
+---
+
 ## 2026-03-27 — /start: send_message вместо reply_text
 
 ### Причина

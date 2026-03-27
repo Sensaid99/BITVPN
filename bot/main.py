@@ -61,7 +61,8 @@ def create_application() -> Application:
     Config.validate()
     
     # Таймауты HTTP к api.telegram.org: на части VPS дефолт ~5 с даёт TimedOut при getMe() на старте
-    _tg_t = float(os.getenv("TG_HTTP_TIMEOUT", "30"))
+    # Медленный маршрут VPS→api.telegram.org: 30 с часто даёт ложные таймауты на sendMessage
+    _tg_t = float(os.getenv("TG_HTTP_TIMEOUT", "60"))
     # Прокси (если с VPS до api.telegram.org нет маршрута / блок — см. TG_PROXY или HTTPS_PROXY в .env)
     _proxy = (os.getenv("TG_PROXY") or os.getenv("HTTPS_PROXY") or os.getenv("ALL_PROXY") or "").strip() or None
     _request = HTTPXRequest(

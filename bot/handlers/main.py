@@ -430,8 +430,8 @@ async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
             (webapp_url[:100] + "…") if len(webapp_url) > 100 else webapp_url,
         )
 
-        # send_message без reply_to — иногда reply_text к зависшему апдейту не доходит до клиента.
-        reply_timeout = float(os.getenv("START_REPLY_TIMEOUT", "15"))
+        # send_message без reply_to. Не оборачиваем в asyncio.wait_for — он отменял корутину через 15 с,
+        # а до api.telegram.org с части VPS ответ приходит дольше; таймаут только TG_HTTP_TIMEOUT в bot/main.py.
         cid = msg.chat_id
 
         async def _send_plain(text_plain: str) -> None:
@@ -442,27 +442,13 @@ async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
             )
 
         try:
-            await asyncio.wait_for(
-                context.bot.send_message(
-                    chat_id=cid,
-                    text=message_text,
-                    reply_markup=reply_markup,
-                    parse_mode='HTML',
-                ),
-                timeout=reply_timeout,
+            await context.bot.send_message(
+                chat_id=cid,
+                text=message_text,
+                reply_markup=reply_markup,
+                parse_mode='HTML',
             )
             logger.info("start_command: send_message ok chat_id=%s", cid)
-        except asyncio.TimeoutError:
-            logger.error(
-                "start_command: send_message TIMEOUT %.0fs — см. TG_HTTP_TIMEOUT в .env (сейчас часто 30 с на чтение)",
-                reply_timeout,
-            )
-            plain = re.sub(r"<[^>]+>", "", message_text)
-            try:
-                await _send_plain(plain)
-            except Exception as e2:
-                logger.error("start_command: fallback plain after timeout failed: %s", e2)
-            logger.info("start_command: ok (after timeout fallback)")
         except BadRequest as e:
             if "parse" in str(e).lower() or "entity" in str(e).lower():
                 logger.warning("start_command: HTML parse failed, sending plain text: %s", e)
