@@ -5,7 +5,7 @@
 Без этого счётчик «Подключено» не обновляется, когда пользователи добавляют ссылку вида https://ваш-API/sub/КОД.
 
 Запуск из корня проекта: python scripts/happ_add_redirect_domain.py
-Требуется .env с HAPP_API_URL, HAPP_PROVIDER_CODE, HAPP_AUTH_KEY, HAPP_SUBSCRIPTION_REDIRECT_BASE.
+Требуется .env с HAPP_PROVIDER_CODE, HAPP_AUTH_KEY, HAPP_SUBSCRIPTION_REDIRECT_BASE; опционально HAPP_ADD_DOMAIN_URL.
 """
 
 import hashlib
@@ -24,14 +24,10 @@ except Exception:
 
 
 def main():
-    # add-domain может быть на другом хосте, чем list-install/add-install.
-    # 1) Пробуем базу из HAPP_ADD_DOMAIN_URL (если задана), иначе HAPP_API_URL, иначе https://happ-proxy.com
-    # 2) Если получаем HTML 404 (nginx) — пробуем https://api.happ-proxy.com
-    add_domain_base = (
-        (os.environ.get("HAPP_ADD_DOMAIN_URL") or "").strip().rstrip("/")
-        or (os.environ.get("HAPP_API_URL") or "").strip().rstrip("/")
-        or "https://happ-proxy.com"
-    )
+    # База для /api/add-domain — HAPP_ADD_DOMAIN_URL → HAPP_LIST_INSTALL_URL → happ-proxy.com (см. happ_client.resolve_happ_base_add_domain)
+    from bot.utils.happ_client import resolve_happ_base_add_domain
+
+    add_domain_base = resolve_happ_base_add_domain()
     provider = (os.environ.get("HAPP_PROVIDER_CODE") or "").strip()
     auth_key = (os.environ.get("HAPP_AUTH_KEY") or "").strip()
     redirect_base = (os.environ.get("HAPP_SUBSCRIPTION_REDIRECT_BASE") or "").strip()
@@ -88,7 +84,7 @@ def main():
                     f"HTTP {r.status_code if r is not None else '??'} (не JSON). "
                     f"Похоже, это не Happ API, а другой nginx/хост. "
                     f"Попробованы URL: {', '.join(tried)}. "
-                    f"Можно явно задать HAPP_ADD_DOMAIN_URL=https://api.happ-proxy.com в .env и повторить."
+                    f"Можно явно задать HAPP_ADD_DOMAIN_URL=https://happ-proxy.com в .env и повторить."
                 )
             print("Ответ API:", msg, "| rc =", data.get("rc"))
     except Exception as e:

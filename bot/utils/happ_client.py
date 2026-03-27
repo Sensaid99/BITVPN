@@ -2,6 +2,7 @@
 """Клиент API Happ-Proxy: создание лимитированных ссылок для приложения Happ."""
 
 import logging
+import os
 import re
 import urllib.parse
 
@@ -11,6 +12,56 @@ logger = logging.getLogger(__name__)
 
 # Заголовок из документации Happ — без него сервер может отдавать 404
 HAPP_HEADERS = {"Accept": "application/json"}
+
+
+def resolve_happ_base_list_install() -> str:
+    """
+    Базовый URL для GET /api/list-install, /api/list-hwid, /api/delete-hwid (счётчик и устройства).
+    Порядок: HAPP_LIST_INSTALL_URL → HAPP_ADD_DOMAIN_URL → HAPP_API_URL → https://happ-proxy.com
+    (на api.happ-proxy.com list-install часто отдаёт 404).
+    """
+    try:
+        from bot.config.settings import Config
+
+        for u in (
+            getattr(Config, "HAPP_LIST_INSTALL_URL", None),
+            getattr(Config, "HAPP_ADD_DOMAIN_URL", None),
+            getattr(Config, "HAPP_API_URL", None),
+        ):
+            s = (u or "").strip().rstrip("/")
+            if s:
+                return s
+    except Exception:
+        pass
+    for key in ("HAPP_LIST_INSTALL_URL", "HAPP_ADD_DOMAIN_URL", "HAPP_API_URL"):
+        s = (os.getenv(key) or "").strip().rstrip("/")
+        if s:
+            return s
+    return "https://happ-proxy.com"
+
+
+def resolve_happ_base_add_domain() -> str:
+    """
+    Базовый URL для GET /api/add-domain (привязка домена редиректа к провайдеру).
+    Порядок: HAPP_ADD_DOMAIN_URL → HAPP_LIST_INSTALL_URL → https://happ-proxy.com
+    """
+    try:
+        from bot.config.settings import Config
+
+        for u in (
+            getattr(Config, "HAPP_ADD_DOMAIN_URL", None),
+            getattr(Config, "HAPP_LIST_INSTALL_URL", None),
+        ):
+            s = (u or "").strip().rstrip("/")
+            if s:
+                return s
+    except Exception:
+        pass
+    for key in ("HAPP_ADD_DOMAIN_URL", "HAPP_LIST_INSTALL_URL"):
+        s = (os.getenv(key) or "").strip().rstrip("/")
+        if s:
+            return s
+    return "https://happ-proxy.com"
 
 
 def get_install_stats(

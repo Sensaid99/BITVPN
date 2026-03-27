@@ -785,13 +785,18 @@ def check_happ_env():
         from bot.config.settings import Config
         has_urls = bool((getattr(Config, "HAPP_SUBSCRIPTION_URLS", None) or "").strip())
         has_single = bool(getattr(Config, "HAPP_SUBSCRIPTION_URL", None))
+        from bot.utils import happ_client as _happ_check
+
         env = {
             "HAPP_API_URL": bool(getattr(Config, "HAPP_API_URL", None)),
+            "HAPP_ADD_DOMAIN_URL": bool(getattr(Config, "HAPP_ADD_DOMAIN_URL", None)),
+            "HAPP_LIST_INSTALL_URL": bool(getattr(Config, "HAPP_LIST_INSTALL_URL", None)),
             "HAPP_PROVIDER_CODE": bool(getattr(Config, "HAPP_PROVIDER_CODE", None)),
             "HAPP_AUTH_KEY": bool(getattr(Config, "HAPP_AUTH_KEY", None)),
             "HAPP_SUBSCRIPTION_URL": has_single,
             "HAPP_SUBSCRIPTION_URLS": has_urls,
             "subscription_upstream_ok": has_single or has_urls,
+            "list_install_base_resolved": _happ_check.resolve_happ_base_list_install(),
         }
         core_ok = env["HAPP_API_URL"] and env["HAPP_PROVIDER_CODE"] and env["HAPP_AUTH_KEY"] and env["subscription_upstream_ok"]
         return {
@@ -1144,12 +1149,11 @@ def debug_install_stats(install_code: str = ""):
     try:
         from bot.config.settings import Config
         from bot.utils import happ_client
-        list_url = getattr(Config, "HAPP_LIST_INSTALL_URL", None) or os.environ.get("HAPP_LIST_INSTALL_URL", "")
-        api_url = (list_url or getattr(Config, "HAPP_API_URL", None) or os.environ.get("HAPP_API_URL", "") or "").strip().rstrip("/")
+        api_url = happ_client.resolve_happ_base_list_install()
         pc = getattr(Config, "HAPP_PROVIDER_CODE", None) or os.environ.get("HAPP_PROVIDER_CODE", "")
         ak = getattr(Config, "HAPP_AUTH_KEY", None) or os.environ.get("HAPP_AUTH_KEY", "")
         if not api_url or not pc or not ak:
-            return {"ok": False, "message": "На сервере не заданы HAPP_API_URL (или HAPP_LIST_INSTALL_URL), HAPP_PROVIDER_CODE или HAPP_AUTH_KEY.", "install_code_sent": code[:6] + "***"}
+            return {"ok": False, "message": "На сервере не заданы база Happ (list-install), HAPP_PROVIDER_CODE или HAPP_AUTH_KEY.", "install_code_sent": code[:6] + "***"}
         info = happ_client.get_install_stats_debug(api_url, pc, ak, code)
         hint = ""
         if info.get("error"):
@@ -1508,7 +1512,7 @@ async def miniapp_me(request: Request):
                         devices = happ_client.devices_from_plan_type(sub.plan_type or "")
                         logger.info("miniapp_me: Trying Happ fallback for user %s plan_type=%s devices=%s", user.telegram_id, sub.plan_type, devices)
                         install_code, happ_link = happ_client.create_happ_install_link(
-                            getattr(Config, "HAPP_API_URL", "https://happ-proxy.com"),
+                            getattr(Config, "HAPP_API_URL", None) or "https://api.happ-proxy.com",
                             Config.HAPP_PROVIDER_CODE,
                             Config.HAPP_AUTH_KEY,
                             devices,
@@ -1549,9 +1553,7 @@ async def miniapp_me(request: Request):
                     install_code = happ_client.parse_install_code_from_happ_link(subscription_link)
                     if install_code:
                         from bot.config.settings import Config
-                        # при необходимости list-install можно направить на другой URL через HAPP_LIST_INSTALL_URL
-                        list_url = getattr(Config, "HAPP_LIST_INSTALL_URL", None) or os.environ.get("HAPP_LIST_INSTALL_URL", "")
-                        api_url = (list_url or getattr(Config, "HAPP_API_URL", None) or os.environ.get("HAPP_API_URL", "") or "").strip().rstrip("/")
+                        api_url = happ_client.resolve_happ_base_list_install()
                         if api_url and getattr(Config, "HAPP_PROVIDER_CODE", None) and getattr(Config, "HAPP_AUTH_KEY", None):
                             used, limit = happ_client.get_install_stats(
                                 api_url, Config.HAPP_PROVIDER_CODE, Config.HAPP_AUTH_KEY, install_code
@@ -1612,8 +1614,7 @@ async def miniapp_me(request: Request):
                     _ic = _happ_for_payload.parse_install_code_from_happ_link(subscription_link)
                     if _ic:
                         from bot.config.settings import Config
-                        list_url = getattr(Config, "HAPP_LIST_INSTALL_URL", None) or os.environ.get("HAPP_LIST_INSTALL_URL", "")
-                        api_url = (list_url or getattr(Config, "HAPP_API_URL", None) or os.environ.get("HAPP_API_URL", "") or "").strip().rstrip("/")
+                        api_url = _happ_for_payload.resolve_happ_base_list_install()
                         if api_url and getattr(Config, "HAPP_PROVIDER_CODE", None) and getattr(Config, "HAPP_AUTH_KEY", None):
                             devices_detail = _happ_for_payload.list_hwids(
                                 api_url, Config.HAPP_PROVIDER_CODE, Config.HAPP_AUTH_KEY, _ic
@@ -1744,8 +1745,7 @@ async def miniapp_remove_device(request: Request):
         install_code = happ_client.parse_install_code_from_happ_link(link)
         if not install_code:
             return {"ok": False, "message": "Нет ссылки Happ в подписке"}
-        list_url = getattr(Config, "HAPP_LIST_INSTALL_URL", None) or os.environ.get("HAPP_LIST_INSTALL_URL", "")
-        api_url = (list_url or getattr(Config, "HAPP_API_URL", None) or os.environ.get("HAPP_API_URL", "") or "").strip().rstrip("/")
+        api_url = happ_client.resolve_happ_base_list_install()
         if not api_url or not getattr(Config, "HAPP_PROVIDER_CODE", None) or not getattr(Config, "HAPP_AUTH_KEY", None):
             return {"ok": False, "message": "Happ API не настроен на сервере"}
         ok, msg = happ_client.delete_hwid(
@@ -1980,7 +1980,7 @@ def _complete_payment_and_send_link(payment_db_id: int) -> bool:
         if use_happ:
             devices = happ_client.devices_from_plan_type(payment.plan_type)
             install_code, _happ_link = happ_client.create_happ_install_link(
-                getattr(Config, "HAPP_API_URL", "https://happ-proxy.com"),
+                getattr(Config, "HAPP_API_URL", None) or "https://api.happ-proxy.com",
                 Config.HAPP_PROVIDER_CODE,
                 Config.HAPP_AUTH_KEY,
                 devices,

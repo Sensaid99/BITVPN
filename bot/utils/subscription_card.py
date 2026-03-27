@@ -74,8 +74,7 @@ def get_device_counts_display(sub) -> tuple[int | None, int]:
     code = happ_client.parse_install_code_from_happ_link(link)
     if not code:
         return None, limit
-    list_url = (getattr(Config, "HAPP_LIST_INSTALL_URL", None) or os.getenv("HAPP_LIST_INSTALL_URL") or "").strip()
-    api_url = (list_url or getattr(Config, "HAPP_API_URL", None) or os.getenv("HAPP_API_URL") or "").strip().rstrip("/")
+    api_url = happ_client.resolve_happ_base_list_install()
     if not api_url:
         return None, limit
     used, lim = happ_client.get_install_stats(api_url, Config.HAPP_PROVIDER_CODE, Config.HAPP_AUTH_KEY, code)

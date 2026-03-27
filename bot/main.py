@@ -223,7 +223,7 @@ async def post_init(application: Application) -> None:
         from bot.handlers.main import ensure_admin_unlimited_subscription
         for admin_id in Config.ADMIN_IDS:
             try:
-                ensure_admin_unlimited_subscription(admin_id)
+                await asyncio.to_thread(ensure_admin_unlimited_subscription, admin_id)
             except Exception as e:
                 logger.warning("ensure_admin_unlimited for %s: %s", admin_id, e)
         logger.info("✅ Admin unlimited subscriptions (10 devices) ensured for %s", Config.ADMIN_IDS)

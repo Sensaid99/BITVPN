@@ -11,6 +11,52 @@
 
 ---
 
+## 2026-03-27 — /start снова без to_thread для БД
+
+### Причина
+`get_or_create_user` через **`asyncio.to_thread`** мог ломать работу **SQLAlchemy** (сессии/потоки) — бот «молчал» на `/start`.
+
+### Что сделано
+- **`bot/handlers/main.py`**: **`get_or_create_user`** снова вызывается **синхронно** в основном потоке; в **`asyncio.to_thread`** оставлен только **`ensure_admin_unlimited_subscription`** (Happ HTTP + БД в отдельном потоке — отдельная сессия внутри функции).
+- В **`except Exception`** у **`start_command`** добавлен **`reply_text`** «Временная ошибка…» (если обработчик падает — пользователь не остаётся без ответа).
+
+### Проверить на сервере
+`git pull`, **`sudo systemctl restart vpn-bot`**, в логах при **`/start`** должна быть строка **`start_command: update_id=...`**. Если её нет — см. **`docs/deploy/БОТ_НЕ_ОТВЕЧАЕТ_ЧЕКЛИСТ.md`** (webhook, второй процесс с тем же токеном).
+
+---
+
+## 2026-03-27 — HAPP_ADD_DOMAIN_URL везде для второй базы Happ
+
+### Запрос
+Добавить `HAPP_ADD_DOMAIN_URL` «везде вторую ссылку», чтобы list-install / add-domain работали.
+
+### Что сделано
+- **`bot/config/settings.py`**: **`HAPP_ADD_DOMAIN_URL`**.
+- **`bot/utils/happ_client.py`**: **`resolve_happ_base_list_install()`** (list-install, list-hwid, delete-hwid), **`resolve_happ_base_add_domain()`** (add-domain).
+- Подключено в **`api_miniapp.py`**, **`bot/handlers/main.py`**, **`subscription_card.py`**, **`scripts/happ_add_redirect_domain.py`**, **`scripts/test_happ_list_install.py`**; **`check-happ-env`** отдаёт **`list_install_base_resolved`**.
+- **`.env.example`**: пример **`HAPP_ADD_DOMAIN_URL=https://happ-proxy.com`**.
+
+### Проверить
+В `.env`: `HAPP_API_URL=https://api.happ-proxy.com`, `HAPP_ADD_DOMAIN_URL=https://happ-proxy.com`; `restart vpn-bot miniapp-api`.
+
+---
+
+## 2026-03-27 — бот «не открывается»; Happ API по умолчанию; без блокировки event loop
+
+### Запрос
+После настроек бот всё равно не открывается / не отвечает.
+
+### Что сделано
+- **`bot/config/settings.py`**: дефолт **`HAPP_API_URL=https://api.happ-proxy.com`** (на `happ-proxy.com` add-install отдаёт 404).
+- **`bot/handlers/main.py`**: **`ensure_admin_unlimited_subscription`** и **`get_or_create_user`** в горячих местах через **`asyncio.to_thread`**, чтобы HTTP Happ и БД не блокировали **весь** event loop.
+- **`bot/main.py`**: при старте выдача админ-подписки тоже в **`asyncio.to_thread`**.
+- **`.env.example`**, **`docs/deploy/БОТ_НЕ_ОТВЕЧАЕТ_ЧЕКЛИСТ.md`**, строка в **`docs/README.md`**.
+
+### Проверить
+В `.env` явно **`HAPP_API_URL=https://api.happ-proxy.com`**; `sudo systemctl restart vpn-bot miniapp-api`. Чеклист: **БОТ_НЕ_ОТВЕЧАЕТ_ЧЕКЛИСТ.md**.
+
+---
+
 ## 2026-03-27 — PostgreSQL на VPS; имена нод Happ; гайд деплоя
 
 ### Запрос

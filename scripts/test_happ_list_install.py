@@ -22,7 +22,9 @@ except Exception:
 
 
 def main():
-    api_url = (os.environ.get("HAPP_LIST_INSTALL_URL") or os.environ.get("HAPP_API_URL") or "https://happ-proxy.com").strip().rstrip("/")
+    from bot.utils.happ_client import resolve_happ_base_list_install
+
+    api_url = resolve_happ_base_list_install()
     provider = (os.environ.get("HAPP_PROVIDER_CODE") or "").strip()
     auth_key = (os.environ.get("HAPP_AUTH_KEY") or "").strip()
     check_code = (sys.argv[1] or "").strip() if len(sys.argv) > 1 else None

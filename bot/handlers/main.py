@@ -261,13 +261,13 @@ async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
         if user is None:
             raise RuntimeError("get_or_create_user failed")
         if user.is_admin:
-            ensure_admin_unlimited_subscription(user.telegram_id)
+            await asyncio.to_thread(ensure_admin_unlimited_subscription, user.telegram_id)
             user = get_or_create_user(update.effective_user)
 
         # Deep link: «Моя подписка» — карточка со ссылкой и кнопками (как после оплаты)
         if context.args and context.args[0].lower() == 'my_subscription':
             if user.is_admin and not user.has_active_subscription:
-                ensure_admin_unlimited_subscription(user.telegram_id)
+                await asyncio.to_thread(ensure_admin_unlimited_subscription, user.telegram_id)
                 user = get_or_create_user(update.effective_user)
             if not user.has_active_subscription:
                 await msg.reply_text("❌ Нет активной подписки.", parse_mode='HTML')
@@ -284,7 +284,7 @@ async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
 
         if context.args and context.args[0].lower() == 'config':
             if user.is_admin and not user.has_active_subscription:
-                ensure_admin_unlimited_subscription(user.telegram_id)
+                await asyncio.to_thread(ensure_admin_unlimited_subscription, user.telegram_id)
                 user = get_or_create_user(update.effective_user)
             if not user.has_active_subscription:
                 await msg.reply_text(get_message('error_no_subscription'), parse_mode='HTML')
@@ -385,6 +385,12 @@ async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
             )
         except Exception as e2:
             logger.error("start_command: notify_admins failed: %s", e2)
+        try:
+            await msg.reply_text(
+                "❌ Временная ошибка. Попробуйте /start через минуту или напишите в поддержку.",
+            )
+        except Exception as e3:
+            logger.error("start_command: reply after error failed: %s", e3)
 
 
 async def show_plans(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
@@ -865,7 +871,7 @@ async def show_profile(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
     
     user = get_or_create_user(update.effective_user)
     if user.is_admin and not user.has_active_subscription:
-        ensure_admin_unlimited_subscription(user.telegram_id)
+        await asyncio.to_thread(ensure_admin_unlimited_subscription, user.telegram_id)
         user = get_or_create_user(update.effective_user)
     
     # Get subscription info
@@ -949,8 +955,7 @@ async def _edit_message_hap_devices(query, user) -> None:
             parse_mode='HTML',
         )
         return
-    list_url = (getattr(Config, "HAPP_LIST_INSTALL_URL", None) or "").strip()
-    api_url = (list_url or getattr(Config, "HAPP_API_URL", None) or "https://happ-proxy.com").strip().rstrip("/")
+    api_url = happ_client.resolve_happ_base_list_install()
     if not Config.HAPP_PROVIDER_CODE or not Config.HAPP_AUTH_KEY:
         await query.edit_message_text("❌ Happ API не настроен на сервере.", parse_mode='HTML')
         return
@@ -1035,8 +1040,7 @@ async def hap_device_remove_handler(update: Update, context: ContextTypes.DEFAUL
             parse_mode='HTML',
         )
         return
-    list_url = (getattr(Config, "HAPP_LIST_INSTALL_URL", None) or "").strip()
-    api_url = (list_url or getattr(Config, "HAPP_API_URL", None) or "https://happ-proxy.com").strip().rstrip("/")
+    api_url = happ_client.resolve_happ_base_list_install()
     items = happ_client.list_hwids(api_url, Config.HAPP_PROVIDER_CODE, Config.HAPP_AUTH_KEY, install_code)
     if idx < 0 or idx >= len(items):
         await _edit_message_hap_devices(query, user)
@@ -1126,7 +1130,7 @@ async def setup_device_handler(update: Update, context: ContextTypes.DEFAULT_TYP
     if not happ_link and Config.HAPP_PROVIDER_CODE and Config.HAPP_AUTH_KEY and Config.HAPP_SUBSCRIPTION_URL:
         try:
             install_code, _happ_link = happ_client.create_happ_install_link(
-                getattr(Config, 'HAPP_API_URL', 'https://happ-proxy.com'),
+                getattr(Config, 'HAPP_API_URL', None) or 'https://api.happ-proxy.com',
                 Config.HAPP_PROVIDER_CODE,
                 Config.HAPP_AUTH_KEY,
                 happ_client.devices_from_plan_type(sub.plan_type or ''),
@@ -1172,7 +1176,7 @@ async def show_my_config(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
     
     user = get_or_create_user(update.effective_user)
     if not user.has_active_subscription and user.is_admin:
-        ensure_admin_unlimited_subscription(user.telegram_id)
+        await asyncio.to_thread(ensure_admin_unlimited_subscription, user.telegram_id)
         user = get_or_create_user(update.effective_user)
     if not user.has_active_subscription:
         msg = get_message('error_no_subscription')
