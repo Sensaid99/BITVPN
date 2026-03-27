@@ -4,16 +4,18 @@
 
 ---
 
-## 2026-03-27 — DetachedInstanceError: subscriptions после get_or_create_user
+## 2026-03-27 — DetachedInstanceError: subscriptions после get_or_create_user (финал)
 
 ### Причина
-После **`session.refresh(user)`** relationship **`subscriptions`** снова expired; после **`session.close()`** в async-хендлере обращение к **`has_active_subscription` / `active_subscription`** вызывало **lazy load** → **`DetachedInstanceError`**.
+После закрытия сессии обращение к **`user.has_active_subscription` / `user.active_subscription`** вызывало **lazy load**. **`session.expunge(user)`** у части сборок SQLAlchemy ломал коллекцию **`subscriptions`**.
 
 ### Что сделано
-- **`bot/handlers/main.py`**: в **`get_or_create_user`** после **`list(user.subscriptions)`** — **`session.expunge(user)`** до **`return`** (объект отсоединён с уже загруженными данными, без ленивой загрузки).
+- **`get_or_create_user`**: пока сессия открыта — **`_start_has_active`**, **`_start_devices_html`** в **`user.__dict__`**; **`expunge` убран**.
+- **`start_command`**: приветствие дополняется только **`_start_devices_html`**; реферал — **`UPDATE`** через **`session.query(User).filter_by(telegram_id=...).first()`**, не через отсоединённый **`user`**.
+- Deep link **`my_subscription`**: **`fetch_my_subscription_card_sync`** — отдельная сессия для **`build_my_subscription_card`**.
 
 ### Проверить
-В `.env` для Happ: **`HAPP_API_URL=https://api.happ-proxy.com`** (на **`happ-proxy.com`** add-install даёт **404** — см. лог на сервере).
+**`HAPP_API_URL=https://api.happ-proxy.com`** в `.env` на сервере.
 
 ---
 

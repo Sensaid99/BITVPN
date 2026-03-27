@@ -216,11 +216,40 @@ def get_or_create_user(telegram_user) -> User:
         user.last_activity = datetime.utcnow()
         session.commit()
         session.refresh(user)
-        # refresh() помечает relationship как expired — явно подгружаем; expunge — чтобы в event loop не было lazy-load после close()
+        # Всё, что нужно хендлеру из relationship, считаем пока session открыта (после close() lazy-load → DetachedInstanceError).
+        # Не используем session.expunge — на части сборок SQLAlchemy он ломает коллекцию subscriptions.
         subs = list(user.subscriptions)
-        session.expunge(user)
-        logger.info("get_or_create_user: done telegram_id=%s subs=%s (expunged)", tid, len(subs))
+        has_active = user.has_active_subscription
+        act_sub = user.active_subscription
+        devices_fragment = ""
+        if has_active and act_sub:
+            devices_fragment = _happ_devices_html_line(act_sub)
+        user.__dict__["_start_has_active"] = bool(has_active and act_sub)
+        user.__dict__["_start_devices_html"] = devices_fragment
+        logger.info(
+            "get_or_create_user: done telegram_id=%s subs=%s has_active=%s",
+            tid,
+            len(subs),
+            user.__dict__["_start_has_active"],
+        )
         return user
+    finally:
+        session.close()
+
+
+def fetch_my_subscription_card_sync(telegram_id: int):
+    """Карточка «Моя подписка» в одной сессии — без DetachedInstanceError после get_or_create_user."""
+    session = db_manager.get_session()
+    try:
+        u = (
+            session.query(User)
+            .options(joinedload(User.subscriptions))
+            .filter_by(telegram_id=telegram_id)
+            .first()
+        )
+        if not u or not u.active_subscription:
+            return None
+        return build_my_subscription_card(u.active_subscription, fetch_device_counts=False)
     finally:
         session.close()
 
@@ -296,14 +325,17 @@ async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
 
         # Deep link: «Моя подписка» — карточка со ссылкой и кнопками (как после оплаты)
         if context.args and context.args[0].lower() == 'my_subscription':
-            if user.is_admin and not user.has_active_subscription:
+            if user.is_admin and not getattr(user, "_start_has_active", False):
                 await asyncio.to_thread(ensure_admin_unlimited_subscription, user.telegram_id)
                 user = await asyncio.to_thread(get_or_create_user, update.effective_user)
-            if not user.has_active_subscription:
+            if not getattr(user, "_start_has_active", False):
                 await msg.reply_text("❌ Нет активной подписки.", parse_mode='HTML')
                 return
-            sub = user.active_subscription
-            card_text, card_kb = build_my_subscription_card(sub, fetch_device_counts=False)
+            built = await asyncio.to_thread(fetch_my_subscription_card_sync, user.telegram_id)
+            if not built:
+                await msg.reply_text("❌ Нет активной подписки.", parse_mode='HTML')
+                return
+            card_text, card_kb = built
             await msg.reply_text(
                 card_text,
                 reply_markup=inline_keyboard_dict_to_ptb(card_kb),
@@ -313,10 +345,10 @@ async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
             return
 
         if context.args and context.args[0].lower() == 'config':
-            if user.is_admin and not user.has_active_subscription:
+            if user.is_admin and not getattr(user, "_start_has_active", False):
                 await asyncio.to_thread(ensure_admin_unlimited_subscription, user.telegram_id)
                 user = await asyncio.to_thread(get_or_create_user, update.effective_user)
-            if not user.has_active_subscription:
+            if not getattr(user, "_start_has_active", False):
                 await msg.reply_text(get_message('error_no_subscription'), parse_mode='HTML')
                 return
             await send_setup_device_choice(context.bot, update.effective_chat.id)
@@ -338,9 +370,11 @@ async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
             try:
                 referrer = session.query(User).filter_by(referral_code=referral_code).first()
                 if referrer and referrer.telegram_id != user.telegram_id:
-                    user.referrer_id = referrer.id
-                    referrer.total_referrals += 1
-                    session.commit()
+                    target = session.query(User).filter_by(telegram_id=user.telegram_id).first()
+                    if target:
+                        target.referrer_id = referrer.id
+                        referrer.total_referrals += 1
+                        session.commit()
                     logger.info(f"User {user.telegram_id} referred by {referrer.telegram_id}")
                     try:
                         await context.bot.send_message(
@@ -376,11 +410,7 @@ async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
         else:
             message_text = get_message('welcome_short')
 
-        try:
-            if user.has_active_subscription and user.active_subscription:
-                message_text += _happ_devices_html_line(user.active_subscription)
-        except Exception as e:
-            logger.warning("start_command: skip devices line: %s", e)
+        message_text += getattr(user, "_start_devices_html", "") or ""
 
         logger.info(
             "start_command: sending reply text_len=%s webapp_prefix=%s",
