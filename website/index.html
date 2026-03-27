@@ -1,0 +1,1019 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <title>Bit Ecosystem — Безопасный интернет</title>
+  <meta name="description" content="Bit Ecosystem: безопасный интернет, быстрые серверы, удобное подключение через Happ и управление через Telegram." />
+  <style>
+    :root {
+      --bg: #040608;
+      --bg-soft: #0a1016;
+      --text: #e7fff4;
+      --muted: #9cc7b7;
+      --accent: #00ff9d;
+      --accent-soft: rgba(0, 255, 157, 0.2);
+      --line: rgba(0, 255, 157, 0.16);
+      --card: rgba(4, 12, 9, 0.72);
+      --card-2: rgba(6, 15, 11, 0.85);
+      --ok: #7ef9c3;
+      --warn: #ffd166;
+      --container: 1160px;
+      --radius: 22px;
+      --radius-sm: 14px;
+      --shadow: 0 20px 55px rgba(0, 0, 0, 0.42);
+    }
+    * { box-sizing: border-box; }
+    html, body { margin: 0; padding: 0; }
+    body {
+      font-family: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
+      background: radial-gradient(1000px 500px at 10% -10%, rgba(0,255,157,.16), transparent 50%),
+                  radial-gradient(900px 560px at 90% -12%, rgba(0,255,157,.09), transparent 54%),
+                  var(--bg);
+      color: var(--text);
+      overflow-x: hidden;
+      line-height: 1.5;
+    }
+    a { color: inherit; text-decoration: none; }
+    .container { width: 100%; max-width: var(--container); margin: 0 auto; padding: 0 20px; }
+
+    /* Matrix background */
+    .matrix-bg {
+      position: fixed;
+      inset: 0;
+      z-index: 0;
+      pointer-events: none;
+      opacity: .16;
+      overflow: hidden;
+      font-family: ui-monospace, Menlo, Consolas, monospace;
+      font-size: 14px;
+      color: #00ff9d;
+    }
+    .matrix-line {
+      position: absolute;
+      white-space: nowrap;
+      animation: matrixFall linear infinite;
+    }
+    @keyframes matrixFall {
+      from { transform: translateY(-120%); opacity: 0; }
+      12% { opacity: .55; }
+      to { transform: translateY(115vh); opacity: 0; }
+    }
+
+    .content { position: relative; z-index: 2; }
+    .topbar {
+      position: sticky;
+      top: 0;
+      z-index: 30;
+      backdrop-filter: blur(10px);
+      background: rgba(4, 6, 8, .78);
+      border-bottom: 1px solid var(--line);
+    }
+    .topbar-inner {
+      min-height: 72px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 10px 0;
+    }
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-weight: 700;
+      letter-spacing: .03em;
+    }
+    .brand-dot {
+      width: 11px;
+      height: 11px;
+      border-radius: 50%;
+      background: var(--accent);
+      box-shadow: 0 0 16px rgba(0,255,157,.8);
+    }
+    .top-links {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+    }
+    .btn {
+      border-radius: 999px;
+      border: 1px solid transparent;
+      padding: 10px 14px;
+      min-height: 40px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: .18s ease;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+    }
+    .btn-primary {
+      color: #001f12;
+      background: linear-gradient(135deg, var(--accent), #71ffc3);
+      box-shadow: 0 10px 25px rgba(0,255,157,.28);
+    }
+    .btn-primary:hover { transform: translateY(-1px); filter: brightness(1.05); }
+    .btn-soft {
+      color: var(--text);
+      border-color: var(--line);
+      background: rgba(0,255,157,.08);
+    }
+    .btn-soft:hover { background: rgba(0,255,157,.14); border-color: rgba(0,255,157,.34); }
+
+    .hero {
+      padding: 58px 0 28px;
+    }
+    .hero-grid {
+      display: grid;
+      grid-template-columns: 1.14fr .86fr;
+      gap: 18px;
+    }
+    .glass {
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: var(--card);
+      box-shadow: var(--shadow);
+      backdrop-filter: blur(7px);
+    }
+    .hero-main {
+      padding: 30px;
+      position: relative;
+      overflow: hidden;
+    }
+    .hero-main::before {
+      content: "";
+      position: absolute;
+      right: -40px;
+      top: -50px;
+      width: 210px;
+      height: 210px;
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(0,255,157,.25), transparent 70%);
+      filter: blur(8px);
+    }
+    .badge {
+      display: inline-flex;
+      gap: 8px;
+      align-items: center;
+      border-radius: 999px;
+      border: 1px solid rgba(0,255,157,.35);
+      background: rgba(0,255,157,.08);
+      color: #b5ffd8;
+      padding: 6px 10px;
+      font-size: .8rem;
+    }
+    h1 {
+      margin: 14px 0 12px;
+      font-size: clamp(2rem, 3.2vw, 3.35rem);
+      line-height: 1.1;
+      letter-spacing: -.02em;
+    }
+    .lead { color: var(--muted); max-width: 58ch; margin: 0; }
+    .hero-actions { margin-top: 22px; display: flex; gap: 10px; flex-wrap: wrap; }
+    .hero-list {
+      list-style: none;
+      margin: 20px 0 0;
+      padding: 0;
+      display: grid;
+      gap: 9px;
+    }
+    .hero-list li {
+      color: #cfffe8;
+      display: flex;
+      gap: 9px;
+      align-items: flex-start;
+      font-size: .95rem;
+    }
+    .check {
+      margin-top: 2px;
+      width: 18px;
+      height: 18px;
+      flex: 0 0 auto;
+      border-radius: 50%;
+      border: 1px solid rgba(0,255,157,.45);
+      background: rgba(0,255,157,.15);
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--accent);
+      font-size: 12px;
+    }
+
+    .hero-side {
+      padding: 16px;
+      display: grid;
+      gap: 12px;
+    }
+    .mini-stat {
+      background: var(--card-2);
+      border: 1px solid var(--line);
+      border-radius: var(--radius-sm);
+      padding: 14px;
+    }
+    .mini-stat .label {
+      font-size: .8rem;
+      color: var(--muted);
+      margin-bottom: 5px;
+    }
+    .mini-stat .value {
+      font-size: 1.18rem;
+      font-weight: 700;
+    }
+    .status-ok { color: var(--ok); }
+
+    .phone-mockup {
+      position: relative;
+      border-radius: 26px;
+      border: 1px solid rgba(0,255,157,.28);
+      background: linear-gradient(180deg, #0a1712, #08110d);
+      padding: 14px;
+      min-height: 220px;
+      overflow: hidden;
+    }
+    .phone-header {
+      display: flex;
+      justify-content: space-between;
+      color: #b7efce;
+      font-size: .78rem;
+      opacity: .9;
+    }
+    .phone-card {
+      margin-top: 10px;
+      border-radius: 14px;
+      border: 1px solid rgba(0,255,157,.28);
+      background: rgba(0,0,0,.28);
+      padding: 11px;
+    }
+    .phone-title { font-weight: 600; margin-bottom: 6px; }
+    .phone-row {
+      display: flex; justify-content: space-between; gap: 8px;
+      font-size: .82rem; color: #b2e6ca;
+      padding: 6px 0;
+      border-bottom: 1px dashed rgba(0,255,157,.2);
+    }
+    .phone-row:last-child { border-bottom: 0; }
+
+    .section { padding: 24px 0 8px; }
+    .section h2 {
+      margin: 0 0 12px;
+      font-size: clamp(1.4rem, 2vw, 2.1rem);
+      letter-spacing: -.01em;
+    }
+    .section .muted { margin: 0 0 16px; color: var(--muted); }
+
+    .cards {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 12px;
+    }
+    .card {
+      border: 1px solid var(--line);
+      background: var(--card);
+      border-radius: var(--radius-sm);
+      padding: 16px;
+      transition: .2s ease;
+      transform-style: preserve-3d;
+    }
+    .card:hover {
+      border-color: rgba(0,255,157,.38);
+      transform: translateY(-2px);
+      box-shadow: 0 12px 30px rgba(0,0,0,.35);
+    }
+    .icon {
+      width: 34px; height: 34px;
+      border-radius: 10px;
+      border: 1px solid rgba(0,255,157,.3);
+      background: rgba(0,255,157,.12);
+      display: inline-flex; align-items: center; justify-content: center;
+      margin-bottom: 10px;
+      color: var(--accent);
+      font-size: 17px;
+    }
+    .card h3 { margin: 0 0 8px; font-size: 1.03rem; }
+    .card p { margin: 0; color: var(--muted); font-size: .92rem; }
+
+    .plans {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0,1fr));
+      gap: 11px;
+    }
+    .plan {
+      border: 1px solid var(--line);
+      background: linear-gradient(180deg, rgba(8, 19, 15, .92), rgba(5, 13, 10, .9));
+      border-radius: 16px;
+      padding: 14px;
+      min-height: 150px;
+    }
+    .plan .name { color: #b7e8d1; font-size: .84rem; }
+    .plan .price { font-size: 1.6rem; font-weight: 700; margin-top: 7px; }
+    .plan .hint { margin-top: 4px; color: var(--muted); font-size: .8rem; }
+
+    .register {
+      margin-top: 16px;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+      align-items: stretch;
+    }
+    .register-box, .sync-box {
+      border: 1px solid var(--line);
+      background: var(--card);
+      border-radius: var(--radius);
+      padding: 18px;
+    }
+    .register-box h3, .sync-box h3 { margin: 0 0 8px; font-size: 1.2rem; }
+    .register-box p, .sync-box p { margin: 0 0 12px; color: var(--muted); font-size: .92rem; }
+    .field {
+      display: grid;
+      gap: 6px;
+      margin-bottom: 10px;
+    }
+    .field label { font-size: .84rem; color: #c6ead8; }
+    .field input {
+      border-radius: 11px;
+      border: 1px solid rgba(0,255,157,.26);
+      background: rgba(4, 10, 8, .86);
+      color: var(--text);
+      font-size: .95rem;
+      padding: 10px 12px;
+      outline: none;
+    }
+    .field input:focus {
+      border-color: rgba(0,255,157,.56);
+      box-shadow: 0 0 0 3px rgba(0,255,157,.14);
+    }
+    .status-line {
+      min-height: 20px;
+      font-size: .86rem;
+      color: var(--muted);
+      margin-top: 4px;
+    }
+    .status-line.ok { color: var(--ok); }
+    .status-line.err { color: #ff9d9d; }
+
+    .sync-points {
+      list-style: none;
+      margin: 0 0 12px;
+      padding: 0;
+      display: grid;
+      gap: 9px;
+      color: #cfffe8;
+      font-size: .92rem;
+    }
+    .sync-points li { display: flex; gap: 8px; }
+
+    .footer {
+      margin-top: 24px;
+      border-top: 1px solid var(--line);
+      padding: 20px 0 38px;
+      color: var(--muted);
+      font-size: .86rem;
+      text-align: center;
+    }
+
+    .parallax {
+      will-change: transform;
+      transition: transform .08s linear;
+    }
+
+    @media (max-width: 1040px) {
+      .hero-grid { grid-template-columns: 1fr; }
+      .cards { grid-template-columns: repeat(2, minmax(0,1fr)); }
+      .plans { grid-template-columns: repeat(2, minmax(0,1fr)); }
+      .register { grid-template-columns: 1fr; }
+    }
+    @media (max-width: 720px) {
+      .topbar-inner { flex-direction: column; align-items: flex-start; }
+      .top-links { width: 100%; justify-content: stretch; }
+      .btn { width: 100%; }
+      .hero { padding-top: 30px; }
+      .hero-main { padding: 20px; }
+      .cards, .plans { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <div class="matrix-bg" id="matrixBg"></div>
+  <div class="content">
+    <header class="topbar">
+      <div class="container topbar-inner">
+        <div class="brand"><span class="brand-dot"></span><span>BIT ECOSYSTEM</span></div>
+        <div class="top-links">
+          <a id="btnSupportTop" class="btn btn-soft" href="https://t.me/HelpBit_bot" target="_blank" rel="noopener noreferrer">Поддержка</a>
+          <a id="btnMiniTop" class="btn btn-primary" href="https://bitvpn.vercel.app?api=https://bitecosystem.ru" target="_blank" rel="noopener noreferrer">Личный кабинет</a>
+        </div>
+      </div>
+    </header>
+
+    <main>
+      <section class="hero">
+        <div class="container hero-grid">
+          <article class="glass hero-main parallax" data-depth="14">
+            <span class="badge"><span class="check">✓</span> Безопасный интернет за 1 минуту</span>
+            <h1>Современный доступ к сети с управлением через Telegram</h1>
+            <p class="lead">Одна подписка, несколько серверов, удобное подключение через Happ и прозрачная поддержка. Всё просто, быстро и без лишних действий.</p>
+            <div class="hero-actions">
+              <a id="btnBotHero" class="btn btn-primary" href="https://t.me/Bitvpnproxy_bot" target="_blank" rel="noopener noreferrer">Открыть бот</a>
+              <a id="btnMiniHero" class="btn btn-soft" href="https://bitvpn.vercel.app?api=https://bitecosystem.ru" target="_blank" rel="noopener noreferrer">Открыть веб‑кабинет</a>
+            </div>
+            <ul class="hero-list">
+              <li><span class="check">✓</span><span>Автоматическая выдача доступа после оплаты</span></li>
+              <li><span class="check">✓</span><span>Поддержка нескольких локаций в одной подписке</span></li>
+              <li><span class="check">✓</span><span>Подключение устройств через Happ без ручной рутины</span></li>
+            </ul>
+          </article>
+
+          <aside class="glass hero-side">
+            <div class="mini-stat">
+              <div class="label">Статус платформы</div>
+              <div class="value status-ok" id="siteStatusText">Online</div>
+            </div>
+            <div class="mini-stat">
+              <div class="label">Синхронизация</div>
+              <div class="value">Бот + веб‑кабинет + Happ</div>
+            </div>
+            <div class="phone-mockup parallax" data-depth="8">
+              <div class="phone-header"><span>Безопасный интернет</span><span id="mockTime">00:00</span></div>
+              <div class="phone-card">
+                <div class="phone-title">Активные локации</div>
+                <div class="phone-row"><span>Нидерланды</span><span>Online</span></div>
+                <div class="phone-row"><span>Финляндия</span><span>Online</span></div>
+                <div class="phone-row"><span>Пинг</span><span id="mockPing">—</span></div>
+              </div>
+            </div>
+          </aside>
+        </div>
+      </section>
+
+      <section class="section">
+        <div class="container">
+          <h2>Возможности</h2>
+          <p class="muted">Минималистичный интерфейс, надежная инфраструктура и понятные действия для пользователя.</p>
+          <div class="cards">
+            <article class="card parallax" data-depth="6">
+              <div class="icon">🛡</div>
+              <h3>Защищённый канал</h3>
+              <p>Передача данных идёт в защищённом виде, управление доступом и подписками централизовано.</p>
+            </article>
+            <article class="card parallax" data-depth="10">
+              <div class="icon">⚡</div>
+              <h3>Быстрый старт</h3>
+              <p>Пользователь получает доступ и подключается через приложение Happ в несколько нажатий.</p>
+            </article>
+            <article class="card parallax" data-depth="14">
+              <div class="icon">🌐</div>
+              <h3>Масштабируемая сеть</h3>
+              <p>Новые страны добавляются в одну подписку без переустановки и сложных миграций.</p>
+            </article>
+          </div>
+        </div>
+      </section>
+
+      <section class="section">
+        <div class="container">
+          <h2>Тарифы</h2>
+          <p class="muted">Цены подгружаются из API. Если API недоступен, показываются базовые значения.</p>
+          <div class="plans" id="plansGrid">
+            <div class="plan"><div class="name">1 месяц</div><div class="price" id="p1">100 ₽</div><div class="hint">Быстрый старт</div></div>
+            <div class="plan"><div class="name">3 месяца</div><div class="price" id="p3">285 ₽</div><div class="hint">Оптимальный выбор</div></div>
+            <div class="plan"><div class="name">6 месяцев</div><div class="price" id="p6">540 ₽</div><div class="hint">Для постоянного доступа</div></div>
+            <div class="plan"><div class="name">12 месяцев</div><div class="price" id="p12">960 ₽</div><div class="hint">Максимальная выгода</div></div>
+          </div>
+        </div>
+      </section>
+
+      <section class="section">
+        <div class="container register">
+          <div class="register-box">
+            <h3>Регистрация</h3>
+            <p>Оставьте контакт и мы синхронизируем аккаунт с ботом: username Telegram, email и телефон.</p>
+            <form id="regForm" novalidate>
+              <div class="field">
+                <label for="tgUsername">Username Telegram (без @)</label>
+                <input id="tgUsername" name="tgUsername" placeholder="например: daniil" required />
+              </div>
+              <div class="field">
+                <label for="email">Email</label>
+                <input id="email" name="email" type="email" placeholder="you@example.com" required />
+              </div>
+              <div class="field">
+                <label for="phone">Телефон</label>
+                <input id="phone" name="phone" type="tel" placeholder="+7 999 123-45-67" required />
+              </div>
+              <button class="btn btn-primary" type="submit">Отправить</button>
+              <div id="regStatus" class="status-line">Данные сохраняются в защищённом виде.</div>
+            </form>
+          </div>
+          <div class="sync-box">
+            <h3>Синхронизация с ботом и мини‑апп</h3>
+            <p>После регистрации откройте бота или веб‑кабинет. Ваши данные и подписка будут доступны в одном месте.</p>
+            <ul class="sync-points">
+              <li><span class="check">✓</span><span>Управление доступом в Telegram</span></li>
+              <li><span class="check">✓</span><span>Оплата и просмотр статуса в веб‑кабинете</span></li>
+              <li><span class="check">✓</span><span>Подключение устройств через Happ</span></li>
+            </ul>
+            <div class="top-links">
+              <a id="btnBotSync" class="btn btn-primary" href="https://t.me/Bitvpnproxy_bot" target="_blank" rel="noopener noreferrer">Перейти в бот</a>
+              <a id="btnMiniSync" class="btn btn-soft" href="https://bitvpn.vercel.app?api=https://bitecosystem.ru" target="_blank" rel="noopener noreferrer">Открыть кабинет</a>
+            </div>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <footer class="footer container">
+      <div>© Bit Ecosystem • Безопасный интернет</div>
+      <div>Поддержка: <a id="supportLinkFooter" href="https://t.me/HelpBit_bot" target="_blank" rel="noopener noreferrer">@HelpBit_bot</a></div>
+    </footer>
+  </div>
+
+  <script>
+    (function matrix() {
+      var container = document.getElementById("matrixBg");
+      if (!container) return;
+      container.innerHTML = "";
+      var symbols = ["0", "1", "BIT", "NET", "SEC", "0", "1", "A", "B"];
+      for (var i = 0; i < 16; i++) {
+        var line = document.createElement("div");
+        line.className = "matrix-line";
+        var t = "";
+        var len = Math.floor(Math.random() * 30) + 24;
+        for (var j = 0; j < len; j++) t += symbols[Math.floor(Math.random() * symbols.length)] + " ";
+        line.textContent = t;
+        line.style.left = (Math.random() * 100).toFixed(2) + "%";
+        line.style.animationDuration = (Math.random() * 16 + 14).toFixed(2) + "s";
+        line.style.animationDelay = (Math.random() * 9).toFixed(2) + "s";
+        line.style.opacity = (Math.random() * 0.35 + 0.15).toFixed(2);
+        container.appendChild(line);
+      }
+    })();
+
+    (function parallax() {
+      var nodes = Array.prototype.slice.call(document.querySelectorAll(".parallax"));
+      if (!nodes.length || window.matchMedia("(pointer: coarse)").matches) return;
+      window.addEventListener("mousemove", function (e) {
+        var w = window.innerWidth || 1;
+        var h = window.innerHeight || 1;
+        var x = (e.clientX / w - 0.5) * 2;
+        var y = (e.clientY / h - 0.5) * 2;
+        nodes.forEach(function (el) {
+          var d = parseFloat(el.getAttribute("data-depth") || "8");
+          var tx = (-x * d).toFixed(2);
+          var ty = (-y * d).toFixed(2);
+          el.style.transform = "translate3d(" + tx + "px," + ty + "px,0)";
+        });
+      });
+    })();
+
+    (function smallLiveUi() {
+      var t = document.getElementById("mockTime");
+      var p = document.getElementById("mockPing");
+      function tick() {
+        var d = new Date();
+        var hh = String(d.getHours()).padStart(2, "0");
+        var mm = String(d.getMinutes()).padStart(2, "0");
+        if (t) t.textContent = hh + ":" + mm;
+        if (p) p.textContent = (Math.floor(Math.random() * 35) + 18) + " ms";
+      }
+      tick();
+      setInterval(tick, 6000);
+    })();
+
+    (function bindApiData() {
+      var apiBase = window.location.origin;
+      fetch(apiBase + "/api/miniapp/plans").then(function (r) { return r.ok ? r.json() : null; }).then(function (data) {
+        if (!data) return;
+        var c = data.config || {};
+        var pricing = data.pricing || {};
+        if (pricing["1_month_1"] != null) document.getElementById("p1").textContent = String(pricing["1_month_1"]) + " ₽";
+        if (pricing["3_months_1"] != null) document.getElementById("p3").textContent = String(pricing["3_months_1"]) + " ₽";
+        if (pricing["6_months_1"] != null) document.getElementById("p6").textContent = String(pricing["6_months_1"]) + " ₽";
+        if (pricing["12_months_1"] != null) document.getElementById("p12").textContent = String(pricing["12_months_1"]) + " ₽";
+        var bot = (c.bot_username || "").trim();
+        var support = (c.support_username || "").trim();
+        if (bot) {
+          var botUrl = "https://t.me/" + bot;
+          ["btnBotHero","btnBotSync"].forEach(function(id){ var el=document.getElementById(id); if(el) el.href=botUrl; });
+          // Для верхней кнопки личного кабинета оставляем webapp
+        }
+        if (support) {
+          var sUrl = "https://t.me/" + support;
+          var st = document.getElementById("btnSupportTop");
+          var sf = document.getElementById("supportLinkFooter");
+          if (st) st.href = sUrl;
+          if (sf) { sf.href = sUrl; sf.textContent = "@" + support; }
+        }
+      }).catch(function(){});
+    })();
+
+    (function registerForm() {
+      var form = document.getElementById("regForm");
+      var status = document.getElementById("regStatus");
+      if (!form) return;
+      function setStatus(txt, cls) {
+        if (!status) return;
+        status.textContent = txt;
+        status.className = "status-line " + (cls || "");
+      }
+      form.addEventListener("submit", function (e) {
+        e.preventDefault();
+        var tg = (document.getElementById("tgUsername").value || "").trim().replace(/^@+/, "");
+        var email = (document.getElementById("email").value || "").trim();
+        var phone = (document.getElementById("phone").value || "").trim();
+        if (!tg || !email || !phone) { setStatus("Заполните все поля.", "err"); return; }
+        if (!/^[a-zA-Z0-9_]{4,64}$/.test(tg)) { setStatus("Некорректный username Telegram.", "err"); return; }
+        if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { setStatus("Некорректный email.", "err"); return; }
+        if (!/^[+\d][\d\s()\-]{7,24}$/.test(phone)) { setStatus("Некорректный телефон.", "err"); return; }
+        setStatus("Отправка...", "");
+        fetch(window.location.origin + "/api/site/register", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            tg_username: tg,
+            email: email,
+            phone: phone
+          })
+        }).then(function (r) { return r.ok ? r.json() : r.json().catch(function(){return null;}); })
+          .then(function (data) {
+            if (data && data.ok) {
+              setStatus("Готово. Данные сохранены, откройте бота для продолжения.", "ok");
+              form.reset();
+            } else {
+              setStatus((data && data.detail) ? String(data.detail) : "Не удалось отправить форму.", "err");
+            }
+          }).catch(function () {
+            setStatus("Ошибка сети. Повторите попытку.", "err");
+          });
+      });
+    })();
+  </script>
+</body>
+</html>
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>BIT VPN — быстрый и безопасный VPN</title>
+  <meta name="description" content="BIT VPN: быстрые серверы, удобное подключение через Happ, поддержка 24/7. Подписка за 1 минуту." />
+  <style>
+    :root {
+      --bg: #070b12;
+      --bg-soft: #0d1422;
+      --card: rgba(16, 24, 42, 0.78);
+      --line: rgba(148, 163, 184, 0.18);
+      --text: #e7edf9;
+      --muted: #9fb0cd;
+      --accent: #23e88e;
+      --accent-2: #44a5ff;
+      --shadow: 0 20px 50px rgba(0, 0, 0, 0.35);
+      --radius: 18px;
+      --radius-sm: 12px;
+      --container: 1160px;
+    }
+    * { box-sizing: border-box; }
+    html, body { margin: 0; padding: 0; }
+    body {
+      font-family: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
+      color: var(--text);
+      background:
+        radial-gradient(1000px 600px at 12% -10%, rgba(35, 232, 142, 0.20), transparent 55%),
+        radial-gradient(900px 540px at 92% -14%, rgba(68, 165, 255, 0.22), transparent 52%),
+        var(--bg);
+      line-height: 1.5;
+    }
+    a { color: inherit; text-decoration: none; }
+    .container { width: 100%; max-width: var(--container); margin: 0 auto; padding: 0 20px; }
+    .topbar {
+      position: sticky;
+      top: 0;
+      z-index: 20;
+      backdrop-filter: blur(10px);
+      background: rgba(7, 11, 18, 0.74);
+      border-bottom: 1px solid rgba(148, 163, 184, 0.12);
+    }
+    .topbar-inner {
+      height: 72px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+    }
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      font-weight: 700;
+      letter-spacing: 0.02em;
+    }
+    .brand-dot {
+      width: 11px;
+      height: 11px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, var(--accent), #8ef3c5);
+      box-shadow: 0 0 18px rgba(35, 232, 142, 0.8);
+    }
+    .top-actions { display: flex; gap: 10px; flex-wrap: wrap; justify-content: flex-end; }
+    .btn {
+      border: 1px solid transparent;
+      border-radius: 999px;
+      padding: 11px 16px;
+      font-weight: 600;
+      font-size: 0.95rem;
+      transition: .18s ease;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 42px;
+      cursor: pointer;
+    }
+    .btn-primary {
+      color: #02160d;
+      background: linear-gradient(135deg, var(--accent), #72f5bc);
+      box-shadow: 0 10px 26px rgba(35, 232, 142, 0.28);
+    }
+    .btn-primary:hover { transform: translateY(-1px); filter: brightness(1.05); }
+    .btn-ghost {
+      border-color: var(--line);
+      color: var(--text);
+      background: rgba(148, 163, 184, 0.05);
+    }
+    .btn-ghost:hover { border-color: rgba(148,163,184,.34); background: rgba(148,163,184,.10); }
+
+    .hero { padding: 72px 0 46px; }
+    .hero-grid {
+      display: grid;
+      grid-template-columns: 1.15fr 0.85fr;
+      gap: 24px;
+      align-items: stretch;
+    }
+    .hero-main, .hero-side {
+      background: var(--card);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+    }
+    .hero-main { padding: 34px; }
+    .eyebrow {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      border: 1px solid rgba(35, 232, 142, 0.36);
+      color: #baf5dd;
+      border-radius: 999px;
+      padding: 6px 10px;
+      font-size: 0.8rem;
+      background: rgba(35, 232, 142, 0.08);
+    }
+    h1 {
+      margin: 14px 0 12px;
+      font-size: clamp(1.9rem, 2.8vw, 3rem);
+      line-height: 1.12;
+      letter-spacing: -0.02em;
+    }
+    .lead { margin: 0; color: var(--muted); max-width: 58ch; }
+    .hero-cta { margin-top: 24px; display: flex; gap: 10px; flex-wrap: wrap; }
+    .hero-list {
+      margin: 22px 0 0;
+      padding: 0;
+      list-style: none;
+      display: grid;
+      gap: 10px;
+      color: #d8e2f4;
+    }
+    .hero-list li {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: .96rem;
+    }
+    .tick {
+      width: 18px; height: 18px; border-radius: 50%;
+      display: inline-flex; align-items: center; justify-content: center;
+      background: rgba(35, 232, 142, 0.17); color: var(--accent); font-size: 12px; flex: 0 0 auto;
+    }
+    .hero-side { padding: 20px; display: grid; gap: 14px; }
+    .stat {
+      border-radius: var(--radius-sm);
+      border: 1px solid var(--line);
+      background: rgba(10, 16, 28, 0.88);
+      padding: 14px;
+    }
+    .stat-label { color: var(--muted); font-size: .84rem; margin-bottom: 6px; }
+    .stat-value { font-size: 1.26rem; font-weight: 700; }
+    .pulse { color: #8debc1; }
+
+    .section { padding: 26px 0 20px; }
+    .section h2 { margin: 0 0 14px; font-size: clamp(1.35rem, 1.8vw, 2rem); letter-spacing: -0.01em; }
+    .section p.section-muted { margin: 0 0 18px; color: var(--muted); }
+
+    .cards {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 14px;
+    }
+    .card {
+      background: var(--card);
+      border: 1px solid var(--line);
+      border-radius: var(--radius-sm);
+      padding: 18px;
+    }
+    .card h3 { margin: 0 0 8px; font-size: 1.03rem; }
+    .card p { margin: 0; color: var(--muted); font-size: .94rem; }
+
+    .plans {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 12px;
+    }
+    .plan {
+      background: linear-gradient(180deg, rgba(17, 25, 45, 0.88), rgba(12, 20, 36, 0.82));
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      padding: 16px;
+    }
+    .plan-title { color: var(--muted); font-size: 0.86rem; }
+    .plan-price { margin-top: 8px; font-size: 1.54rem; font-weight: 700; }
+    .plan-note { margin-top: 5px; color: var(--muted); font-size: .82rem; }
+
+    .steps {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 12px;
+    }
+    .step {
+      border: 1px dashed rgba(148,163,184,.34);
+      border-radius: 14px;
+      padding: 15px;
+      background: rgba(12, 18, 30, 0.65);
+    }
+    .num {
+      width: 26px; height: 26px; border-radius: 8px;
+      display: inline-flex; align-items: center; justify-content: center;
+      background: rgba(68,165,255,.2); color: #cce3ff; font-weight: 700; margin-bottom: 10px;
+    }
+
+    .cta {
+      margin-top: 16px;
+      background: linear-gradient(135deg, rgba(35, 232, 142, 0.15), rgba(68, 165, 255, 0.17));
+      border: 1px solid rgba(148,163,184,.25);
+      border-radius: var(--radius);
+      padding: 24px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 14px;
+      flex-wrap: wrap;
+    }
+    .cta h3 { margin: 0 0 4px; font-size: 1.24rem; }
+    .cta p { margin: 0; color: #c9d7f1; }
+    .footer {
+      padding: 34px 0 54px;
+      color: var(--muted);
+      font-size: .9rem;
+      text-align: center;
+    }
+    .muted-link { color: #c6d7f6; text-decoration: underline; text-underline-offset: 3px; }
+
+    @media (max-width: 1060px) {
+      .hero-grid { grid-template-columns: 1fr; }
+      .cards { grid-template-columns: repeat(2, minmax(0,1fr)); }
+      .plans { grid-template-columns: repeat(2, minmax(0,1fr)); }
+    }
+    @media (max-width: 720px) {
+      .topbar-inner { height: auto; padding: 12px 0; align-items: flex-start; flex-direction: column; }
+      .hero { padding-top: 36px; }
+      .hero-main { padding: 22px; }
+      .cards, .plans, .steps { grid-template-columns: 1fr; }
+      .cta { padding: 18px; }
+      .btn { width: 100%; }
+      .top-actions { width: 100%; }
+    }
+  </style>
+</head>
+<body>
+  <header class="topbar">
+    <div class="container topbar-inner">
+      <div class="brand">
+        <span class="brand-dot"></span>
+        <span>BIT VPN</span>
+      </div>
+      <div class="top-actions">
+        <a class="btn btn-ghost" href="https://t.me/HelpBit_bot" target="_blank" rel="noopener noreferrer">Поддержка 24/7</a>
+        <a class="btn btn-primary" href="https://t.me/Bitvpnproxy_bot" target="_blank" rel="noopener noreferrer">Открыть в Telegram</a>
+      </div>
+    </div>
+  </header>
+
+  <main>
+    <section class="hero">
+      <div class="container hero-grid">
+        <div class="hero-main">
+          <span class="eyebrow"><span class="tick">✓</span> Безопасное подключение за 1 минуту</span>
+          <h1>Современный VPN для стабильной работы и приватного интернета</h1>
+          <p class="lead">Одна подписка, несколько серверов, удобное подключение через Happ и быстрый старт без сложных настроек. Подходит для телефона и ПК.</p>
+          <div class="hero-cta">
+            <a class="btn btn-primary" href="https://t.me/Bitvpnproxy_bot" target="_blank" rel="noopener noreferrer">Купить подписку</a>
+            <a class="btn btn-ghost" href="https://bitvpn.vercel.app?api=https://bitecosystem.ru" target="_blank" rel="noopener noreferrer">Открыть веб-приложение</a>
+          </div>
+          <ul class="hero-list">
+            <li><span class="tick">✓</span> Подключение за 3 шага без ручной возни с конфигами</li>
+            <li><span class="tick">✓</span> Серверы с низкой задержкой и быстрой сменой локаций</li>
+            <li><span class="tick">✓</span> Прозрачные тарифы, автообновление и поддержка в Telegram</li>
+          </ul>
+        </div>
+        <aside class="hero-side">
+          <div class="stat">
+            <div class="stat-label">Статус сети</div>
+            <div class="stat-value pulse">Online</div>
+          </div>
+          <div class="stat">
+            <div class="stat-label">Подключение устройств</div>
+            <div class="stat-value">Телефон • ПК • Планшет</div>
+          </div>
+          <div class="stat">
+            <div class="stat-label">Управление подпиской</div>
+            <div class="stat-value">Личный кабинет + бот</div>
+          </div>
+        </aside>
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="container">
+        <h2>Почему выбирают BIT VPN</h2>
+        <p class="section-muted">Минималистичный интерфейс, быстрая выдача ссылок и предсказуемая работа на разных устройствах.</p>
+        <div class="cards">
+          <article class="card">
+            <h3>Стабильная архитектура</h3>
+            <p>Одна подписка объединяет несколько серверов. Добавление новых локаций без переустановки у пользователя.</p>
+          </article>
+          <article class="card">
+            <h3>Простой старт</h3>
+            <p>Выбираете тариф, оплачиваете и подключаетесь через Happ. Не нужно настраивать всё вручную.</p>
+          </article>
+          <article class="card">
+            <h3>Поддержка в чате</h3>
+            <p>Если что-то не работает, команда поддержки отвечает в Telegram и помогает быстро восстановить доступ.</p>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="container">
+        <h2>Тарифы</h2>
+        <p class="section-muted">Точные цены и доступные способы оплаты всегда актуальны в боте и веб-приложении.</p>
+        <div class="plans">
+          <div class="plan"><div class="plan-title">1 месяц</div><div class="plan-price">от 100 ₽</div><div class="plan-note">Быстрый старт</div></div>
+          <div class="plan"><div class="plan-title">3 месяца</div><div class="plan-price">от 285 ₽</div><div class="plan-note">Оптимальный выбор</div></div>
+          <div class="plan"><div class="plan-title">6 месяцев</div><div class="plan-price">от 540 ₽</div><div class="plan-note">Выгоднее в долгую</div></div>
+          <div class="plan"><div class="plan-title">12 месяцев</div><div class="plan-price">от 960 ₽</div><div class="plan-note">Максимальная экономия</div></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="container">
+        <h2>Как подключиться</h2>
+        <div class="steps">
+          <div class="step">
+            <span class="num">1</span>
+            <div><strong>Оформите подписку</strong></div>
+            <div class="section-muted">Перейдите в Telegram-бот и выберите тариф.</div>
+          </div>
+          <div class="step">
+            <span class="num">2</span>
+            <div><strong>Откройте Happ</strong></div>
+            <div class="section-muted">Приложение автоматически предложит добавить ссылку.</div>
+          </div>
+          <div class="step">
+            <span class="num">3</span>
+            <div><strong>Подключайтесь</strong></div>
+            <div class="section-muted">Выберите сервер и выходите в сеть за секунды.</div>
+          </div>
+        </div>
+        <div class="cta">
+          <div>
+            <h3>Готовы подключиться?</h3>
+            <p>Запустите BIT VPN в Telegram или откройте веб-интерфейс для оплаты и управления.</p>
+          </div>
+          <div class="top-actions">
+            <a class="btn btn-primary" href="https://t.me/Bitvpnproxy_bot" target="_blank" rel="noopener noreferrer">Запустить бот</a>
+            <a class="btn btn-ghost" href="https://bitvpn.vercel.app?api=https://bitecosystem.ru" target="_blank" rel="noopener noreferrer">Личный кабинет</a>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="footer container">
+    <div>© BIT VPN • Безопасное подключение и поддержка 24/7</div>
+    <div>Поддержка: <a class="muted-link" href="https://t.me/HelpBit_bot" target="_blank" rel="noopener noreferrer">@HelpBit_bot</a></div>
+  </footer>
+</body>
+</html>
