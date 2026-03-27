@@ -41,6 +41,22 @@ from locales.ru import get_message, format_price_per_month, format_savings
 
 logger = logging.getLogger(__name__)
 
+
+async def _answer_callback_safe(query, text=None, show_alert=False):
+    """answerCallbackQuery; просроченный callback (рестарт бота, долгая очередь) — не роняем хендлер."""
+    try:
+        if text is not None:
+            await query.answer(text, show_alert=show_alert)
+        else:
+            await query.answer()
+    except BadRequest as e:
+        s = str(e).lower()
+        if "too old" in s or "query id is invalid" in s or "response timeout expired" in s:
+            logger.debug("callback answer skipped (stale): %s", e)
+            return
+        raise
+
+
 # План для безлимитной подписки админа: 10 устройств, отображение в профиле и в мини-аппе
 ADMIN_UNLIMITED_PLAN_TYPE = "12_months_10"
 ADMIN_SERVER_LOCATION = "Admin"
@@ -222,6 +238,14 @@ async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
     if not msg:
         logger.error("start_command: no effective_message (update_id=%s)", getattr(update, "update_id", None))
         return
+    eu = update.effective_user
+    logger.info(
+        "start_command: update_id=%s chat_id=%s user_id=%s args=%s",
+        getattr(update, "update_id", None),
+        msg.chat_id if msg else None,
+        eu.id if eu else None,
+        list(context.args or []),
+    )
     try:
         user = None
         for attempt in range(2):
@@ -315,18 +339,30 @@ async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
         reply_markup = InlineKeyboardMarkup(keyboard)
 
         if is_returning:
-            message_text = get_message('welcome_back_short', name=user.first_name or 'друг')
+            message_text = get_message(
+                'welcome_back_short',
+                name=escape_html((user.first_name or 'друг').strip() or 'друг'),
+            )
         else:
             message_text = get_message('welcome_short')
 
         if user.has_active_subscription and user.active_subscription:
             message_text += _happ_devices_html_line(user.active_subscription)
 
-        await msg.reply_text(
-            message_text,
-            reply_markup=reply_markup,
-            parse_mode='HTML'
-        )
+        try:
+            await msg.reply_text(
+                message_text,
+                reply_markup=reply_markup,
+                parse_mode='HTML',
+            )
+        except BadRequest as e:
+            # Имя или иные данные ломали HTML — без parse_mode пользователь всё равно получит ответ
+            if "parse" in str(e).lower() or "entity" in str(e).lower():
+                logger.warning("start_command: HTML parse failed, sending plain text: %s", e)
+                plain = re.sub(r"<[^>]+>", "", message_text)
+                await msg.reply_text(plain, reply_markup=reply_markup)
+            else:
+                raise
     except DataError as e:
         logger.exception("start_command: DataError %s", e)
         try:
@@ -338,12 +374,29 @@ async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
             )
         except Exception as e2:
             logger.error("start_command: notify_admins failed: %s", e2)
+    except Exception as e:
+        logger.exception("start_command: unexpected error: %s", e)
+        try:
+            uid = update.effective_user.id if update.effective_user else "?"
+            await notify_admins(
+                context.bot,
+                "Ошибка при /start (см. лог)",
+                f"user_id={uid}\n\n{type(e).__name__}: {e}",
+            )
+        except Exception as e2:
+            logger.error("start_command: notify_admins failed: %s", e2)
+        try:
+            await msg.reply_text(
+                "Сейчас не удалось ответить. Попробуйте ещё раз через минуту или напишите в поддержку.",
+            )
+        except Exception as e3:
+            logger.warning("start_command: fallback reply failed: %s", e3)
 
 
 async def show_plans(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     """Show subscription plans"""
     query = update.callback_query
-    await query.answer()
+    await _answer_callback_safe(query)
     
     message_text = get_message('plans_header')
     
@@ -408,7 +461,7 @@ async def show_plans(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
 async def select_duration(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     """После выбора срока — выбор количества устройств (1, 3, 5, 10), как в мини-апп."""
     query = update.callback_query
-    await query.answer()
+    await _answer_callback_safe(query)
     
     plan_type = query.data.replace('plan_', '')
     plan = SUBSCRIPTION_PLANS.get(plan_type)
@@ -438,7 +491,7 @@ async def select_duration(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
 async def select_devices(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     """Выбрано число устройств — переходим к выбору способа оплаты."""
     query = update.callback_query
-    await query.answer()
+    await _answer_callback_safe(query)
     
     devices = int(query.data.replace('devices_', ''))
     duration_key = context.user_data.get('duration_key', '1_month')
@@ -489,7 +542,7 @@ async def select_devices(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
 async def select_payment_method(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     """Handle plan selection and show payment methods"""
     query = update.callback_query
-    await query.answer()
+    await _answer_callback_safe(query)
     
     plan_type = query.data.replace('plan_', '')
     context.user_data['selected_plan'] = plan_type
@@ -538,7 +591,7 @@ async def select_payment_method(update: Update, context: ContextTypes.DEFAULT_TY
 async def process_payment(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     """Process payment"""
     query = update.callback_query
-    await query.answer("💳 Создаем счет для оплаты...")
+    await _answer_callback_safe(query, "💳 Создаем счет для оплаты...")
     
     payment_method = query.data.replace('pay_', '')
     plan_type = context.user_data.get('selected_plan')
@@ -625,7 +678,7 @@ async def process_payment(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
 async def verify_payment(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     """Verify and complete payment"""
     query = update.callback_query
-    await query.answer("🔄 Проверяем статус платежа...")
+    await _answer_callback_safe(query, "🔄 Проверяем статус платежа...")
     
     try:
         payment_id = int(query.data.replace('verify_payment_', ''))
@@ -814,7 +867,7 @@ async def verify_payment(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
 async def show_profile(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """Show user profile"""
     query = update.callback_query
-    await query.answer()
+    await _answer_callback_safe(query)
     
     user = get_or_create_user(update.effective_user)
     if user.is_admin and not user.has_active_subscription:
@@ -863,7 +916,7 @@ async def show_profile(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
 async def my_subscription_refresh_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """Обновить карточку «Моя подписка» (кнопка «Мои устройства»)."""
     query = update.callback_query
-    await query.answer()
+    await _answer_callback_safe(query)
     user = get_or_create_user(update.effective_user)
     if not user.has_active_subscription:
         await query.edit_message_text("❌ Нет активной подписки.", parse_mode='HTML')
@@ -952,7 +1005,7 @@ async def _edit_message_hap_devices(query, user) -> None:
 async def hap_devices_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """Экран списка устройств (как в конкурентах)."""
     query = update.callback_query
-    await query.answer()
+    await _answer_callback_safe(query)
     user = get_or_create_user(update.effective_user)
     try:
         await _edit_message_hap_devices(query, user)
@@ -969,7 +1022,7 @@ async def hap_device_remove_handler(update: Update, context: ContextTypes.DEFAUL
     if not m:
         return
     idx = int(m.group(1))
-    await query.answer()
+    await _answer_callback_safe(query)
     user = get_or_create_user(update.effective_user)
     if not user.has_active_subscription:
         await context.bot.send_message(
@@ -1018,13 +1071,13 @@ async def my_sub_connect_handler(update: Update, context: ContextTypes.DEFAULT_T
     query = update.callback_query
     user = get_or_create_user(update.effective_user)
     if not user.has_active_subscription:
-        await query.answer("Нет активной подписки", show_alert=True)
+        await _answer_callback_safe(query, "Нет активной подписки", show_alert=True)
         return
     link = (getattr(user.active_subscription, "vpn_config", None) or "").strip()
     if not link:
-        await query.answer("Ссылка не найдена", show_alert=True)
+        await _answer_callback_safe(query, "Ссылка не найдена", show_alert=True)
         return
-    await query.answer()
+    await _answer_callback_safe(query)
     show = link_for_user_display(link)
     safe = escape_html(show[:4000])
     await context.bot.send_message(
@@ -1059,7 +1112,7 @@ async def send_setup_device_choice(bot, chat_id: int) -> None:
 async def setup_device_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """Ответ на нажатие кнопки устройства: отправить ссылку подписки (если есть или удалось сгенерировать), затем инструкцию Happ."""
     query = update.callback_query
-    await query.answer()
+    await _answer_callback_safe(query)
     chat_id = update.effective_chat.id
     user = get_or_create_user(update.effective_user)
     if not user.has_active_subscription:
@@ -1121,7 +1174,7 @@ async def show_my_config(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
     query = getattr(update, 'callback_query', None)
     chat_id = update.effective_chat.id
     if query:
-        await query.answer()
+        await _answer_callback_safe(query)
     
     user = get_or_create_user(update.effective_user)
     if not user.has_active_subscription and user.is_admin:
@@ -1152,7 +1205,7 @@ async def show_my_config(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
 async def show_referral_info(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """Show referral program info"""
     query = update.callback_query
-    await query.answer()
+    await _answer_callback_safe(query)
     
     user = get_or_create_user(update.effective_user)
     
@@ -1187,7 +1240,7 @@ async def show_referral_info(update: Update, context: ContextTypes.DEFAULT_TYPE)
 async def request_payout_start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     """Начало заявки на вывод реферальных средств."""
     query = update.callback_query
-    await query.answer()
+    await _answer_callback_safe(query)
     user = get_or_create_user(update.effective_user)
     if user.referral_balance < Config.REFERRAL_MIN_PAYOUT:
         await query.edit_message_text(
@@ -1260,7 +1313,7 @@ async def cancel_payout(update: Update, context: ContextTypes.DEFAULT_TYPE) -> i
 async def show_help(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """Show help information"""
     query = update.callback_query
-    await query.answer()
+    await _answer_callback_safe(query)
     
     keyboard = [
         [InlineKeyboardButton(get_message('btn_support'), callback_data='support')],
@@ -1279,7 +1332,7 @@ async def show_help(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
 async def show_support(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """Show support information"""
     query = update.callback_query
-    await query.answer()
+    await _answer_callback_safe(query)
     
     keyboard = [
         [InlineKeyboardButton("💬 Написать в поддержку", url=f"https://t.me/{Config.SUPPORT_USERNAME}")],
@@ -1299,7 +1352,7 @@ async def main_menu(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     """Return to main menu — кратко, две кнопки: приложение и поддержка."""
     query = update.callback_query
     if query:
-        await query.answer()
+        await _answer_callback_safe(query)
     
     user = get_or_create_user(update.effective_user)
     
@@ -1316,7 +1369,10 @@ async def main_menu(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
         keyboard.append([InlineKeyboardButton(get_message('btn_support'), callback_data='support')])
     reply_markup = InlineKeyboardMarkup(keyboard)
     
-    message_text = get_message('welcome_back_short', name=user.first_name or 'друг')
+    message_text = get_message(
+        'welcome_back_short',
+        name=escape_html((user.first_name or 'друг').strip() or 'друг'),
+    )
     if user.has_active_subscription and user.active_subscription:
         message_text += _happ_devices_html_line(user.active_subscription)
     

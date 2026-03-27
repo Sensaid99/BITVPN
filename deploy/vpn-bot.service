@@ -6,6 +6,8 @@ After=network.target
 Type=simple
 User=root
 WorkingDirectory=/opt/vpn-bot
+# BOT_TOKEN и остальное читаются из .env через python-dotenv в bot/config/settings.py (файл должен лежать в WorkingDirectory)
+# При желании можно продублировать: EnvironmentFile=-/opt/vpn-bot/.env
 Environment=PATH=/opt/vpn-bot/venv/bin:/usr/local/bin:/usr/bin:/bin
 ExecStart=/opt/vpn-bot/venv/bin/python run.py
 Restart=always

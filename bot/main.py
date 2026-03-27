@@ -9,7 +9,7 @@ import asyncio
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from telegram import BotCommand, MenuButtonWebApp, WebAppInfo
-from telegram.error import TimedOut
+from telegram.error import BadRequest, Forbidden, TimedOut
 from telegram.request import HTTPXRequest
 from telegram.ext import (
     Application, 
@@ -96,8 +96,8 @@ def create_application() -> Application:
         ],
     )
     
-    # Команды (group=0)
-    application.add_handler(CommandHandler('start', start_command))
+    # /start — group=-2 (выше приоритет, чем у callback и ConversationHandler), чтобы команда всегда обрабатывалась первой
+    application.add_handler(CommandHandler('start', start_command), group=-2)
     application.add_handler(CommandHandler('admin', admin_panel))
     
     # Кнопки меню — group=-1 чтобы обрабатывались ДО ConversationHandler (иначе callback не доходят)
@@ -137,6 +137,16 @@ async def error_handler(update: object, context) -> None:
     """Логируем ошибку; клиентам не пишем технические тексты — только админам."""
     import traceback
     err = context.error
+    if isinstance(err, BadRequest):
+        es = str(err).lower()
+        if "too old" in es or "query id is invalid" in es or "response timeout expired" in es:
+            logger.warning("Пропуск устаревшего callback (без уведомления админам): %s", err)
+            return
+    if isinstance(err, Forbidden):
+        es = str(err).lower()
+        if "blocked" in es or "deactivated" in es or "bot was blocked" in es:
+            logger.warning("Forbidden (пользователь заблокировал бота или чат недоступен): %s", err)
+            return
     err_type = type(err).__name__
     tb = "".join(traceback.format_exception(type(err), err, err.__traceback__))
     ctx_info = ""
@@ -172,7 +182,9 @@ async def post_init(application: Application) -> None:
                 "Активен Telegram webhook (%s) — удаляем для режима polling. Иначе бот не получает сообщения.",
                 wh.url,
             )
-        await application.bot.delete_webhook(drop_pending_updates=False)
+        # Сбрасываем очередь апдейтов: иначе после редеплоя/рестарта обрабатываются старые /start
+        # и пользователю снова уходит приветствие без нового нажатия «Старт».
+        await application.bot.delete_webhook(drop_pending_updates=True)
     except Exception as e:
         logger.warning("get_webhook_info / delete_webhook: %s", e)
 
@@ -239,12 +251,19 @@ async def post_init(application: Application) -> None:
         logger.warning("Admin subscription ensure on startup: %s", e)
 
     # Ежедневная рассылка: истечение подписки (за 3 дня, за 1 день, после истечения)
-    try:
-        from bot.jobs.expiry_notifications import send_expiry_notifications
-        application.job_queue.run_daily(send_expiry_notifications, time=dt_time(10, 0, 0))
-        logger.info("✅ Job: expiry notifications (daily at 10:00 UTC)")
-    except Exception as e:
-        logger.warning("Could not schedule expiry notifications job: %s", e)
+    jq = application.job_queue
+    if jq is not None:
+        try:
+            from bot.jobs.expiry_notifications import send_expiry_notifications
+            jq.run_daily(send_expiry_notifications, time=dt_time(10, 0, 0))
+            logger.info("✅ Job: expiry notifications (daily at 10:00 UTC)")
+        except Exception as e:
+            logger.warning("Could not schedule expiry notifications job: %s", e)
+    else:
+        logger.warning(
+            "JobQueue недоступен — напоминания об истечении подписки не запланированы. "
+            'Установите: pip install "python-telegram-bot[job-queue]"'
+        )
 
     logger.info("🎉 VPN Bot initialization completed successfully")
 

@@ -576,6 +576,43 @@ def _rewrite_subscription_remark(raw: bytes, display_name: str, description: str
     return base64.standard_b64encode(text.encode("utf-8"))
 
 
+def _happ_subscription_upstream_bases() -> list[str]:
+    """
+    Базовые URL подписок 3x-ui для GET /sub/<CODE> (как в .env).
+    HAPP_SUBSCRIPTION_URLS — несколько через запятую; иначе одна HAPP_SUBSCRIPTION_URL.
+    """
+    try:
+        from bot.config.settings import Config
+    except Exception:
+        Config = None  # noqa: N806
+    raw = (os.environ.get("HAPP_SUBSCRIPTION_URLS") or "").strip()
+    if Config is not None:
+        raw = raw or (getattr(Config, "HAPP_SUBSCRIPTION_URLS", None) or "").strip()
+    if raw:
+        items = []
+        for part in raw.replace("\n", ",").replace(" ", ",").split(","):
+            p = (part or "").strip()
+            if p:
+                items.append(p.rstrip("/"))
+        out: list[str] = []
+        seen: set[str] = set()
+        for p in items:
+            if p not in seen:
+                out.append(p)
+                seen.add(p)
+        return out
+    if Config is not None:
+        base1 = (getattr(Config, "HAPP_SUBSCRIPTION_URL", None) or os.environ.get("HAPP_SUBSCRIPTION_URL") or "").strip().rstrip("/")
+    else:
+        base1 = (os.environ.get("HAPP_SUBSCRIPTION_URL") or "").strip().rstrip("/")
+    return [base1] if base1 else []
+
+
+def _build_sub_install_target(base_url: str, install_code: str) -> str:
+    b = (base_url or "").strip().rstrip("/")
+    return f"{b}?installid={install_code}" if "?" not in b else f"{b}&installid={install_code}"
+
+
 @app.get("/sub/{install_code:path}")
 def sub_redirect(install_code: str, request: Request):
     """
@@ -591,45 +628,15 @@ def sub_redirect(install_code: str, request: Request):
     try:
         from bot.config.settings import Config
 
-        def _parse_upstream_bases() -> list[str]:
-            """
-            Upstream базы подписок 3x-ui.
-            - HAPP_SUBSCRIPTION_URLS: список через запятую/пробел/перевод строки (предпочтительно)
-            - fallback: HAPP_SUBSCRIPTION_URL (одна база, как раньше)
-            """
-            raw = (
-                (os.environ.get("HAPP_SUBSCRIPTION_URLS") or "").strip()
-                or (getattr(Config, "HAPP_SUBSCRIPTION_URLS", None) or "").strip()
-            )
-            if raw:
-                items = []
-                for part in raw.replace("\n", ",").replace(" ", ",").split(","):
-                    p = (part or "").strip()
-                    if p:
-                        items.append(p.rstrip("/"))
-                # дедуп по порядку
-                out = []
-                seen = set()
-                for p in items:
-                    if p not in seen:
-                        out.append(p)
-                        seen.add(p)
-                return out
-            base1 = (getattr(Config, "HAPP_SUBSCRIPTION_URL", None) or os.environ.get("HAPP_SUBSCRIPTION_URL") or "").strip().rstrip("/")
-            return [base1] if base1 else []
-
-        bases = _parse_upstream_bases()
+        bases = _happ_subscription_upstream_bases()
         if not bases:
             raise HTTPException(status_code=503, detail="Subscription URL not configured")
         if any((b or "").lower().startswith("happ://") for b in bases):
             # Если в проде решат использовать happ://crypt* как upstream, то /sub/ прокси не подойдёт
             raise HTTPException(status_code=404, detail="Direct Happ link in use; /sub/ redirect not available")
 
-        def _build_target(base_url: str) -> str:
-            return f"{base_url}?installid={code}" if "?" not in base_url else f"{base_url}&installid={code}"
-
         # Первый base используем как fallback для RedirectResponse (как раньше)
-        target = _build_target(bases[0])
+        target = _build_sub_install_target(bases[0], code)
         display_name = (getattr(Config, "SUBSCRIPTION_DISPLAY_NAME", None) or os.environ.get("SUBSCRIPTION_DISPLAY_NAME") or "BIT VPN").strip()
         description = (getattr(Config, "SUBSCRIPTION_DESCRIPTION", None) or os.environ.get("SUBSCRIPTION_DESCRIPTION") or "").strip() or None
         if description and "\\n" in description:
@@ -641,7 +648,7 @@ def sub_redirect(install_code: str, request: Request):
             decoded_lines: list[str] = []
             ua = request.headers.get("User-Agent", "BitVPN-MiniApp/1.0")
             for base in bases:
-                t = _build_target(base)
+                t = _build_sub_install_target(base, code)
                 try:
                     r = requests.get(t, timeout=15, headers={"User-Agent": ua})
                 except Exception as e:
@@ -719,16 +726,24 @@ def check_happ_env():
     """
     try:
         from bot.config.settings import Config
+        has_urls = bool((getattr(Config, "HAPP_SUBSCRIPTION_URLS", None) or "").strip())
+        has_single = bool(getattr(Config, "HAPP_SUBSCRIPTION_URL", None))
         env = {
             "HAPP_API_URL": bool(getattr(Config, "HAPP_API_URL", None)),
             "HAPP_PROVIDER_CODE": bool(getattr(Config, "HAPP_PROVIDER_CODE", None)),
             "HAPP_AUTH_KEY": bool(getattr(Config, "HAPP_AUTH_KEY", None)),
-            "HAPP_SUBSCRIPTION_URL": bool(getattr(Config, "HAPP_SUBSCRIPTION_URL", None)),
+            "HAPP_SUBSCRIPTION_URL": has_single,
+            "HAPP_SUBSCRIPTION_URLS": has_urls,
+            "subscription_upstream_ok": has_single or has_urls,
         }
-        all_ok = all(env.values())
+        core_ok = env["HAPP_API_URL"] and env["HAPP_PROVIDER_CODE"] and env["HAPP_AUTH_KEY"] and env["subscription_upstream_ok"]
         return {
-            "ok": all_ok,
-            "message": "Все HAPP_* заданы. Ссылка должна генерироваться." if all_ok else "Не хватает переменных — добавьте в .env на СЕРВЕРЕ и перезапустите API.",
+            "ok": core_ok,
+            "message": (
+                "Все обязательные HAPP_* заданы. Ссылка должна генерироваться."
+                if core_ok
+                else "Не хватает переменных — нужны HAPP_PROVIDER_CODE, HAPP_AUTH_KEY и HAPP_SUBSCRIPTION_URL или HAPP_SUBSCRIPTION_URLS."
+            ),
             "env_set": env,
         }
     except Exception as e:
@@ -1109,8 +1124,7 @@ def debug_install_stats(install_code: str = ""):
 @app.get("/api/miniapp/debug-sub-content", dependencies=[Depends(require_debug_endpoints)])
 def debug_sub_content(install_code: str = ""):
     """
-    Отладка: проксирует ли наш API подписку по /sub/{CODE} и добавляет ли ProviderID
-    в контент (строка вида #providerid <HAPP_PROVIDER_CODE>).
+    Отладка: сколько нод в подписке по каждому upstream и после склейки (как GET /sub/{CODE}).
 
     Вызов:
       https://ВАШ_ДОМЕН_API/api/miniapp/debug-sub-content?install_code=XXXXXXXXXXXX
@@ -1125,38 +1139,80 @@ def debug_sub_content(install_code: str = ""):
     try:
         from bot.config.settings import Config
         provider_code = (getattr(Config, "HAPP_PROVIDER_CODE", None) or os.environ.get("HAPP_PROVIDER_CODE", "") or "").strip()
-        base_url = (getattr(Config, "HAPP_SUBSCRIPTION_URL", None) or os.environ.get("HAPP_SUBSCRIPTION_URL", "") or "").strip().rstrip("/")
         display_name = (getattr(Config, "SUBSCRIPTION_DISPLAY_NAME", None) or os.environ.get("SUBSCRIPTION_DISPLAY_NAME", "") or "BIT VPN").strip()
         description = (getattr(Config, "SUBSCRIPTION_DESCRIPTION", None) or os.environ.get("SUBSCRIPTION_DESCRIPTION", "") or "").strip() or None
 
-        if not base_url:
-            return {"ok": False, "message": "HAPP_SUBSCRIPTION_URL missing on API server."}
+        bases = _happ_subscription_upstream_bases()
+        if not bases:
+            return {"ok": False, "message": "Нет HAPP_SUBSCRIPTION_URL / HAPP_SUBSCRIPTION_URLS на API."}
+
+        per_upstream = []
+        merged_lines: list[str] = []
+        node_prefixes = ("vless://", "vmess://", "trojan://", "ss://")
+
+        def _count_nodes(decoded: str) -> int:
+            n = 0
+            for line in decoded.replace("\r", "\n").split("\n"):
+                s = (line or "").strip()
+                if s.startswith(node_prefixes):
+                    n += 1
+            return n
+
+        for base in bases:
+            target = _build_sub_install_target(base, code)
+            try:
+                r = requests.get(target, timeout=15, headers={"User-Agent": "BitVPN-MiniApp/1.0"})
+            except Exception as ex:
+                per_upstream.append({"base": base.split("?")[0][:48] + "…", "status": None, "nodes": 0, "error": str(ex)[:120]})
+                continue
+            st = r.status_code
+            nodes = 0
+            if st == 200 and r.content:
+                rw = _rewrite_subscription_remark(r.content, display_name, description, provider_id=provider_code or None)
+                try:
+                    dec = base64.standard_b64decode(rw).decode("utf-8", errors="replace")
+                    nodes = _count_nodes(dec)
+                    for line in dec.replace("\r", "\n").split("\n"):
+                        s = (line or "").strip()
+                        if not s or s.lower().startswith("#providerid"):
+                            continue
+                        merged_lines.append(s)
+                except Exception:
+                    pass
+            per_upstream.append({"base": base.split("?")[0][:64], "status": st, "nodes": nodes})
+
+        # Дедуп как в sub_redirect
+        merged: list[str] = []
+        seen_nodes: set[str] = set()
+        for s in merged_lines:
+            if s.startswith(node_prefixes):
+                if s in seen_nodes:
+                    continue
+                seen_nodes.add(s)
+                merged.append(s)
+            else:
+                key = ("misc", s)
+                if key in seen_nodes:
+                    continue
+                seen_nodes.add(key)
+                merged.append(s)
+        merged_node_count = sum(1 for x in merged if x.startswith(node_prefixes))
+
+        snippet = ""
+        if merged:
+            snippet = "\n".join(merged[:6])
+
         if not provider_code:
             return {"ok": False, "message": "HAPP_PROVIDER_CODE missing on API server."}
 
-        target = f"{base_url}?installid={code}" if "?" not in base_url else f"{base_url}&installid={code}"
-        r = requests.get(target, timeout=15, headers={"User-Agent": "BitVPN-MiniApp/1.0"})
-        status = r.status_code
-        proxied_ok = (status == 200 and bool(r.content))
-        providerid_injected = False
-        snippet = ""
-
-        if proxied_ok:
-            rewritten_b64 = _rewrite_subscription_remark(r.content, display_name, description, provider_id=provider_code)
-            try:
-                decoded = base64.standard_b64decode(rewritten_b64).decode("utf-8", errors="replace")
-                providerid_injected = ("#providerid " + provider_code) in decoded
-                snippet = "\n".join(decoded.split("\n")[:6])
-            except Exception:
-                providerid_injected = False
         return {
             "ok": True,
             "install_code_sent": code[:6] + "***",
-            "sub_target": target.split("?")[0],
-            "upstream_status": status,
-            "proxied_ok": proxied_ok,
+            "upstream_bases_count": len(bases),
+            "per_upstream": per_upstream,
+            "merged_vless_vmess_trojan_ss_count": merged_node_count,
+            "hint": "Если merged count < ожидаемого: задайте HAPP_SUBSCRIPTION_URLS (две ссылки 3x-ui через запятую) или в одной панели привяжите второй inbound к этой подписке.",
             "provider_code_sent": provider_code[:6] + "***" if provider_code else None,
-            "providerid_injected": providerid_injected,
             "decoded_snippet": snippet,
         }
     except Exception as e:

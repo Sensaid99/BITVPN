@@ -11,6 +11,75 @@
 
 ---
 
+## 2026-03-27 — /start не реагирует; приоритет хендлера; 3x-ui изоляция
+
+### Запрос
+После смены токена кнопка «Старт» не реагирует; проверка на нестыковки; инструкция по 3x-ui для отдельного учёта на пользователя.
+
+### Что сделано
+- **`bot/main.py`**: `CommandHandler('start')` в **group=-2** (выше callback и `ConversationHandler`), чтобы `/start` обрабатывался первым; в **`error_handler`** игнор уведомлений админам при **`Forbidden`** (бот заблокирован пользователем).
+- **`bot/handlers/main.py`**: при входе в **`start_command`** — **INFO**-лог `update_id`, `chat_id`, `user_id`, `args`; **`except Exception`** после `DataError` — уведомление админам + короткий текст пользователю при сбое.
+- **`deploy/vpn-bot.service`**: комментарий про `.env` в `WorkingDirectory`.
+- **`docs/deploy/3X_UI_ИЗОЛЯЦИЯ_ПОЛЬЗОВАТЕЛЕЙ.md`**, строка в **`docs/README.md`**.
+
+### Что проверить на сервере
+`journalctl -u vpn-bot -f` — при нажатии Старт должна появиться строка `start_command: update_id=...`. Если строки нет — апдейты не доходят (другой процесс с тем же токеном, webhook, сеть). Если строка есть, но нет ответа — смотреть исключение в логе.
+
+---
+
+## 2026-03-27 — BotFather; две ноды в Happ; /start; отладка /sub
+
+### Запрос
+Пошагово что менять в BotFather; клиент видит одну ноду вместо двух и «32 ГБ» на новой подписке; /start не отвечает.
+
+### Что сделано в коде
+- **`bot/handlers/main.py`**: имя в приветствии через **`escape_html`** (спецсимволы в имени Telegram ломали HTML → **BadRequest**, бот молчал); при ошибке parse_mode — повтор без HTML.
+- **`bot/config/settings.py`**: **`HAPP_SUBSCRIPTION_URLS`** в Config (как в `.env`).
+- **`api_miniapp.py`**: вынесены **`_happ_subscription_upstream_bases`**, **`_build_sub_install_target`**; **`debug-sub-content`** считает ноды по каждому upstream и после склейки; **`check-happ_env`**: учёт «одна URL или список URLS».
+
+### Инфра (не код)
+- **Две ноды в Happ:** либо в **3x-ui** у одной подписки несколько inbound, либо в **`.env` на API** `HAPP_SUBSCRIPTION_URLS=url1,url2` — тогда `/sub/CODE` склеивает ответы (уже было в коде).
+- **32 ГБ:** счётчик трафика задаёт **панель Xray/3x-ui и/или Happ** по клиенту/inbound; бот не выставляет «гигабайты». Проверить в панели: отдельный email/клиент на пользователя, не общий inbound.
+
+### Проверить
+`/api/miniapp/debug-sub-content?install_code=...` при `MINIAPP_EXPOSE_DEBUG=1`; в браузере открыть выдачу `https://домен/sub/CODE` (base64 → несколько `vless://`).
+
+---
+
+## 2026-03-27 — дубли приветствия после рестарта бота
+
+### Причина
+В `post_init` вызывался `delete_webhook(drop_pending_updates=False)`. Старые `/start` могли оставаться в очереди Telegram и после редеплоя/рестарта обрабатываться снова — пользователю уходило приветствие без нового нажатия «Старт».
+
+### Что сделано
+- **`bot/main.py`**: `delete_webhook(drop_pending_updates=True)` + комментарий. `run_polling(..., drop_pending_updates=True)` уже был — теперь первый вызов не оставляет очередь.
+
+### Проверить
+Несколько рестартов `vpn-bot` без нажатия Старт у клиента — приветствие не должно повторяться. Сообщения о запуске/остановке бота — только в `ADMIN_IDS`.
+
+### Если дубли остаются
+Проверить, что не запущено **несколько процессов** с одним токеном (дубли systemd, лишний screen/docker).
+
+---
+
+## 2026-03-27 — логи: BadRequest «Query is too old», JobQueue, токен в journalctl
+
+### Что видно в логах
+- **`BadRequest: Query is too old...`** в `setup_device_handler` при `answerCallbackQuery` — типично после рестарта бота, когда в очереди остался старый callback.
+- **`JobQueue` / `run_daily`**: без extra **`[job-queue]`** у PTB `job_queue` = `None`, джоба с напоминаниями об истечении подписки не ставилась.
+- В **`journalctl`** при уровне INFO у **httpx** в URL попадает **токен бота** — логи лучше не публиковать целиком; при утечке — **новый токен в @BotFather**.
+
+### Что сделано
+- **`bot/handlers/main.py`**: `_answer_callback_safe` для всех `query.answer` — просроченный callback игнорируется (debug), хендлер не падает.
+- **`bot/main.py` `error_handler`**: тот же `BadRequest` не шлёт длинный traceback админам.
+- **`post_init`**: если `job_queue is None` — предупреждение в лог и подсказка про `pip install "python-telegram-bot[job-queue]"`.
+- **`requirements.txt`**: `python-telegram-bot[job-queue]==20.7`.
+
+### Проверить на сервере
+`pip install -r requirements.txt` (или отдельно extra), рестарт `vpn-bot`, в логе должна появиться строка про Job expiry; устаревшая кнопка после рестарта — без исключения и без спама админам.
+
+---
+
 ## 2026-03-27 — PostgreSQL: новый пользователь Telegram, INSERT падает (NumericValueOutOfRange)
 
 ### Причина
