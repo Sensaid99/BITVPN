@@ -4,6 +4,16 @@
 
 ---
 
+## 2026-03-27 — /start: send_message вместо reply_text
+
+### Причина
+**`reply_text`** (ответ на сообщение) долго висел на HTTP (~18+ с без `reply_text ok`); **`wait_for` 45 с** не срабатывал сразу.
+
+### Что сделано
+- **`start_command`**: **`context.bot.send_message(chat_id=...)`** без **`reply_to`**; **`START_REPLY_TIMEOUT`** по умолчанию **15 с**; фолбэки через **`_send_plain`**.
+
+---
+
 ## 2026-03-27 — /start: лог sending reply, в чате пусто
 
 ### Причина
