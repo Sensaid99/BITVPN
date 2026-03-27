@@ -4,6 +4,29 @@
 
 ---
 
+## 2026-03-27 — DetachedInstanceError: subscriptions после get_or_create_user
+
+### Причина
+После **`session.refresh(user)`** relationship **`subscriptions`** снова expired; после **`session.close()`** в async-хендлере обращение к **`has_active_subscription` / `active_subscription`** вызывало **lazy load** → **`DetachedInstanceError`**.
+
+### Что сделано
+- **`bot/handlers/main.py`**: в **`get_or_create_user`** после **`list(user.subscriptions)`** — **`session.expunge(user)`** до **`return`** (объект отсоединён с уже загруженными данными, без ленивой загрузки).
+
+### Проверить
+В `.env` для Happ: **`HAPP_API_URL=https://api.happ-proxy.com`** (на **`happ-proxy.com`** add-install даёт **404** — см. лог на сервере).
+
+---
+
+## 2026-03-27 — диагностика «бот не реагирует ни на что»
+
+### Что сделано
+- **`/ping`** в **`bot/handlers/main.py`** + регистрация в **`bot/main.py`** — ответ **`🏓 pong`** без БД (проверка исходящих в Telegram).
+- **`docs/deploy/БОТ_НЕ_ОТВЕЧАЕТ_ЧЕКЛИСТ.md`**: раздел **0** — **`BOT_TOKEN` vs HELPBIT**, один poller, curl к api.telegram.org, логика **`/ping` vs `/start`**.
+
+---
+
+---
+
 ## Как пользоваться
 
 - **Перед задачей:** агент смотрит последние записи, чтобы не повторять ошибки и учитывать уже сделанное.

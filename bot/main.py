@@ -22,6 +22,7 @@ from telegram.ext import (
 
 from bot.config.settings import Config
 from bot.handlers.main import (
+    ping_command,
     start_command,
     show_profile,
     show_my_config,
@@ -96,7 +97,8 @@ def create_application() -> Application:
         ],
     )
     
-    # /start — group=-2 (выше приоритет, чем у callback и ConversationHandler), чтобы команда всегда обрабатывалась первой
+    # /ping, /start — group=-2 (выше приоритет, чем у callback и ConversationHandler)
+    application.add_handler(CommandHandler('ping', ping_command), group=-2)
     application.add_handler(CommandHandler('start', start_command), group=-2)
     application.add_handler(CommandHandler('admin', admin_panel))
     

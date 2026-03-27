@@ -216,9 +216,10 @@ def get_or_create_user(telegram_user) -> User:
         user.last_activity = datetime.utcnow()
         session.commit()
         session.refresh(user)
-        # Пока сессия открыта — материализуем подписки (иначе после close() в другом потоке возможны Detached/lazy-load)
-        _ = list(user.subscriptions)
-        logger.info("get_or_create_user: done telegram_id=%s subs=%s", tid, len(user.subscriptions))
+        # refresh() помечает relationship как expired — явно подгружаем; expunge — чтобы в event loop не было lazy-load после close()
+        subs = list(user.subscriptions)
+        session.expunge(user)
+        logger.info("get_or_create_user: done telegram_id=%s subs=%s (expunged)", tid, len(subs))
         return user
     finally:
         session.close()
@@ -235,6 +236,18 @@ def _is_db_retryable_error(exc: Exception) -> bool:
     if "ssl" in msg and "closed" in msg:
         return True
     return False
+
+
+async def ping_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    """Минимальный ответ без БД — проверка, что до Telegram API доходит исходящее сообщение."""
+    msg = update.effective_message
+    if not msg:
+        return
+    try:
+        await msg.reply_text("🏓 pong")
+        logger.info("ping_command: reply ok chat_id=%s user_id=%s", msg.chat_id, update.effective_user.id if update.effective_user else None)
+    except Exception as e:
+        logger.exception("ping_command: reply failed: %s", e)
 
 
 async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
