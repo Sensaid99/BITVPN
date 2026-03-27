@@ -25,6 +25,7 @@
     }
     * { box-sizing: border-box; }
     html, body { margin: 0; padding: 0; }
+    body.modal-open { overflow: hidden; }
     body {
       font-family: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
       background: radial-gradient(1000px 500px at 10% -10%, rgba(0,255,157,.16), transparent 50%),
@@ -37,13 +38,12 @@
     a { color: inherit; text-decoration: none; }
     .container { width: 100%; max-width: var(--container); margin: 0 auto; padding: 0 20px; }
 
-    /* Matrix background */
     .matrix-bg {
       position: fixed;
       inset: 0;
       z-index: 0;
       pointer-events: none;
-      opacity: .16;
+      opacity: .14;
       overflow: hidden;
       font-family: ui-monospace, Menlo, Consolas, monospace;
       font-size: 14px;
@@ -64,9 +64,9 @@
     .topbar {
       position: sticky;
       top: 0;
-      z-index: 30;
-      backdrop-filter: blur(10px);
-      background: rgba(4, 6, 8, .78);
+      z-index: 40;
+      backdrop-filter: blur(12px);
+      background: rgba(4, 6, 8, .82);
       border-bottom: 1px solid var(--line);
     }
     .topbar-inner {
@@ -76,6 +76,7 @@
       justify-content: space-between;
       gap: 12px;
       padding: 10px 0;
+      flex-wrap: wrap;
     }
     .brand {
       display: flex;
@@ -110,6 +111,7 @@
       align-items: center;
       justify-content: center;
       gap: 8px;
+      font-size: .9rem;
     }
     .btn-primary {
       color: #001f12;
@@ -123,13 +125,17 @@
       background: rgba(0,255,157,.08);
     }
     .btn-soft:hover { background: rgba(0,255,157,.14); border-color: rgba(0,255,157,.34); }
-
-    .hero {
-      padding: 58px 0 28px;
+    .btn-ghost {
+      background: transparent;
+      border-color: rgba(0,255,157,.28);
+      color: #c6f5df;
     }
+    .btn-ghost:hover { background: rgba(0,255,157,.1); }
+
+    .hero { padding: 48px 0 20px; }
     .hero-grid {
       display: grid;
-      grid-template-columns: 1.14fr .86fr;
+      grid-template-columns: 1.12fr .88fr;
       gap: 18px;
     }
     .glass {
@@ -139,11 +145,7 @@
       box-shadow: var(--shadow);
       backdrop-filter: blur(7px);
     }
-    .hero-main {
-      padding: 30px;
-      position: relative;
-      overflow: hidden;
-    }
+    .hero-main { padding: 28px; position: relative; overflow: hidden; }
     .hero-main::before {
       content: "";
       position: absolute;
@@ -152,7 +154,7 @@
       width: 210px;
       height: 210px;
       border-radius: 50%;
-      background: radial-gradient(circle, rgba(0,255,157,.25), transparent 70%);
+      background: radial-gradient(circle, rgba(0,255,157,.22), transparent 70%);
       filter: blur(8px);
     }
     .badge {
@@ -168,15 +170,15 @@
     }
     h1 {
       margin: 14px 0 12px;
-      font-size: clamp(2rem, 3.2vw, 3.35rem);
+      font-size: clamp(1.85rem, 3vw, 3.1rem);
       line-height: 1.1;
       letter-spacing: -.02em;
     }
     .lead { color: var(--muted); max-width: 58ch; margin: 0; }
-    .hero-actions { margin-top: 22px; display: flex; gap: 10px; flex-wrap: wrap; }
+    .hero-actions { margin-top: 20px; display: flex; gap: 10px; flex-wrap: wrap; }
     .hero-list {
       list-style: none;
-      margin: 20px 0 0;
+      margin: 18px 0 0;
       padding: 0;
       display: grid;
       gap: 9px;
@@ -203,26 +205,15 @@
       font-size: 12px;
     }
 
-    .hero-side {
-      padding: 16px;
-      display: grid;
-      gap: 12px;
-    }
+    .hero-side { padding: 16px; display: grid; gap: 12px; }
     .mini-stat {
       background: var(--card-2);
       border: 1px solid var(--line);
       border-radius: var(--radius-sm);
       padding: 14px;
     }
-    .mini-stat .label {
-      font-size: .8rem;
-      color: var(--muted);
-      margin-bottom: 5px;
-    }
-    .mini-stat .value {
-      font-size: 1.18rem;
-      font-weight: 700;
-    }
+    .mini-stat .label { font-size: .8rem; color: var(--muted); margin-bottom: 5px; }
+    .mini-stat .value { font-size: 1.12rem; font-weight: 700; }
     .status-ok { color: var(--ok); }
 
     .phone-mockup {
@@ -231,7 +222,7 @@
       border: 1px solid rgba(0,255,157,.28);
       background: linear-gradient(180deg, #0a1712, #08110d);
       padding: 14px;
-      min-height: 220px;
+      min-height: 200px;
       overflow: hidden;
     }
     .phone-header {
@@ -257,13 +248,13 @@
     }
     .phone-row:last-child { border-bottom: 0; }
 
-    .section { padding: 24px 0 8px; }
+    .section { padding: 22px 0 6px; }
     .section h2 {
-      margin: 0 0 12px;
-      font-size: clamp(1.4rem, 2vw, 2.1rem);
+      margin: 0 0 10px;
+      font-size: clamp(1.35rem, 2vw, 2rem);
       letter-spacing: -.01em;
     }
-    .section .muted { margin: 0 0 16px; color: var(--muted); }
+    .section .muted { margin: 0 0 14px; color: var(--muted); }
 
     .cards {
       display: grid;
@@ -296,42 +287,100 @@
     .card h3 { margin: 0 0 8px; font-size: 1.03rem; }
     .card p { margin: 0; color: var(--muted); font-size: .92rem; }
 
-    .plans {
+    .split-stats {
       display: grid;
-      grid-template-columns: repeat(4, minmax(0,1fr));
-      gap: 11px;
-    }
-    .plan {
-      border: 1px solid var(--line);
-      background: linear-gradient(180deg, rgba(8, 19, 15, .92), rgba(5, 13, 10, .9));
-      border-radius: 16px;
-      padding: 14px;
-      min-height: 150px;
-    }
-    .plan .name { color: #b7e8d1; font-size: .84rem; }
-    .plan .price { font-size: 1.6rem; font-weight: 700; margin-top: 7px; }
-    .plan .hint { margin-top: 4px; color: var(--muted); font-size: .8rem; }
-
-    .register {
-      margin-top: 16px;
-      display: grid;
-      grid-template-columns: 1fr 1fr;
+      grid-template-columns: repeat(2, minmax(0,1fr));
       gap: 12px;
-      align-items: stretch;
     }
-    .register-box, .sync-box {
-      border: 1px solid var(--line);
-      background: var(--card);
+
+    .parallax { will-change: transform; transition: transform .08s linear; }
+
+    /* Modals */
+    .modal-overlay {
+      position: fixed;
+      inset: 0;
+      z-index: 200;
+      background: rgba(2, 6, 5, .78);
+      backdrop-filter: blur(10px);
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity .35s ease;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 16px;
+    }
+    .modal-overlay.is-open {
+      opacity: 1;
+      pointer-events: auto;
+    }
+    .modal-panel {
+      position: relative;
+      width: 100%;
+      max-width: 560px;
+      max-height: min(92vh, 900px);
+      overflow-y: auto;
       border-radius: var(--radius);
-      padding: 18px;
+      border: 1px solid var(--line);
+      background: linear-gradient(165deg, rgba(8, 22, 16, .96), rgba(4, 10, 8, .98));
+      box-shadow: 0 28px 80px rgba(0,0,0,.55), 0 0 0 1px rgba(0,255,157,.12);
+      transform: translateY(26px) scale(.97);
+      transition: transform .45s cubic-bezier(.2,.85,.25,1);
     }
-    .register-box h3, .sync-box h3 { margin: 0 0 8px; font-size: 1.2rem; }
-    .register-box p, .sync-box p { margin: 0 0 12px; color: var(--muted); font-size: .92rem; }
-    .field {
-      display: grid;
-      gap: 6px;
-      margin-bottom: 10px;
+    .modal-overlay.is-open .modal-panel {
+      transform: translateY(0) scale(1);
     }
+    .modal-panel.wide { max-width: 680px; }
+    .modal-head {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 20px 22px 0;
+    }
+    .modal-head h2 { margin: 0; font-size: 1.35rem; letter-spacing: -.02em; }
+    .modal-close {
+      flex: 0 0 auto;
+      width: 40px;
+      height: 40px;
+      border-radius: 12px;
+      border: 1px solid var(--line);
+      background: rgba(0,0,0,.25);
+      color: var(--text);
+      font-size: 1.4rem;
+      line-height: 1;
+      cursor: pointer;
+      transition: .15s;
+    }
+    .modal-close:hover { background: rgba(0,255,157,.12); border-color: rgba(0,255,157,.35); }
+    .modal-body { padding: 14px 22px 22px; }
+
+    .modal-tabs {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 16px;
+      flex-wrap: wrap;
+    }
+    .modal-tab {
+      padding: 8px 14px;
+      border-radius: 999px;
+      border: 1px solid var(--line);
+      background: rgba(0,0,0,.2);
+      color: var(--muted);
+      font-weight: 600;
+      cursor: pointer;
+      font-size: .88rem;
+      transition: .15s;
+    }
+    .modal-tab.is-active {
+      color: #001f12;
+      background: linear-gradient(135deg, var(--accent), #71ffc3);
+      border-color: transparent;
+    }
+    .modal-tab-panel { display: none; }
+    .modal-tab-panel.is-active { display: block; }
+
+    .field { display: grid; gap: 6px; margin-bottom: 12px; }
     .field label { font-size: .84rem; color: #c6ead8; }
     .field input {
       border-radius: 11px;
@@ -346,53 +395,140 @@
       border-color: rgba(0,255,157,.56);
       box-shadow: 0 0 0 3px rgba(0,255,157,.14);
     }
-    .status-line {
-      min-height: 20px;
-      font-size: .86rem;
-      color: var(--muted);
-      margin-top: 4px;
-    }
+    .status-line { min-height: 20px; font-size: .86rem; color: var(--muted); margin-top: 6px; }
     .status-line.ok { color: var(--ok); }
     .status-line.err { color: #ff9d9d; }
 
-    .sync-points {
-      list-style: none;
-      margin: 0 0 12px;
-      padding: 0;
-      display: grid;
-      gap: 9px;
-      color: #cfffe8;
-      font-size: .92rem;
+    /* Tariffs modal parallax */
+    .tariff-parallax {
+      position: relative;
+      height: 120px;
+      border-radius: 16px;
+      margin-bottom: 16px;
+      overflow: hidden;
+      border: 1px solid rgba(0,255,157,.2);
+      background: radial-gradient(ellipse at 30% 20%, rgba(0,255,157,.25), transparent 55%),
+                  radial-gradient(ellipse at 80% 80%, rgba(0,180,120,.15), transparent 50%),
+                  #050a08;
     }
-    .sync-points li { display: flex; gap: 8px; }
-
-    .footer {
-      margin-top: 24px;
-      border-top: 1px solid var(--line);
-      padding: 20px 0 38px;
+    .tariff-parallax .orb {
+      position: absolute;
+      border-radius: 50%;
+      filter: blur(18px);
+      opacity: .75;
+      will-change: transform;
+      transition: transform .12s ease-out;
+    }
+    .tariff-parallax .orb.a {
+      width: 140px; height: 140px;
+      left: 10%; top: 10%;
+      background: rgba(0,255,157,.45);
+    }
+    .tariff-parallax .orb.b {
+      width: 100px; height: 100px;
+      right: 15%; bottom: 5%;
+      background: rgba(100, 220, 180, .35);
+    }
+    .tariff-parallax .orb.c {
+      width: 70px; height: 70px;
+      left: 45%; top: 40%;
+      background: rgba(0, 200, 140, .4);
+    }
+    .device-row { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 14px; }
+    .device-btn {
+      padding: 10px 14px;
+      border-radius: 12px;
+      border: 1px solid var(--line);
+      background: rgba(0,0,0,.25);
+      color: var(--text);
+      font-weight: 600;
+      cursor: pointer;
+      font-size: .88rem;
+      transition: .15s;
+    }
+    .device-btn.is-on {
+      border-color: rgba(0,255,157,.55);
+      background: rgba(0,255,157,.16);
+      color: #d4fff0;
+      box-shadow: 0 0 20px rgba(0,255,157,.2);
+    }
+    .dur-slider-wrap { margin: 12px 0 8px; }
+    .dur-slider {
+      width: 100%;
+      accent-color: var(--accent);
+    }
+    .dur-labels {
+      display: flex;
+      justify-content: space-between;
+      font-size: .72rem;
       color: var(--muted);
-      font-size: .86rem;
+      margin-top: 6px;
+      flex-wrap: wrap;
+      gap: 4px;
+    }
+    .price-big {
+      font-size: 2rem;
+      font-weight: 800;
+      letter-spacing: -.03em;
+      margin: 12px 0 4px;
+      background: linear-gradient(135deg, #fff, #7ef9c3);
+      -webkit-background-clip: text;
+      background-clip: text;
+      color: transparent;
+    }
+    .price-sub { font-size: .86rem; color: var(--muted); margin-bottom: 14px; }
+
+    .guide-steps {
+      display: grid;
+      gap: 12px;
+    }
+    .guide-step {
+      display: flex;
+      gap: 12px;
+      align-items: flex-start;
+      padding: 14px;
+      border-radius: 14px;
+      border: 1px solid var(--line);
+      background: rgba(0,0,0,.2);
+    }
+    .guide-num {
+      flex: 0 0 32px;
+      height: 32px;
+      border-radius: 10px;
+      background: rgba(0,255,157,.18);
+      color: var(--accent);
+      font-weight: 800;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: .9rem;
+    }
+
+    .footer { margin-top: 28px; border-top: 1px solid var(--line); padding: 28px 0 20px; color: var(--muted); font-size: .86rem; text-align: center; }
+    .footer-support {
+      margin-top: 32px;
+      padding: 28px 20px 40px;
+      border-radius: var(--radius);
+      border: 1px solid var(--line);
+      background: linear-gradient(180deg, rgba(0,255,157,.06), rgba(4,12,9,.5));
       text-align: center;
     }
-
-    .parallax {
-      will-change: transform;
-      transition: transform .08s linear;
-    }
+    .footer-support h3 { margin: 0 0 8px; color: var(--text); font-size: 1.25rem; }
+    .footer-support p { margin: 0 0 16px; max-width: 48ch; margin-left: auto; margin-right: auto; }
+    .footer-support .btn { margin: 4px; }
 
     @media (max-width: 1040px) {
       .hero-grid { grid-template-columns: 1fr; }
       .cards { grid-template-columns: repeat(2, minmax(0,1fr)); }
-      .plans { grid-template-columns: repeat(2, minmax(0,1fr)); }
-      .register { grid-template-columns: 1fr; }
+      .split-stats { grid-template-columns: 1fr; }
     }
     @media (max-width: 720px) {
-      .topbar-inner { flex-direction: column; align-items: flex-start; }
+      .topbar-inner { flex-direction: column; align-items: stretch; }
       .top-links { width: 100%; justify-content: stretch; }
-      .btn { width: 100%; }
-      .hero { padding-top: 30px; }
+      .top-links .btn { flex: 1; min-width: calc(50% - 4px); }
+      .hero { padding-top: 28px; }
       .hero-main { padding: 20px; }
-      .cards, .plans { grid-template-columns: 1fr; }
+      .cards { grid-template-columns: 1fr; }
     }
   </style>
 </head>
@@ -403,8 +539,10 @@
       <div class="container topbar-inner">
         <div class="brand"><span class="brand-dot"></span><span>BIT ECOSYSTEM</span></div>
         <div class="top-links">
-          <a id="btnSupportTop" class="btn btn-soft" href="https://t.me/HelpBit_bot" target="_blank" rel="noopener noreferrer">Поддержка</a>
-          <a id="btnMiniTop" class="btn btn-primary" href="https://bitvpn.vercel.app?api=https://bitecosystem.ru" target="_blank" rel="noopener noreferrer">Личный кабинет</a>
+          <button type="button" class="btn btn-ghost" id="openTariffs">Тарифы</button>
+          <button type="button" class="btn btn-ghost" id="openGuide">Инструкция</button>
+          <button type="button" class="btn btn-soft" id="openCabinet">Личный кабинет</button>
+          <a id="btnBotTop" class="btn btn-primary" href="https://t.me/Bitvpnproxy_bot" target="_blank" rel="noopener noreferrer">Открыть бот</a>
         </div>
       </div>
     </header>
@@ -412,29 +550,28 @@
     <main>
       <section class="hero">
         <div class="container hero-grid">
-          <article class="glass hero-main parallax" data-depth="14">
+          <article class="glass hero-main parallax" data-depth="12">
             <span class="badge"><span class="check">✓</span> Безопасный интернет за 1 минуту</span>
             <h1>Современный доступ к сети с управлением через Telegram</h1>
-            <p class="lead">Одна подписка, несколько серверов, удобное подключение через Happ и прозрачная поддержка. Всё просто, быстро и без лишних действий.</p>
+            <p class="lead">Одна подписка, несколько серверов, удобное подключение через Happ и прозрачная поддержка. Всё просто и без лишних действий.</p>
             <div class="hero-actions">
               <a id="btnBotHero" class="btn btn-primary" href="https://t.me/Bitvpnproxy_bot" target="_blank" rel="noopener noreferrer">Открыть бот</a>
-              <a id="btnMiniHero" class="btn btn-soft" href="https://bitvpn.vercel.app?api=https://bitecosystem.ru" target="_blank" rel="noopener noreferrer">Открыть веб‑кабинет</a>
             </div>
             <ul class="hero-list">
               <li><span class="check">✓</span><span>Автоматическая выдача доступа после оплаты</span></li>
-              <li><span class="check">✓</span><span>Поддержка нескольких локаций в одной подписке</span></li>
-              <li><span class="check">✓</span><span>Подключение устройств через Happ без ручной рутины</span></li>
+              <li><span class="check">✓</span><span>Несколько локаций в одной подписке</span></li>
+              <li><span class="check">✓</span><span>Подключение через Happ без ручной рутины</span></li>
             </ul>
           </article>
 
           <aside class="glass hero-side">
             <div class="mini-stat">
-              <div class="label">Статус платформы</div>
-              <div class="value status-ok" id="siteStatusText">Online</div>
+              <div class="label">Статус сети</div>
+              <div class="value status-ok" id="netStatusText">Проверка…</div>
             </div>
             <div class="mini-stat">
-              <div class="label">Синхронизация</div>
-              <div class="value">Бот + веб‑кабинет + Happ</div>
+              <div class="label">Статус платформы</div>
+              <div class="value status-ok" id="siteStatusText">Online</div>
             </div>
             <div class="phone-mockup parallax" data-depth="8">
               <div class="phone-header"><span>Безопасный интернет</span><span id="mockTime">00:00</span></div>
@@ -451,23 +588,23 @@
 
       <section class="section">
         <div class="container">
-          <h2>Возможности</h2>
-          <p class="muted">Минималистичный интерфейс, надежная инфраструктура и понятные действия для пользователя.</p>
+          <h2>Почему выбирают Bit Ecosystem</h2>
+          <p class="muted">Предсказуемая инфраструктура, понятные шаги и поддержка там, где вы уже общаетесь.</p>
           <div class="cards">
             <article class="card parallax" data-depth="6">
               <div class="icon">🛡</div>
-              <h3>Защищённый канал</h3>
-              <p>Передача данных идёт в защищённом виде, управление доступом и подписками централизовано.</p>
+              <h3>Надёжность</h3>
+              <p>Защищённый канал и централизованное управление доступом без лишней сложности.</p>
             </article>
             <article class="card parallax" data-depth="10">
               <div class="icon">⚡</div>
               <h3>Быстрый старт</h3>
-              <p>Пользователь получает доступ и подключается через приложение Happ в несколько нажатий.</p>
+              <p>Подключение через Happ в несколько шагов — без ручной настройки конфигов.</p>
             </article>
             <article class="card parallax" data-depth="14">
               <div class="icon">🌐</div>
               <h3>Масштабируемая сеть</h3>
-              <p>Новые страны добавляются в одну подписку без переустановки и сложных миграций.</p>
+              <p>Новые локации добавляются в ту же подписку — без переустановки у клиента.</p>
             </article>
           </div>
         </div>
@@ -475,51 +612,43 @@
 
       <section class="section">
         <div class="container">
-          <h2>Тарифы</h2>
-          <p class="muted">Цены подгружаются из API. Если API недоступен, показываются базовые значения.</p>
-          <div class="plans" id="plansGrid">
-            <div class="plan"><div class="name">1 месяц</div><div class="price" id="p1">100 ₽</div><div class="hint">Быстрый старт</div></div>
-            <div class="plan"><div class="name">3 месяца</div><div class="price" id="p3">285 ₽</div><div class="hint">Оптимальный выбор</div></div>
-            <div class="plan"><div class="name">6 месяцев</div><div class="price" id="p6">540 ₽</div><div class="hint">Для постоянного доступа</div></div>
-            <div class="plan"><div class="name">12 месяцев</div><div class="price" id="p12">960 ₽</div><div class="hint">Максимальная выгода</div></div>
+          <h2>Сеть и платформа</h2>
+          <p class="muted">Краткая сводка: доступность сети и возможности сервиса.</p>
+          <div class="split-stats">
+            <div class="glass mini-stat parallax" data-depth="5" style="padding:18px;">
+              <div class="label">Статус сети</div>
+              <div class="value status-ok" id="netStatusDup">—</div>
+              <p style="margin:8px 0 0;font-size:.85rem;color:var(--muted);">Мониторинг через публичный API.</p>
+            </div>
+            <div class="glass mini-stat parallax" data-depth="7" style="padding:18px;">
+              <div class="label">Возможности платформы</div>
+              <div class="value" style="font-size:1rem;font-weight:600;">Телефон • ПК • планшет</div>
+              <p style="margin:8px 0 0;font-size:.85rem;color:var(--muted);">Оплата, подписка и управление устройствами в одном контуре с ботом.</p>
+            </div>
           </div>
         </div>
       </section>
 
       <section class="section">
-        <div class="container register">
-          <div class="register-box">
-            <h3>Регистрация</h3>
-            <p>Оставьте контакт и мы синхронизируем аккаунт с ботом: username Telegram, email и телефон.</p>
-            <form id="regForm" novalidate>
-              <div class="field">
-                <label for="tgUsername">Username Telegram (без @)</label>
-                <input id="tgUsername" name="tgUsername" placeholder="например: daniil" required />
-              </div>
-              <div class="field">
-                <label for="email">Email</label>
-                <input id="email" name="email" type="email" placeholder="you@example.com" required />
-              </div>
-              <div class="field">
-                <label for="phone">Телефон</label>
-                <input id="phone" name="phone" type="tel" placeholder="+7 999 123-45-67" required />
-              </div>
-              <button class="btn btn-primary" type="submit">Отправить</button>
-              <div id="regStatus" class="status-line">Данные сохраняются в защищённом виде.</div>
-            </form>
-          </div>
-          <div class="sync-box">
-            <h3>Синхронизация с ботом и мини‑апп</h3>
-            <p>После регистрации откройте бота или веб‑кабинет. Ваши данные и подписка будут доступны в одном месте.</p>
-            <ul class="sync-points">
-              <li><span class="check">✓</span><span>Управление доступом в Telegram</span></li>
-              <li><span class="check">✓</span><span>Оплата и просмотр статуса в веб‑кабинете</span></li>
-              <li><span class="check">✓</span><span>Подключение устройств через Happ</span></li>
-            </ul>
-            <div class="top-links">
-              <a id="btnBotSync" class="btn btn-primary" href="https://t.me/Bitvpnproxy_bot" target="_blank" rel="noopener noreferrer">Перейти в бот</a>
-              <a id="btnMiniSync" class="btn btn-soft" href="https://bitvpn.vercel.app?api=https://bitecosystem.ru" target="_blank" rel="noopener noreferrer">Открыть кабинет</a>
-            </div>
+        <div class="container">
+          <h2>Возможности</h2>
+          <p class="muted">Минималистичный интерфейс и прозрачная логика для пользователя.</p>
+          <div class="cards">
+            <article class="card parallax" data-depth="6">
+              <div class="icon">🔐</div>
+              <h3>Защищённый канал</h3>
+              <p>Трафик передаётся в защищённом виде; подписки и лимиты учитываются централизованно.</p>
+            </article>
+            <article class="card parallax" data-depth="9">
+              <div class="icon">📱</div>
+              <h3>Удобное приложение</h3>
+              <p>Подключение через Happ: добавление подписки и выбор сервера в пару касаний.</p>
+            </article>
+            <article class="card parallax" data-depth="12">
+              <div class="icon">✨</div>
+              <h3>Единая подписка</h3>
+              <p>Несколько стран в одной ссылке — переключайте локации без смены ключа.</p>
+            </article>
           </div>
         </div>
       </section>
@@ -527,8 +656,135 @@
 
     <footer class="footer container">
       <div>© Bit Ecosystem • Безопасный интернет</div>
-      <div>Поддержка: <a id="supportLinkFooter" href="https://t.me/HelpBit_bot" target="_blank" rel="noopener noreferrer">@HelpBit_bot</a></div>
+      <div class="footer-support">
+        <h3>Поддержка</h3>
+        <p>Вопросы по подключению, оплате и работе сервиса — напишите в Telegram. Мы отвечаем в рабочем порядке и помогаем восстановить доступ.</p>
+        <a id="supportLinkBig" class="btn btn-primary" href="https://t.me/HelpBit_bot" target="_blank" rel="noopener noreferrer">Написать в поддержку</a>
+        <a id="supportLink2" class="btn btn-soft" href="https://t.me/HelpBit_bot" target="_blank" rel="noopener noreferrer">@HelpBit_bot</a>
+      </div>
     </footer>
+  </div>
+
+  <!-- Modal: Тарифы -->
+  <div class="modal-overlay" id="modalTariffs" aria-hidden="true">
+    <div class="modal-panel wide" role="dialog" aria-labelledby="tariffsTitle">
+      <div class="modal-head">
+        <h2 id="tariffsTitle">Тарифы</h2>
+        <button type="button" class="modal-close" data-close-modal="modalTariffs" aria-label="Закрыть">×</button>
+      </div>
+      <div class="modal-body">
+        <div class="tariff-parallax" id="tariffParallax">
+          <div class="orb a"></div>
+          <div class="orb b"></div>
+          <div class="orb c"></div>
+        </div>
+        <p style="margin:0 0 12px;color:var(--muted);font-size:.9rem;">Выберите срок и число устройств — как в боте. Оплата проходит в Telegram.</p>
+        <div class="label" style="font-size:.8rem;color:#c6ead8;margin-bottom:6px;">Устройства</div>
+        <div class="device-row" id="deviceRow"></div>
+        <div class="label" style="font-size:.8rem;color:#c6ead8;margin:10px 0 6px;">Срок подписки</div>
+        <div class="dur-slider-wrap">
+          <input type="range" class="dur-slider" id="durSlider" min="0" max="4" value="0" />
+          <div class="dur-labels" id="durLabels"></div>
+        </div>
+        <div class="price-big" id="tariffPrice">— ₽</div>
+        <div class="price-sub" id="tariffHint">Загрузка…</div>
+        <button type="button" class="btn btn-primary" style="width:100%;" id="btnPayBot">Оплатить в боте</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: Инструкция -->
+  <div class="modal-overlay" id="modalGuide" aria-hidden="true">
+    <div class="modal-panel" role="dialog" aria-labelledby="guideTitle">
+      <div class="modal-head">
+        <h2 id="guideTitle">Подключение</h2>
+        <button type="button" class="modal-close" data-close-modal="modalGuide" aria-label="Закрыть">×</button>
+      </div>
+      <div class="modal-body">
+        <div class="guide-steps">
+          <div class="guide-step">
+            <div class="guide-num">1</div>
+            <div><strong>Оформите подписку</strong><br /><span style="color:var(--muted);font-size:.9rem;">Откройте бота, выберите тариф и оплату удобным способом.</span></div>
+          </div>
+          <div class="guide-step">
+            <div class="guide-num">2</div>
+            <div><strong>Установите Happ</strong><br /><span style="color:var(--muted);font-size:.9rem;">На телефоне или ПК установите клиент Happ и откройте выданную ссылку подписки.</span></div>
+          </div>
+          <div class="guide-step">
+            <div class="guide-num">3</div>
+            <div><strong>Подключитесь</strong><br /><span style="color:var(--muted);font-size:.9rem;">Выберите сервер в списке и включите защищённое соединение.</span></div>
+          </div>
+        </div>
+        <div style="margin-top:16px;display:flex;gap:8px;flex-wrap:wrap;">
+          <a id="guideBotBtn" class="btn btn-primary" href="https://t.me/Bitvpnproxy_bot" target="_blank" rel="noopener noreferrer">Перейти в бот</a>
+          <button type="button" class="btn btn-soft" data-close-modal="modalGuide">Закрыть</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: Личный кабинет -->
+  <div class="modal-overlay" id="modalCabinet" aria-hidden="true">
+    <div class="modal-panel" role="dialog" aria-labelledby="cabinetTitle">
+      <div class="modal-head">
+        <h2 id="cabinetTitle">Личный кабинет</h2>
+        <button type="button" class="modal-close" data-close-modal="modalCabinet" aria-label="Закрыть">×</button>
+      </div>
+      <div class="modal-body">
+        <div class="modal-tabs" role="tablist">
+          <button type="button" class="modal-tab is-active" data-tab="cab-login">Вход</button>
+          <button type="button" class="modal-tab" data-tab="cab-reg">Регистрация</button>
+          <button type="button" class="modal-tab" data-tab="cab-profile">Профиль</button>
+        </div>
+        <div id="panel-login" class="modal-tab-panel is-active" data-panel="cab-login">
+          <p style="color:var(--muted);font-size:.92rem;margin:0 0 14px;">Вход в кабинет выполняется через Telegram: откройте мини-приложение внутри бота или веб-версию — там же оплата и управление подпиской.</p>
+          <a id="cabMiniLink" class="btn btn-primary" style="width:100%;" href="https://bitvpn.vercel.app?api=https://bitecosystem.ru" target="_blank" rel="noopener noreferrer">Открыть веб-кабинет</a>
+          <p style="margin:14px 0 8px;font-size:.85rem;color:var(--muted);">Или сразу бот:</p>
+          <a id="cabBotLink" class="btn btn-soft" style="width:100%;" href="https://t.me/Bitvpnproxy_bot" target="_blank" rel="noopener noreferrer">Открыть Telegram-бота</a>
+        </div>
+        <div id="panel-reg" class="modal-tab-panel" data-panel="cab-reg">
+          <p style="color:var(--muted);font-size:.92rem;margin:0 0 12px;">Укажите username Telegram — мы сохраним заявку. Почту и телефон можно добавить во вкладке «Профиль».</p>
+          <form id="regForm" novalidate>
+            <div class="field">
+              <label for="tgUsername">Username Telegram (без @)</label>
+              <input id="tgUsername" name="tgUsername" placeholder="например: ivan_team" autocomplete="username" required />
+            </div>
+            <button class="btn btn-primary" type="submit" style="width:100%;">Зарегистрироваться</button>
+            <div id="regStatus" class="status-line"></div>
+          </form>
+        </div>
+        <div id="panel-profile" class="modal-tab-panel" data-panel="cab-profile">
+          <p style="color:var(--muted);font-size:.92rem;margin:0 0 12px;">Дополните контакты для связи. Username подставляется из сохранённой регистрации в этом браузере.</p>
+          <form id="profileForm" novalidate>
+            <div class="field">
+              <label for="profUsername">Telegram username</label>
+              <input id="profUsername" name="profUsername" readonly style="opacity:.85;" />
+            </div>
+            <div class="field">
+              <label for="profEmail">Email</label>
+              <input id="profEmail" name="profEmail" type="email" placeholder="you@example.com" />
+            </div>
+            <div class="field">
+              <label for="profPhone">Телефон</label>
+              <input id="profPhone" name="profPhone" type="tel" placeholder="+7 999 123-45-67" />
+            </div>
+            <button class="btn btn-primary" type="submit" style="width:100%;">Сохранить контакты</button>
+            <div id="profStatus" class="status-line"></div>
+          </form>
+          <div style="margin-top:20px;padding-top:16px;border-top:1px solid var(--line);">
+            <div style="font-weight:700;margin-bottom:8px;font-size:.95rem;">Синхронизация с ботом</div>
+            <p style="margin:0 0 10px;color:var(--muted);font-size:.88rem;">Подписка, устройства и ссылка для Happ доступны в боте и в веб-кабинете — одна учётная логика.</p>
+            <ul style="margin:0 0 12px;padding-left:18px;color:#cfffe8;font-size:.88rem;">
+              <li>Управление в Telegram</li>
+              <li>Оплата и статус во веб-кабинете</li>
+              <li>Подключение устройств в Happ</li>
+            </ul>
+            <a id="syncBotBtn" class="btn btn-soft" style="width:100%;" href="https://t.me/Bitvpnproxy_bot" target="_blank" rel="noopener noreferrer">Перейти в бот</a>
+            <a id="syncMiniBtn" class="btn btn-ghost" style="width:100%;margin-top:8px;" href="https://bitvpn.vercel.app?api=https://bitecosystem.ru" target="_blank" rel="noopener noreferrer">Открыть веб-кабинет</a>
+          </div>
+        </div>
+      </div>
+    </div>
   </div>
 
   <script>
@@ -562,14 +818,12 @@
         var y = (e.clientY / h - 0.5) * 2;
         nodes.forEach(function (el) {
           var d = parseFloat(el.getAttribute("data-depth") || "8");
-          var tx = (-x * d).toFixed(2);
-          var ty = (-y * d).toFixed(2);
-          el.style.transform = "translate3d(" + tx + "px," + ty + "px,0)";
+          el.style.transform = "translate3d(" + (-x * d).toFixed(2) + "px," + (-y * d).toFixed(2) + "px,0)";
         });
       });
     })();
 
-    (function smallLiveUi() {
+    (function mockUi() {
       var t = document.getElementById("mockTime");
       var p = document.getElementById("mockPing");
       function tick() {
@@ -583,437 +837,303 @@
       setInterval(tick, 6000);
     })();
 
-    (function bindApiData() {
+    var API_PLANS = [];
+    var API_PRICING = null;
+    var botUsername = "";
+    var supportUsername = "";
+
+    function bindApiData() {
       var apiBase = window.location.origin;
       fetch(apiBase + "/api/miniapp/plans").then(function (r) { return r.ok ? r.json() : null; }).then(function (data) {
-        if (!data) return;
+        if (!data || !data.plans) return;
+        API_PLANS = data.plans || [];
+        API_PRICING = data.pricing || null;
         var c = data.config || {};
-        var pricing = data.pricing || {};
-        if (pricing["1_month_1"] != null) document.getElementById("p1").textContent = String(pricing["1_month_1"]) + " ₽";
-        if (pricing["3_months_1"] != null) document.getElementById("p3").textContent = String(pricing["3_months_1"]) + " ₽";
-        if (pricing["6_months_1"] != null) document.getElementById("p6").textContent = String(pricing["6_months_1"]) + " ₽";
-        if (pricing["12_months_1"] != null) document.getElementById("p12").textContent = String(pricing["12_months_1"]) + " ₽";
-        var bot = (c.bot_username || "").trim();
-        var support = (c.support_username || "").trim();
-        if (bot) {
-          var botUrl = "https://t.me/" + bot;
-          ["btnBotHero","btnBotSync"].forEach(function(id){ var el=document.getElementById(id); if(el) el.href=botUrl; });
-          // Для верхней кнопки личного кабинета оставляем webapp
+        botUsername = (c.bot_username || "").trim();
+        supportUsername = (c.support_username || "").trim();
+        if (botUsername) {
+          var botUrl = "https://t.me/" + botUsername;
+          ["btnBotTop", "btnBotHero", "guideBotBtn", "cabBotLink", "syncBotBtn"].forEach(function (id) {
+            var el = document.getElementById(id);
+            if (el) el.href = botUrl;
+          });
         }
-        if (support) {
-          var sUrl = "https://t.me/" + support;
-          var st = document.getElementById("btnSupportTop");
-          var sf = document.getElementById("supportLinkFooter");
-          if (st) st.href = sUrl;
-          if (sf) { sf.href = sUrl; sf.textContent = "@" + support; }
+        if (supportUsername) {
+          var sUrl = "https://t.me/" + supportUsername;
+          ["supportLinkBig", "supportLink2"].forEach(function (id) {
+            var el = document.getElementById(id);
+            if (el) { el.href = sUrl; if (id === "supportLink2") el.textContent = "@" + supportUsername; }
+          });
         }
-      }).catch(function(){});
+        initTariffUi();
+      }).catch(function () { initTariffUi(); });
+
+      fetch(apiBase + "/api/health").then(function (r) { return r.ok ? r.json() : null; }).then(function (h) {
+        var ok = h && (h.status === "ok" || h.ok);
+        var el = document.getElementById("siteStatusText");
+        if (el) el.textContent = ok ? "Online" : "Degraded";
+        var n1 = document.getElementById("netStatusText");
+        var n2 = document.getElementById("netStatusDup");
+        var txt = ok ? "Работает" : "Проверьте позже";
+        if (n1) { n1.textContent = txt; n1.className = "value " + (ok ? "status-ok" : ""); }
+        if (n2) { n2.textContent = txt; n2.className = "value " + (ok ? "status-ok" : ""); }
+      }).catch(function () {
+        var n1 = document.getElementById("netStatusText");
+        var n2 = document.getElementById("netStatusDup");
+        if (n1) n1.textContent = "Нет данных";
+        if (n2) n2.textContent = "Нет данных";
+      });
+    }
+    bindApiData();
+
+    var LS_USER = "be_site_tg_username";
+
+    function getDeviceBasePrice() {
+      var p = API_PRICING && API_PRICING.device_base_price;
+      return (p && typeof p === "object") ? p : { 1: 100, 3: 150, 5: 250, 10: 450 };
+    }
+    function getDiscountPer3Months() {
+      var p = API_PRICING;
+      return (p && typeof p.discount_per_3_months === "number") ? p.discount_per_3_months : 5;
+    }
+    function getDurationMonthsList() {
+      if (API_PLANS && API_PLANS.length) {
+        var arr = API_PLANS.map(function (p) { return p.months != null ? p.months : 1; });
+        return arr.filter(function (m, i, a) { return a.indexOf(m) === i; }).sort(function (a, b) { return a - b; });
+      }
+      return [1, 3, 6, 9, 12];
+    }
+    function getDaysByMonths() {
+      var out = {};
+      if (API_PLANS && API_PLANS.length) {
+        API_PLANS.forEach(function (p) {
+          var m = p.months != null ? p.months : 1;
+          out[m] = p.duration_days != null ? p.duration_days : m * 30;
+        });
+      }
+      if (Object.keys(out).length) return out;
+      return { 1: 30, 3: 90, 6: 180, 9: 270, 12: 365 };
+    }
+    function calcSubscribePrice(devices, months) {
+      var basePrice = getDeviceBasePrice();
+      var base = basePrice[devices] != null ? basePrice[devices] : 100;
+      var raw = base * months;
+      var trimesters = Math.floor(months / 3);
+      var discountPct = trimesters * getDiscountPer3Months();
+      return Math.round(raw * (1 - discountPct / 100));
+    }
+    function getDurationName(months) {
+      if (API_PLANS && API_PLANS.length) {
+        var p = API_PLANS.filter(function (x) { return (x.months || 1) === months; })[0];
+        if (p && p.name) return p.name;
+      }
+      return months === 12 ? "1 год" : months + " мес";
+    }
+
+    var selectedDevices = 1;
+    var selectedMonths = 1;
+
+    function initTariffUi() {
+      var opts = (API_PRICING && API_PRICING.device_options) || [1, 3, 5, 10];
+      var row = document.getElementById("deviceRow");
+      if (row) {
+        row.innerHTML = "";
+        opts.forEach(function (n) {
+          var b = document.createElement("button");
+          b.type = "button";
+          b.className = "device-btn" + (n === selectedDevices ? " is-on" : "");
+          b.textContent = n + " устр.";
+          b.setAttribute("data-dev", String(n));
+          b.addEventListener("click", function () {
+            selectedDevices = n;
+            Array.prototype.forEach.call(row.querySelectorAll(".device-btn"), function (x) {
+              x.classList.toggle("is-on", x.getAttribute("data-dev") === String(n));
+            });
+            updateTariffPrice();
+          });
+          row.appendChild(b);
+        });
+      }
+      var monthsArr = getDurationMonthsList();
+      var slider = document.getElementById("durSlider");
+      var labels = document.getElementById("durLabels");
+      if (slider && monthsArr.length) {
+        slider.min = "0";
+        slider.max = String(monthsArr.length - 1);
+        slider.value = "0";
+        selectedMonths = monthsArr[0];
+        if (labels) {
+          labels.innerHTML = "";
+          monthsArr.forEach(function (m, i) {
+            var s = document.createElement("span");
+            s.textContent = getDurationName(m);
+            s.setAttribute("data-idx", String(i));
+            labels.appendChild(s);
+          });
+        }
+        slider.addEventListener("input", function () {
+          var i = parseInt(slider.value, 10) || 0;
+          selectedMonths = monthsArr[i] || 1;
+          updateTariffPrice();
+        });
+      }
+      updateTariffPrice();
+    }
+
+    function updateTariffPrice() {
+      var price = calcSubscribePrice(selectedDevices, selectedMonths);
+      var el = document.getElementById("tariffPrice");
+      var hint = document.getElementById("tariffHint");
+      if (el) el.textContent = price + " ₽";
+      var trimesters = Math.floor(selectedMonths / 3);
+      var d = getDiscountPer3Months() * trimesters;
+      if (hint) {
+        hint.textContent = d > 0
+          ? "Скидка " + d + "% за длительность • " + selectedDevices + " устр. • " + getDurationName(selectedMonths)
+          : selectedDevices + " устр. • " + getDurationName(selectedMonths) + " • без скидки за триместры";
+      }
+    }
+
+    function openBotPay(months, devices) {
+      var m = months || 1;
+      var d = devices || 1;
+      var bot = botUsername || "Bitvpnproxy_bot";
+      var link = "https://t.me/" + bot + "?start=pay_" + m + "month_" + d;
+      window.open(link, "_blank", "noopener,noreferrer");
+    }
+
+    document.getElementById("btnPayBot").addEventListener("click", function () {
+      openBotPay(selectedMonths, selectedDevices);
+    });
+
+    /* Tariff parallax orbs */
+    (function tariffParallax() {
+      var wrap = document.getElementById("tariffParallax");
+      if (!wrap) return;
+      var orbs = wrap.querySelectorAll(".orb");
+      wrap.addEventListener("mousemove", function (e) {
+        var r = wrap.getBoundingClientRect();
+        var px = (e.clientX - r.left) / r.width - 0.5;
+        var py = (e.clientY - r.top) / r.height - 0.5;
+        orbs.forEach(function (o, i) {
+          var k = (i + 1) * 14;
+          o.style.transform = "translate(" + (px * k) + "px," + (py * k) + "px)";
+        });
+      });
     })();
 
-    (function registerForm() {
-      var form = document.getElementById("regForm");
+    /* Modals */
+    function openModal(id) {
+      var m = document.getElementById(id);
+      if (!m) return;
+      m.classList.add("is-open");
+      m.setAttribute("aria-hidden", "false");
+      document.body.classList.add("modal-open");
+    }
+    function closeModal(id) {
+      var m = document.getElementById(id);
+      if (!m) return;
+      m.classList.remove("is-open");
+      m.setAttribute("aria-hidden", "true");
+      document.body.classList.remove("modal-open");
+    }
+    document.getElementById("openTariffs").addEventListener("click", function () { openModal("modalTariffs"); });
+    document.getElementById("openGuide").addEventListener("click", function () { openModal("modalGuide"); });
+    document.getElementById("openCabinet").addEventListener("click", function () { openModal("modalCabinet"); refreshProfileFields(); });
+    document.querySelectorAll("[data-close-modal]").forEach(function (btn) {
+      btn.addEventListener("click", function () { closeModal(btn.getAttribute("data-close-modal")); });
+    });
+    document.querySelectorAll(".modal-overlay").forEach(function (ov) {
+      ov.addEventListener("click", function (e) {
+        if (e.target === ov) closeModal(ov.id);
+      });
+    });
+    document.addEventListener("keydown", function (e) {
+      if (e.key === "Escape") ["modalTariffs", "modalGuide", "modalCabinet"].forEach(closeModal);
+    });
+
+    /* Cabinet tabs */
+    document.querySelectorAll(".modal-tab").forEach(function (tab) {
+      tab.addEventListener("click", function () {
+        var key = tab.getAttribute("data-tab");
+        document.querySelectorAll("#modalCabinet .modal-tab").forEach(function (t) { t.classList.toggle("is-active", t === tab); });
+        document.querySelectorAll("#modalCabinet .modal-tab-panel").forEach(function (p) {
+          p.classList.toggle("is-active", p.getAttribute("data-panel") === key);
+        });
+      });
+    });
+
+    function refreshProfileFields() {
+      var u = localStorage.getItem(LS_USER) || "";
+      var pu = document.getElementById("profUsername");
+      if (pu) pu.value = u;
+    }
+
+    document.getElementById("regForm").addEventListener("submit", function (e) {
+      e.preventDefault();
+      var tg = (document.getElementById("tgUsername").value || "").trim().replace(/^@+/, "");
       var status = document.getElementById("regStatus");
-      if (!form) return;
       function setStatus(txt, cls) {
         if (!status) return;
         status.textContent = txt;
         status.className = "status-line " + (cls || "");
       }
-      form.addEventListener("submit", function (e) {
-        e.preventDefault();
-        var tg = (document.getElementById("tgUsername").value || "").trim().replace(/^@+/, "");
-        var email = (document.getElementById("email").value || "").trim();
-        var phone = (document.getElementById("phone").value || "").trim();
-        if (!tg || !email || !phone) { setStatus("Заполните все поля.", "err"); return; }
-        if (!/^[a-zA-Z0-9_]{4,64}$/.test(tg)) { setStatus("Некорректный username Telegram.", "err"); return; }
-        if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { setStatus("Некорректный email.", "err"); return; }
-        if (!/^[+\d][\d\s()\-]{7,24}$/.test(phone)) { setStatus("Некорректный телефон.", "err"); return; }
-        setStatus("Отправка...", "");
-        fetch(window.location.origin + "/api/site/register", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            tg_username: tg,
-            email: email,
-            phone: phone
-          })
-        }).then(function (r) { return r.ok ? r.json() : r.json().catch(function(){return null;}); })
-          .then(function (data) {
-            if (data && data.ok) {
-              setStatus("Готово. Данные сохранены, откройте бота для продолжения.", "ok");
-              form.reset();
-            } else {
-              setStatus((data && data.detail) ? String(data.detail) : "Не удалось отправить форму.", "err");
-            }
-          }).catch(function () {
-            setStatus("Ошибка сети. Повторите попытку.", "err");
-          });
-      });
+      if (!tg) { setStatus("Введите username Telegram.", "err"); return; }
+      if (!/^[a-zA-Z0-9_]{4,64}$/.test(tg)) { setStatus("Некорректный username.", "err"); return; }
+      setStatus("Отправка…", "");
+      fetch(window.location.origin + "/api/site/register", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ tg_username: tg, email: "", phone: "" })
+      }).then(function (r) { return r.ok ? r.json() : r.json().catch(function () { return null; }); })
+        .then(function (data) {
+          if (data && data.ok) {
+            localStorage.setItem(LS_USER, tg);
+            setStatus("Готово. Добавьте контакты во вкладке «Профиль» при необходимости.", "ok");
+            document.getElementById("regForm").reset();
+            refreshProfileFields();
+            document.querySelectorAll("#modalCabinet .modal-tab").forEach(function (t) {
+              t.classList.toggle("is-active", t.getAttribute("data-tab") === "cab-profile");
+            });
+            document.querySelectorAll("#modalCabinet .modal-tab-panel").forEach(function (p) {
+              p.classList.toggle("is-active", p.getAttribute("data-panel") === "cab-profile");
+            });
+          } else {
+            setStatus((data && data.detail) ? String(data.detail) : "Не удалось сохранить.", "err");
+          }
+        }).catch(function () { setStatus("Ошибка сети.", "err"); });
+    });
+
+    document.getElementById("profileForm").addEventListener("submit", function (e) {
+      e.preventDefault();
+      var tg = (document.getElementById("profUsername").value || "").trim().replace(/^@+/, "");
+      var email = (document.getElementById("profEmail").value || "").trim();
+      var phone = (document.getElementById("profPhone").value || "").trim();
+      var st = document.getElementById("profStatus");
+      function setP(txt, cls) {
+        if (!st) return;
+        st.textContent = txt;
+        st.className = "status-line " + (cls || "");
+      }
+      if (!tg) { setP("Сначала укажите username в регистрации.", "err"); return; }
+      if (!email && !phone) { setP("Заполните email и/или телефон.", "err"); return; }
+      if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { setP("Некорректный email.", "err"); return; }
+      if (phone && !/^[+\d][\d\s()\-]{7,24}$/.test(phone)) { setP("Некорректный телефон.", "err"); return; }
+      setP("Сохранение…", "");
+      fetch(window.location.origin + "/api/site/register", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ tg_username: tg, email: email, phone: phone })
+      }).then(function (r) { return r.ok ? r.json() : r.json().catch(function () { return null; }); })
+        .then(function (data) {
+          if (data && data.ok) setP("Контакты сохранены.", "ok");
+          else setP((data && data.detail) ? String(data.detail) : "Ошибка.", "err");
+        }).catch(function () { setP("Ошибка сети.", "err"); });
+    });
+
+    (function restoreProfileTab() {
+      if (localStorage.getItem(LS_USER)) refreshProfileFields();
     })();
   </script>
-</body>
-</html>
-<!DOCTYPE html>
-<html lang="ru">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>BIT VPN — быстрый и безопасный VPN</title>
-  <meta name="description" content="BIT VPN: быстрые серверы, удобное подключение через Happ, поддержка 24/7. Подписка за 1 минуту." />
-  <style>
-    :root {
-      --bg: #070b12;
-      --bg-soft: #0d1422;
-      --card: rgba(16, 24, 42, 0.78);
-      --line: rgba(148, 163, 184, 0.18);
-      --text: #e7edf9;
-      --muted: #9fb0cd;
-      --accent: #23e88e;
-      --accent-2: #44a5ff;
-      --shadow: 0 20px 50px rgba(0, 0, 0, 0.35);
-      --radius: 18px;
-      --radius-sm: 12px;
-      --container: 1160px;
-    }
-    * { box-sizing: border-box; }
-    html, body { margin: 0; padding: 0; }
-    body {
-      font-family: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
-      color: var(--text);
-      background:
-        radial-gradient(1000px 600px at 12% -10%, rgba(35, 232, 142, 0.20), transparent 55%),
-        radial-gradient(900px 540px at 92% -14%, rgba(68, 165, 255, 0.22), transparent 52%),
-        var(--bg);
-      line-height: 1.5;
-    }
-    a { color: inherit; text-decoration: none; }
-    .container { width: 100%; max-width: var(--container); margin: 0 auto; padding: 0 20px; }
-    .topbar {
-      position: sticky;
-      top: 0;
-      z-index: 20;
-      backdrop-filter: blur(10px);
-      background: rgba(7, 11, 18, 0.74);
-      border-bottom: 1px solid rgba(148, 163, 184, 0.12);
-    }
-    .topbar-inner {
-      height: 72px;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 16px;
-    }
-    .brand {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      font-weight: 700;
-      letter-spacing: 0.02em;
-    }
-    .brand-dot {
-      width: 11px;
-      height: 11px;
-      border-radius: 50%;
-      background: linear-gradient(135deg, var(--accent), #8ef3c5);
-      box-shadow: 0 0 18px rgba(35, 232, 142, 0.8);
-    }
-    .top-actions { display: flex; gap: 10px; flex-wrap: wrap; justify-content: flex-end; }
-    .btn {
-      border: 1px solid transparent;
-      border-radius: 999px;
-      padding: 11px 16px;
-      font-weight: 600;
-      font-size: 0.95rem;
-      transition: .18s ease;
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      min-height: 42px;
-      cursor: pointer;
-    }
-    .btn-primary {
-      color: #02160d;
-      background: linear-gradient(135deg, var(--accent), #72f5bc);
-      box-shadow: 0 10px 26px rgba(35, 232, 142, 0.28);
-    }
-    .btn-primary:hover { transform: translateY(-1px); filter: brightness(1.05); }
-    .btn-ghost {
-      border-color: var(--line);
-      color: var(--text);
-      background: rgba(148, 163, 184, 0.05);
-    }
-    .btn-ghost:hover { border-color: rgba(148,163,184,.34); background: rgba(148,163,184,.10); }
-
-    .hero { padding: 72px 0 46px; }
-    .hero-grid {
-      display: grid;
-      grid-template-columns: 1.15fr 0.85fr;
-      gap: 24px;
-      align-items: stretch;
-    }
-    .hero-main, .hero-side {
-      background: var(--card);
-      border: 1px solid var(--line);
-      border-radius: var(--radius);
-      box-shadow: var(--shadow);
-    }
-    .hero-main { padding: 34px; }
-    .eyebrow {
-      display: inline-flex;
-      align-items: center;
-      gap: 8px;
-      border: 1px solid rgba(35, 232, 142, 0.36);
-      color: #baf5dd;
-      border-radius: 999px;
-      padding: 6px 10px;
-      font-size: 0.8rem;
-      background: rgba(35, 232, 142, 0.08);
-    }
-    h1 {
-      margin: 14px 0 12px;
-      font-size: clamp(1.9rem, 2.8vw, 3rem);
-      line-height: 1.12;
-      letter-spacing: -0.02em;
-    }
-    .lead { margin: 0; color: var(--muted); max-width: 58ch; }
-    .hero-cta { margin-top: 24px; display: flex; gap: 10px; flex-wrap: wrap; }
-    .hero-list {
-      margin: 22px 0 0;
-      padding: 0;
-      list-style: none;
-      display: grid;
-      gap: 10px;
-      color: #d8e2f4;
-    }
-    .hero-list li {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      font-size: .96rem;
-    }
-    .tick {
-      width: 18px; height: 18px; border-radius: 50%;
-      display: inline-flex; align-items: center; justify-content: center;
-      background: rgba(35, 232, 142, 0.17); color: var(--accent); font-size: 12px; flex: 0 0 auto;
-    }
-    .hero-side { padding: 20px; display: grid; gap: 14px; }
-    .stat {
-      border-radius: var(--radius-sm);
-      border: 1px solid var(--line);
-      background: rgba(10, 16, 28, 0.88);
-      padding: 14px;
-    }
-    .stat-label { color: var(--muted); font-size: .84rem; margin-bottom: 6px; }
-    .stat-value { font-size: 1.26rem; font-weight: 700; }
-    .pulse { color: #8debc1; }
-
-    .section { padding: 26px 0 20px; }
-    .section h2 { margin: 0 0 14px; font-size: clamp(1.35rem, 1.8vw, 2rem); letter-spacing: -0.01em; }
-    .section p.section-muted { margin: 0 0 18px; color: var(--muted); }
-
-    .cards {
-      display: grid;
-      grid-template-columns: repeat(3, minmax(0, 1fr));
-      gap: 14px;
-    }
-    .card {
-      background: var(--card);
-      border: 1px solid var(--line);
-      border-radius: var(--radius-sm);
-      padding: 18px;
-    }
-    .card h3 { margin: 0 0 8px; font-size: 1.03rem; }
-    .card p { margin: 0; color: var(--muted); font-size: .94rem; }
-
-    .plans {
-      display: grid;
-      grid-template-columns: repeat(4, minmax(0, 1fr));
-      gap: 12px;
-    }
-    .plan {
-      background: linear-gradient(180deg, rgba(17, 25, 45, 0.88), rgba(12, 20, 36, 0.82));
-      border: 1px solid var(--line);
-      border-radius: 14px;
-      padding: 16px;
-    }
-    .plan-title { color: var(--muted); font-size: 0.86rem; }
-    .plan-price { margin-top: 8px; font-size: 1.54rem; font-weight: 700; }
-    .plan-note { margin-top: 5px; color: var(--muted); font-size: .82rem; }
-
-    .steps {
-      display: grid;
-      grid-template-columns: repeat(3, minmax(0, 1fr));
-      gap: 12px;
-    }
-    .step {
-      border: 1px dashed rgba(148,163,184,.34);
-      border-radius: 14px;
-      padding: 15px;
-      background: rgba(12, 18, 30, 0.65);
-    }
-    .num {
-      width: 26px; height: 26px; border-radius: 8px;
-      display: inline-flex; align-items: center; justify-content: center;
-      background: rgba(68,165,255,.2); color: #cce3ff; font-weight: 700; margin-bottom: 10px;
-    }
-
-    .cta {
-      margin-top: 16px;
-      background: linear-gradient(135deg, rgba(35, 232, 142, 0.15), rgba(68, 165, 255, 0.17));
-      border: 1px solid rgba(148,163,184,.25);
-      border-radius: var(--radius);
-      padding: 24px;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      gap: 14px;
-      flex-wrap: wrap;
-    }
-    .cta h3 { margin: 0 0 4px; font-size: 1.24rem; }
-    .cta p { margin: 0; color: #c9d7f1; }
-    .footer {
-      padding: 34px 0 54px;
-      color: var(--muted);
-      font-size: .9rem;
-      text-align: center;
-    }
-    .muted-link { color: #c6d7f6; text-decoration: underline; text-underline-offset: 3px; }
-
-    @media (max-width: 1060px) {
-      .hero-grid { grid-template-columns: 1fr; }
-      .cards { grid-template-columns: repeat(2, minmax(0,1fr)); }
-      .plans { grid-template-columns: repeat(2, minmax(0,1fr)); }
-    }
-    @media (max-width: 720px) {
-      .topbar-inner { height: auto; padding: 12px 0; align-items: flex-start; flex-direction: column; }
-      .hero { padding-top: 36px; }
-      .hero-main { padding: 22px; }
-      .cards, .plans, .steps { grid-template-columns: 1fr; }
-      .cta { padding: 18px; }
-      .btn { width: 100%; }
-      .top-actions { width: 100%; }
-    }
-  </style>
-</head>
-<body>
-  <header class="topbar">
-    <div class="container topbar-inner">
-      <div class="brand">
-        <span class="brand-dot"></span>
-        <span>BIT VPN</span>
-      </div>
-      <div class="top-actions">
-        <a class="btn btn-ghost" href="https://t.me/HelpBit_bot" target="_blank" rel="noopener noreferrer">Поддержка 24/7</a>
-        <a class="btn btn-primary" href="https://t.me/Bitvpnproxy_bot" target="_blank" rel="noopener noreferrer">Открыть в Telegram</a>
-      </div>
-    </div>
-  </header>
-
-  <main>
-    <section class="hero">
-      <div class="container hero-grid">
-        <div class="hero-main">
-          <span class="eyebrow"><span class="tick">✓</span> Безопасное подключение за 1 минуту</span>
-          <h1>Современный VPN для стабильной работы и приватного интернета</h1>
-          <p class="lead">Одна подписка, несколько серверов, удобное подключение через Happ и быстрый старт без сложных настроек. Подходит для телефона и ПК.</p>
-          <div class="hero-cta">
-            <a class="btn btn-primary" href="https://t.me/Bitvpnproxy_bot" target="_blank" rel="noopener noreferrer">Купить подписку</a>
-            <a class="btn btn-ghost" href="https://bitvpn.vercel.app?api=https://bitecosystem.ru" target="_blank" rel="noopener noreferrer">Открыть веб-приложение</a>
-          </div>
-          <ul class="hero-list">
-            <li><span class="tick">✓</span> Подключение за 3 шага без ручной возни с конфигами</li>
-            <li><span class="tick">✓</span> Серверы с низкой задержкой и быстрой сменой локаций</li>
-            <li><span class="tick">✓</span> Прозрачные тарифы, автообновление и поддержка в Telegram</li>
-          </ul>
-        </div>
-        <aside class="hero-side">
-          <div class="stat">
-            <div class="stat-label">Статус сети</div>
-            <div class="stat-value pulse">Online</div>
-          </div>
-          <div class="stat">
-            <div class="stat-label">Подключение устройств</div>
-            <div class="stat-value">Телефон • ПК • Планшет</div>
-          </div>
-          <div class="stat">
-            <div class="stat-label">Управление подпиской</div>
-            <div class="stat-value">Личный кабинет + бот</div>
-          </div>
-        </aside>
-      </div>
-    </section>
-
-    <section class="section">
-      <div class="container">
-        <h2>Почему выбирают BIT VPN</h2>
-        <p class="section-muted">Минималистичный интерфейс, быстрая выдача ссылок и предсказуемая работа на разных устройствах.</p>
-        <div class="cards">
-          <article class="card">
-            <h3>Стабильная архитектура</h3>
-            <p>Одна подписка объединяет несколько серверов. Добавление новых локаций без переустановки у пользователя.</p>
-          </article>
-          <article class="card">
-            <h3>Простой старт</h3>
-            <p>Выбираете тариф, оплачиваете и подключаетесь через Happ. Не нужно настраивать всё вручную.</p>
-          </article>
-          <article class="card">
-            <h3>Поддержка в чате</h3>
-            <p>Если что-то не работает, команда поддержки отвечает в Telegram и помогает быстро восстановить доступ.</p>
-          </article>
-        </div>
-      </div>
-    </section>
-
-    <section class="section">
-      <div class="container">
-        <h2>Тарифы</h2>
-        <p class="section-muted">Точные цены и доступные способы оплаты всегда актуальны в боте и веб-приложении.</p>
-        <div class="plans">
-          <div class="plan"><div class="plan-title">1 месяц</div><div class="plan-price">от 100 ₽</div><div class="plan-note">Быстрый старт</div></div>
-          <div class="plan"><div class="plan-title">3 месяца</div><div class="plan-price">от 285 ₽</div><div class="plan-note">Оптимальный выбор</div></div>
-          <div class="plan"><div class="plan-title">6 месяцев</div><div class="plan-price">от 540 ₽</div><div class="plan-note">Выгоднее в долгую</div></div>
-          <div class="plan"><div class="plan-title">12 месяцев</div><div class="plan-price">от 960 ₽</div><div class="plan-note">Максимальная экономия</div></div>
-        </div>
-      </div>
-    </section>
-
-    <section class="section">
-      <div class="container">
-        <h2>Как подключиться</h2>
-        <div class="steps">
-          <div class="step">
-            <span class="num">1</span>
-            <div><strong>Оформите подписку</strong></div>
-            <div class="section-muted">Перейдите в Telegram-бот и выберите тариф.</div>
-          </div>
-          <div class="step">
-            <span class="num">2</span>
-            <div><strong>Откройте Happ</strong></div>
-            <div class="section-muted">Приложение автоматически предложит добавить ссылку.</div>
-          </div>
-          <div class="step">
-            <span class="num">3</span>
-            <div><strong>Подключайтесь</strong></div>
-            <div class="section-muted">Выберите сервер и выходите в сеть за секунды.</div>
-          </div>
-        </div>
-        <div class="cta">
-          <div>
-            <h3>Готовы подключиться?</h3>
-            <p>Запустите BIT VPN в Telegram или откройте веб-интерфейс для оплаты и управления.</p>
-          </div>
-          <div class="top-actions">
-            <a class="btn btn-primary" href="https://t.me/Bitvpnproxy_bot" target="_blank" rel="noopener noreferrer">Запустить бот</a>
-            <a class="btn btn-ghost" href="https://bitvpn.vercel.app?api=https://bitecosystem.ru" target="_blank" rel="noopener noreferrer">Личный кабинет</a>
-          </div>
-        </div>
-      </div>
-    </section>
-  </main>
-
-  <footer class="footer container">
-    <div>© BIT VPN • Безопасное подключение и поддержка 24/7</div>
-    <div>Поддержка: <a class="muted-link" href="https://t.me/HelpBit_bot" target="_blank" rel="noopener noreferrer">@HelpBit_bot</a></div>
-  </footer>
 </body>
 </html>

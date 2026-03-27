@@ -1746,10 +1746,7 @@ async def miniapp_create_payment(request: Request):
 @app.post("/api/site/register")
 async def site_register(request: Request):
     """
-    Простая регистрация/лид с сайта:
-    - tg_username
-    - email
-    - phone
+    Регистрация/лид с сайта: обязателен tg_username; email и phone опциональны (можно дополнить позже из «кабинета»).
     """
     if not _rate_limit_site_register(_client_ip(request)):
         raise HTTPException(status_code=429, detail="Слишком много запросов. Подождите минуту.")
@@ -1762,13 +1759,13 @@ async def site_register(request: Request):
     email = (body.get("email") or "").strip()
     phone = (body.get("phone") or "").strip()
 
-    if not tg_username or not email or not phone:
-        raise HTTPException(status_code=400, detail="Заполните tg_username, email и phone")
+    if not tg_username:
+        raise HTTPException(status_code=400, detail="Укажите username Telegram")
     if not re.match(r"^[a-zA-Z0-9_]{4,64}$", tg_username):
         raise HTTPException(status_code=400, detail="Некорректный username Telegram")
-    if not re.match(r"^[^\s@]+@[^\s@]+\.[^\s@]+$", email):
+    if email and not re.match(r"^[^\s@]+@[^\s@]+\.[^\s@]+$", email):
         raise HTTPException(status_code=400, detail="Некорректный email")
-    if not re.match(r"^[+\d][\d\s()\-]{7,24}$", phone):
+    if phone and not re.match(r"^[+\d][\d\s()\-]{7,24}$", phone):
         raise HTTPException(status_code=400, detail="Некорректный телефон")
 
     base_dir = os.path.dirname(os.path.abspath(__file__))
@@ -1783,6 +1780,7 @@ async def site_register(request: Request):
         "tg_username": tg_username,
         "email": email,
         "phone": phone,
+        "event": "contact" if (email or phone) else "register",
     }
     try:
         with open(leads_file, "a", encoding="utf-8") as f:
