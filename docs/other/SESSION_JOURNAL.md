@@ -4,6 +4,16 @@
 
 ---
 
+## 2026-03-27 — /start: лог sending reply, в чате пусто
+
+### Причина
+**`reply_text`** с **`web_app=`** мог не доходить до клиента при проблемах с доменом WebApp в BotFather; зависание HTTP к **api.telegram.org** не давало **`reply_text ok`**.
+
+### Что сделано
+- **`bot/handlers/main.py`**: первая кнопка «Открыть приложение» — **`url=webapp_url`**, не **`WebAppInfo`**; **`asyncio.wait_for`** на **`reply_text`** (**`START_REPLY_TIMEOUT`**, по умолчанию 45 с) + лог при таймауте; отдельно **`BadRequest`** и **`TelegramError`**.
+
+---
+
 ## 2026-03-27 — /start: убран send_chat_action
 
 ### Причина

@@ -8,7 +8,7 @@ from datetime import datetime, timedelta
 from urllib.parse import quote
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup, WebAppInfo, KeyboardButton, ReplyKeyboardMarkup, ReplyKeyboardRemove
 from telegram.ext import ContextTypes, ConversationHandler
-from telegram.error import BadRequest
+from telegram.error import BadRequest, TelegramError
 from sqlalchemy.orm import sessionmaker, joinedload
 from sqlalchemy.exc import DataError
 
@@ -402,8 +402,9 @@ async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
         is_returning = user.created_at < datetime.utcnow() - timedelta(hours=1)
         webapp_url = get_webapp_url()
         support_username = (Config.SUPPORT_USERNAME or "").strip()
+        # Кнопка через url=, не web_app= — иначе при несовпадении домена в BotFather sendMessage может не дойти до клиента.
         keyboard = [
-            [InlineKeyboardButton("📱 Открыть приложение", web_app=WebAppInfo(url=webapp_url))],
+            [InlineKeyboardButton("📱 Открыть приложение", url=webapp_url)],
             [InlineKeyboardButton("🌐 Канал BIT VPN", url="https://t.me/BitVpnProxy")],
         ]
         if support_username:
@@ -429,45 +430,45 @@ async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
             (webapp_url[:100] + "…") if len(webapp_url) > 100 else webapp_url,
         )
 
-        async def _reply_with_markup(kb: InlineKeyboardMarkup) -> None:
-            await msg.reply_text(
-                message_text,
-                reply_markup=kb,
-                parse_mode='HTML',
-            )
-
+        reply_timeout = float(os.getenv("START_REPLY_TIMEOUT", "45"))
         try:
-            await _reply_with_markup(reply_markup)
+            await asyncio.wait_for(
+                msg.reply_text(
+                    message_text,
+                    reply_markup=reply_markup,
+                    parse_mode='HTML',
+                ),
+                timeout=reply_timeout,
+            )
+            logger.info("start_command: reply_text ok")
+        except asyncio.TimeoutError:
+            logger.error(
+                "start_command: reply_text TIMEOUT %.0fs — api.telegram.org не ответила; проверьте сеть/TG_HTTP_TIMEOUT",
+                reply_timeout,
+            )
+            plain = re.sub(r"<[^>]+>", "", message_text)
+            await msg.reply_text(plain[:3500], reply_markup=reply_markup)
+            logger.info("start_command: reply_text ok (fallback after timeout)")
         except BadRequest as e:
-            # HTML — fallback: plain text
             if "parse" in str(e).lower() or "entity" in str(e).lower():
                 logger.warning("start_command: HTML parse failed, sending plain text: %s", e)
                 plain = re.sub(r"<[^>]+>", "", message_text)
                 await msg.reply_text(plain, reply_markup=reply_markup)
             else:
-                # WebApp / кнопки: часто «Bad Request: WEB_APP_*» или «invalid» — уведомление админам не должно блокировать ответ
-                logger.warning("start_command: BadRequest on first reply: %s", e)
-                kb_fallback = InlineKeyboardMarkup(
-                    [
-                        [InlineKeyboardButton("📱 Открыть приложение", url=webapp_url)],
-                        [InlineKeyboardButton("🌐 Канал BIT VPN", url="https://t.me/BitVpnProxy")],
-                    ]
-                    + (
-                        [[InlineKeyboardButton("💬 Поддержка", url=f"https://t.me/{support_username.lstrip('@')}")]]
-                        if support_username
-                        else [[InlineKeyboardButton(get_message('btn_support'), callback_data='support')]]
-                    )
+                logger.warning("start_command: BadRequest: %s", e)
+                plain = re.sub(r"<[^>]+>", "", message_text)
+                await msg.reply_text(plain, reply_markup=reply_markup)
+            logger.info("start_command: reply_text ok (after BadRequest fallback)")
+        except TelegramError as e:
+            logger.exception("start_command: TelegramError on reply: %s", e)
+            try:
+                await msg.reply_text(
+                    re.sub(r"<[^>]+>", "", message_text)[:3500],
+                    reply_markup=reply_markup,
                 )
-                try:
-                    await msg.reply_text(message_text, reply_markup=kb_fallback, parse_mode='HTML')
-                except BadRequest as e2:
-                    if "parse" in str(e2).lower() or "entity" in str(e2).lower():
-                        plain = re.sub(r"<[^>]+>", "", message_text)
-                        await msg.reply_text(plain, reply_markup=kb_fallback)
-                    else:
-                        plain = re.sub(r"<[^>]+>", "", message_text)
-                        await msg.reply_text(plain, reply_markup=kb_fallback)
-        logger.info("start_command: reply_text ok")
+            except Exception as e2:
+                logger.error("start_command: second reply attempt failed: %s", e2)
+            logger.info("start_command: reply_text ok (after TelegramError fallback)")
     except DataError as e:
         logger.exception("start_command: DataError %s", e)
         try:
