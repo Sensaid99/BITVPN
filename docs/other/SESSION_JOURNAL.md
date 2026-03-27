@@ -4,6 +4,16 @@
 
 ---
 
+## 2026-03-27 — /start: убран send_chat_action
+
+### Причина
+Перед БД вызывался **`send_chat_action` (typing)** к **api.telegram.org**; при зависании HTTP шаг **`before_db`** не выполнялся (в логе только **`start_command: update_id=...`**).
+
+### Что сделано
+- **`bot/handlers/main.py`**: **`send_chat_action`** из **`/start`** удалён; первый шаг в **`try`** — лог **`before_db`**, затем БД.
+
+---
+
 ## 2026-03-27 — /start: только первый лог в journalctl, нет user loaded
 
 ### Причина (вероятные)

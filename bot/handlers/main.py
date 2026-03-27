@@ -7,7 +7,6 @@ import re
 from datetime import datetime, timedelta
 from urllib.parse import quote
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup, WebAppInfo, KeyboardButton, ReplyKeyboardMarkup, ReplyKeyboardRemove
-from telegram.constants import ChatAction
 from telegram.ext import ContextTypes, ConversationHandler
 from telegram.error import BadRequest
 from sqlalchemy.orm import sessionmaker, joinedload
@@ -294,14 +293,8 @@ async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
         list(context.args or []),
     )
     try:
-        # send_chat_action к api.telegram.org иногда зависает на части VPS — не блокируем /start
-        try:
-            await asyncio.wait_for(
-                context.bot.send_chat_action(chat_id=msg.chat_id, action=ChatAction.TYPING),
-                timeout=3.0,
-            )
-        except (asyncio.TimeoutError, Exception):
-            pass
+        # Не вызываем send_chat_action перед БД: на части VPS запрос к api.telegram.org зависал
+        # и /start не доходил ни до БД, ни до before_db в логах.
         logger.info("start_command: before_db telegram_id=%s", eu.id if eu else None)
         user = None
         db_timeout = float(os.getenv("START_DB_TIMEOUT", "60"))
