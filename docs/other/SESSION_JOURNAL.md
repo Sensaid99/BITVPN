@@ -11,6 +11,19 @@
 
 ---
 
+## 2026-03-27 — PostgreSQL: новый пользователь Telegram, INSERT падает (NumericValueOutOfRange)
+
+### Причина
+`users.telegram_id` был **INTEGER** (max 2 147 483 647). У Telegram уже есть **ID > 2³¹−1** (пример: 8013285688) — при первом `/start` INSERT в PostgreSQL падал с `NumericValueOutOfRange`, бот не отвечал.
+
+### Что сделано
+- В **`bot/models/database.py`**: колонка **`telegram_id` → `BigInteger`**; при старте для PostgreSQL выполняется **`ALTER TABLE users ALTER COLUMN telegram_id TYPE BIGINT`**, если тип был integer.
+
+### Проверить
+После деплоя перезапуск `vpn-bot`, повторный `/start` от пользователя с большим ID; при необходимости миграция вручную в Neon.
+
+---
+
 ## 2026-03-27 — бот «молчит» на /start: webhook vs polling
 
 ### Причина

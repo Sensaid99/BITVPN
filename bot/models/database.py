@@ -1,7 +1,8 @@
 """Database models for VPN Telegram Bot"""
 
+import logging
 from datetime import datetime, timedelta
-from sqlalchemy import Column, Integer, String, DateTime, Boolean, ForeignKey, Text, Float
+from sqlalchemy import Column, Integer, BigInteger, String, DateTime, Boolean, ForeignKey, Text, Float
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import relationship, sessionmaker
 from sqlalchemy import create_engine, inspect, text
@@ -19,7 +20,8 @@ class User(Base):
     __tablename__ = 'users'
     
     id = Column(Integer, primary_key=True)
-    telegram_id = Column(Integer, unique=True, nullable=False)
+    # Telegram выдаёт ID > 2^31-1; в PostgreSQL INTEGER не вмещает — нужен BIGINT
+    telegram_id = Column(BigInteger, unique=True, nullable=False)
     username = Column(String(255))
     first_name = Column(String(255))
     last_name = Column(String(255))
@@ -230,6 +232,35 @@ class DatabaseManager:
         self.engine = create_engine(database_url, **engine_opts)
         self.SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=self.engine)
     
+    def _migrate_postgres_telegram_id_bigint(self) -> None:
+        """ALTER users.telegram_id INTEGER → BIGINT (Telegram ID может быть > 2147483647)."""
+        logger = logging.getLogger(__name__)
+        try:
+            insp = inspect(self.engine)
+            if "users" not in insp.get_table_names():
+                return
+            with self.engine.connect() as conn:
+                row = conn.execute(
+                    text(
+                        "SELECT data_type FROM information_schema.columns "
+                        "WHERE table_schema = current_schema() AND table_name = 'users' "
+                        "AND column_name = 'telegram_id'"
+                    )
+                ).fetchone()
+            if not row or not row[0]:
+                return
+            dt = str(row[0]).lower()
+            if dt in ("bigint", "int8"):
+                return
+            if dt not in ("integer", "int4", "int"):
+                logger.warning("users.telegram_id has unexpected type %s; skip BIGINT migration", row[0])
+                return
+            with self.engine.begin() as conn:
+                conn.execute(text("ALTER TABLE users ALTER COLUMN telegram_id TYPE BIGINT"))
+            logger.info("Migrated users.telegram_id to BIGINT (large Telegram user IDs)")
+        except Exception as e:
+            logger.warning("PostgreSQL telegram_id BIGINT migration skipped or failed: %s", e)
+
     def _schema_ok(self) -> bool:
         """Проверка, что таблица users имеет нужную схему (telegram_id)."""
         try:
@@ -253,6 +284,10 @@ class DatabaseManager:
                 conn.commit()
                 conn.execute(text("PRAGMA foreign_keys=ON"))
         Base.metadata.create_all(bind=self.engine)
+
+        # PostgreSQL: старые БД могли иметь users.telegram_id INTEGER — миграция в BIGINT
+        if not is_sqlite:
+            self._migrate_postgres_telegram_id_bigint()
 
         # Добавить колонки уведомлений об истечении в существующую таблицу subscriptions
         insp = inspect(self.engine)
