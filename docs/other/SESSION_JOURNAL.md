@@ -27,6 +27,12 @@
 - В **`/start`**: `effective_message`, перехват **`sqlalchemy.exc.DataError`**, ответ пользователю + лог с подсказкой про BIGINT.
 - Ручной SQL: **`deploy/postgres-alter-telegram-id-bigint.sql`**.
 
+### 2026-03-27 — без консоли Neon: миграция BIGINT из кода; ошибки только админам
+- **`users.telegram_id`**: миграция без PL/pgSQL — `SELECT information_schema` → при необходимости `ALTER … USING (telegram_id::bigint)` (можно без ручного Neon).
+- **`bot/main.py` `error_handler`**: клиентам **не** отправляются тексты про временные/технические ошибки; полный лог уходит **`notify_admins`** → `ADMIN_IDS`.
+- **`/start` `DataError`**: сообщение пользователю убрано; **`notify_admins`** с пояснением.
+- **`bot/utils/telegram_notify.py`**: `notify_admins`.
+
 ---
 
 ## 2026-03-27 — бот «молчит» на /start: webhook vs polling
