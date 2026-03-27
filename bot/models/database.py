@@ -229,6 +229,9 @@ class DatabaseManager:
         engine_opts = {"pool_pre_ping": True}
         if database_url and "postgres" in (database_url.split(":")[0] or "").lower():
             engine_opts["pool_recycle"] = 60   # не держать соединения дольше минуты (Neon закрывает idle SSL)
+            # Иначе при недоступной БД /start «висит» без ответа и без таймаута в логах
+            engine_opts["connect_args"] = {"connect_timeout": 15}
+            engine_opts["pool_timeout"] = 30
         self.engine = create_engine(database_url, **engine_opts)
         self.SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=self.engine)
     

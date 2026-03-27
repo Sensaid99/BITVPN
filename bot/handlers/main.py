@@ -250,7 +250,8 @@ async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
         user = None
         for attempt in range(2):
             try:
-                user = get_or_create_user(update.effective_user)
+                # Сессия создаётся внутри функции — не делим с другими потоками; не блокируем event loop.
+                user = await asyncio.to_thread(get_or_create_user, update.effective_user)
                 break
             except Exception as e:
                 if attempt == 0 and _is_db_retryable_error(e):
@@ -260,15 +261,22 @@ async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
                 raise
         if user is None:
             raise RuntimeError("get_or_create_user failed")
+        logger.info(
+            "start_command: user loaded telegram_id=%s admin=%s",
+            user.telegram_id,
+            user.is_admin,
+        )
+        # Админ-подписка уже выставляется в post_init; не ждём Happ/БД перед ответом — иначе /start «молчит».
         if user.is_admin:
-            await asyncio.to_thread(ensure_admin_unlimited_subscription, user.telegram_id)
-            user = get_or_create_user(update.effective_user)
+            asyncio.create_task(
+                asyncio.to_thread(ensure_admin_unlimited_subscription, user.telegram_id)
+            )
 
         # Deep link: «Моя подписка» — карточка со ссылкой и кнопками (как после оплаты)
         if context.args and context.args[0].lower() == 'my_subscription':
             if user.is_admin and not user.has_active_subscription:
                 await asyncio.to_thread(ensure_admin_unlimited_subscription, user.telegram_id)
-                user = get_or_create_user(update.effective_user)
+                user = await asyncio.to_thread(get_or_create_user, update.effective_user)
             if not user.has_active_subscription:
                 await msg.reply_text("❌ Нет активной подписки.", parse_mode='HTML')
                 return
@@ -285,7 +293,7 @@ async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
         if context.args and context.args[0].lower() == 'config':
             if user.is_admin and not user.has_active_subscription:
                 await asyncio.to_thread(ensure_admin_unlimited_subscription, user.telegram_id)
-                user = get_or_create_user(update.effective_user)
+                user = await asyncio.to_thread(get_or_create_user, update.effective_user)
             if not user.has_active_subscription:
                 await msg.reply_text(get_message('error_no_subscription'), parse_mode='HTML')
                 return

@@ -11,17 +11,17 @@
 
 ---
 
-## 2026-03-27 — /start снова без to_thread для БД
+## 2026-03-27 — /start: лог есть, ответа нет (зависание после лога)
 
 ### Причина
-`get_or_create_user` через **`asyncio.to_thread`** мог ломать работу **SQLAlchemy** (сессии/потоки) — бот «молчал» на `/start`.
+После строки лога **`start_command: update_id=...`** шёл **синхронный** **`get_or_create_user`** (блокировал event loop) и для **админа** — **`await ensure_admin_unlimited_subscription`** (Happ/БД) **до** **`reply_text`**. При долгой БД или Happ пользователь не получал сообщение.
 
 ### Что сделано
-- **`bot/handlers/main.py`**: **`get_or_create_user`** снова вызывается **синхронно** в основном потоке; в **`asyncio.to_thread`** оставлен только **`ensure_admin_unlimited_subscription`** (Happ HTTP + БД в отдельном потоке — отдельная сессия внутри функции).
-- В **`except Exception`** у **`start_command`** добавлен **`reply_text`** «Временная ошибка…» (если обработчик падает — пользователь не остаётся без ответа).
+- **`bot/handlers/main.py`**: **`get_or_create_user`** в **`start_command`** снова через **`await asyncio.to_thread(...)`** (сессия только внутри вызова — ок для SQLAlchemy). Для админа **`ensure_admin_unlimited_subscription`** на обычном **`/start`** — **фоновая задача** (`create_task` + `to_thread`), без ожидания перед приветствием. Лог **`start_command: user loaded telegram_id=...`** для диагностики.
+- **`bot/models/database.py`**: для PostgreSQL **`connect_timeout=15`**, **`pool_timeout=30`**.
 
-### Проверить на сервере
-`git pull`, **`sudo systemctl restart vpn-bot`**, в логах при **`/start`** должна быть строка **`start_command: update_id=...`**. Если её нет — см. **`docs/deploy/БОТ_НЕ_ОТВЕЧАЕТ_ЧЕКЛИСТ.md`** (webhook, второй процесс с тем же токеном).
+### Проверить
+`restart vpn-bot`; при **`/start`** в логах подряд: **`start_command: update_id=...`**, затем **`user loaded`**, затем ответ в чате.
 
 ---
 
