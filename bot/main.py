@@ -185,6 +185,18 @@ async def post_init(application: Application) -> None:
 
     logger.info("🚀 VPN Bot initialization started")
 
+    # Если на токене висит webhook, long polling не получает апдейты — пользователю кажется, что бот «мёртвый» на /start
+    try:
+        wh = await application.bot.get_webhook_info()
+        if getattr(wh, "url", None):
+            logger.warning(
+                "Активен Telegram webhook (%s) — удаляем для режима polling. Иначе бот не получает сообщения.",
+                wh.url,
+            )
+        await application.bot.delete_webhook(drop_pending_updates=False)
+    except Exception as e:
+        logger.warning("get_webhook_info / delete_webhook: %s", e)
+
     # Initialize database
     from bot.models.database import DatabaseManager
     db_manager = DatabaseManager(Config.DATABASE_URL)

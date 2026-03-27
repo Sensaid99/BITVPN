@@ -109,11 +109,26 @@ MINI_APP_URL = "https://bitvpn.vercel.app"
 
 
 def get_webapp_url():
-    """URL мини-апп для кнопок. Если в .env нет bitvpn.vercel.app — возвращаем фиксированный URL, чтобы кнопки всегда работали."""
+    """
+    URL мини-аппа для кнопок WebApp.
+    Если задан MINIAPP_API_URL и в URL ещё нет параметра api= — добавляем (как в BotFather), иначе мини-апп не найдёт API.
+    """
+    api = (Config.MINIAPP_API_URL or "").strip().rstrip("/")
+
+    def _with_api(u: str) -> str:
+        if not u:
+            return u
+        if not api or "api=" in u:
+            return u
+        sep = "&" if "?" in u else "?"
+        return u + sep + "api=" + quote(api, safe="")
+
     base = (Config.WEBAPP_URL or "").strip().rstrip("/")
     if base and "bitvpn.vercel.app" in base:
-        return base
-    return MINI_APP_URL
+        return _with_api(base)
+    if base:
+        return _with_api(base)
+    return _with_api(MINI_APP_URL)
 
 
 def _happ_devices_html_line(sub) -> str:
