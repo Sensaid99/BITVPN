@@ -6,6 +6,7 @@ import re
 from datetime import datetime, timedelta
 from urllib.parse import quote
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup, WebAppInfo, KeyboardButton, ReplyKeyboardMarkup, ReplyKeyboardRemove
+from telegram.constants import ChatAction
 from telegram.ext import ContextTypes, ConversationHandler
 from telegram.error import BadRequest
 from sqlalchemy.orm import sessionmaker, joinedload
@@ -186,6 +187,8 @@ def get_persistent_keyboard(telegram_id=None):
 
 def get_or_create_user(telegram_user) -> User:
     """Get or create user in database. Подписки подгружаются одним запросом (снижает риск SSL closed от Neon)."""
+    tid = getattr(telegram_user, "id", None)
+    logger.info("get_or_create_user: begin telegram_id=%s", tid)
     session = db_manager.get_session()
     try:
         user = (
@@ -213,7 +216,9 @@ def get_or_create_user(telegram_user) -> User:
         user.last_activity = datetime.utcnow()
         session.commit()
         session.refresh(user)
-        # subscriptions уже загружены через joinedload
+        # Пока сессия открыта — материализуем подписки (иначе после close() в другом потоке возможны Detached/lazy-load)
+        _ = list(user.subscriptions)
+        logger.info("get_or_create_user: done telegram_id=%s subs=%s", tid, len(user.subscriptions))
         return user
     finally:
         session.close()
@@ -247,6 +252,10 @@ async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
         list(context.args or []),
     )
     try:
+        try:
+            await context.bot.send_chat_action(chat_id=msg.chat_id, action=ChatAction.TYPING)
+        except Exception:
+            pass
         user = None
         for attempt in range(2):
             try:
@@ -354,25 +363,65 @@ async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
         else:
             message_text = get_message('welcome_short')
 
-        if user.has_active_subscription and user.active_subscription:
-            message_text += _happ_devices_html_line(user.active_subscription)
-
         try:
+            if user.has_active_subscription and user.active_subscription:
+                message_text += _happ_devices_html_line(user.active_subscription)
+        except Exception as e:
+            logger.warning("start_command: skip devices line: %s", e)
+
+        logger.info(
+            "start_command: sending reply text_len=%s webapp_prefix=%s",
+            len(message_text),
+            (webapp_url[:100] + "…") if len(webapp_url) > 100 else webapp_url,
+        )
+
+        async def _reply_with_markup(kb: InlineKeyboardMarkup) -> None:
             await msg.reply_text(
                 message_text,
-                reply_markup=reply_markup,
+                reply_markup=kb,
                 parse_mode='HTML',
             )
+
+        try:
+            await _reply_with_markup(reply_markup)
         except BadRequest as e:
-            # Имя или иные данные ломали HTML — без parse_mode пользователь всё равно получит ответ
+            # HTML — fallback: plain text
             if "parse" in str(e).lower() or "entity" in str(e).lower():
                 logger.warning("start_command: HTML parse failed, sending plain text: %s", e)
                 plain = re.sub(r"<[^>]+>", "", message_text)
                 await msg.reply_text(plain, reply_markup=reply_markup)
             else:
-                raise
+                # WebApp / кнопки: часто «Bad Request: WEB_APP_*» или «invalid» — уведомление админам не должно блокировать ответ
+                logger.warning("start_command: BadRequest on first reply: %s", e)
+                kb_fallback = InlineKeyboardMarkup(
+                    [
+                        [InlineKeyboardButton("📱 Открыть приложение", url=webapp_url)],
+                        [InlineKeyboardButton("🌐 Канал BIT VPN", url="https://t.me/BitVpnProxy")],
+                    ]
+                    + (
+                        [[InlineKeyboardButton("💬 Поддержка", url=f"https://t.me/{support_username.lstrip('@')}")]]
+                        if support_username
+                        else [[InlineKeyboardButton(get_message('btn_support'), callback_data='support')]]
+                    )
+                )
+                try:
+                    await msg.reply_text(message_text, reply_markup=kb_fallback, parse_mode='HTML')
+                except BadRequest as e2:
+                    if "parse" in str(e2).lower() or "entity" in str(e2).lower():
+                        plain = re.sub(r"<[^>]+>", "", message_text)
+                        await msg.reply_text(plain, reply_markup=kb_fallback)
+                    else:
+                        plain = re.sub(r"<[^>]+>", "", message_text)
+                        await msg.reply_text(plain, reply_markup=kb_fallback)
+        logger.info("start_command: reply_text ok")
     except DataError as e:
         logger.exception("start_command: DataError %s", e)
+        try:
+            await msg.reply_text(
+                "❌ Ошибка данных в БД. Обратитесь к администратору.",
+            )
+        except Exception as e3:
+            logger.error("start_command: reply after DataError failed: %s", e3)
         try:
             uid = update.effective_user.id if update.effective_user else "?"
             await notify_admins(
@@ -385,6 +434,12 @@ async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
     except Exception as e:
         logger.exception("start_command: unexpected error: %s", e)
         try:
+            await msg.reply_text(
+                "❌ Временная ошибка. Попробуйте /start через минуту или напишите в поддержку.",
+            )
+        except Exception as e3:
+            logger.error("start_command: reply after error failed: %s", e3)
+        try:
             uid = update.effective_user.id if update.effective_user else "?"
             await notify_admins(
                 context.bot,
@@ -393,12 +448,6 @@ async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
             )
         except Exception as e2:
             logger.error("start_command: notify_admins failed: %s", e2)
-        try:
-            await msg.reply_text(
-                "❌ Временная ошибка. Попробуйте /start через минуту или напишите в поддержку.",
-            )
-        except Exception as e3:
-            logger.error("start_command: reply after error failed: %s", e3)
 
 
 async def show_plans(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:

@@ -230,10 +230,19 @@ class DatabaseManager:
         if database_url and "postgres" in (database_url.split(":")[0] or "").lower():
             engine_opts["pool_recycle"] = 60   # не держать соединения дольше минуты (Neon закрывает idle SSL)
             # Иначе при недоступной БД /start «висит» без ответа и без таймаута в логах
-            engine_opts["connect_args"] = {"connect_timeout": 15}
+            engine_opts["connect_args"] = {
+                "connect_timeout": 15,
+                # Любой запрос дольше 30 с — отмена на стороне Postgres (зависшие lock / план)
+                "options": "-c statement_timeout=30000",
+            }
             engine_opts["pool_timeout"] = 30
+            engine_opts["pool_size"] = 10
+            engine_opts["max_overflow"] = 10
         self.engine = create_engine(database_url, **engine_opts)
-        self.SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=self.engine)
+        # После commit без этого ORM «протухает»; при закрытой сессии ленивые relationship в другом потоке ломают /start
+        self.SessionLocal = sessionmaker(
+            autocommit=False, autoflush=False, bind=self.engine, expire_on_commit=False
+        )
     
     def _migrate_postgres_telegram_id_bigint(self) -> None:
         """ALTER public.users.telegram_id → BIGINT без PL/pgSQL (работает при недоступной консоли Neon)."""

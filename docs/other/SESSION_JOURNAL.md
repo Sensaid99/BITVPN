@@ -25,6 +25,30 @@
 
 ---
 
+## 2026-03-27 — /start: user loaded есть, ответа в чате нет
+
+### Причина
+Ошибка **`reply_text`** (часто **WebApp-кнопка**: домен не привязан в BotFather → **BadRequest**) шла в общий **`except`**, где **сначала** вызывался **`notify_admins`**. Если уведомление админам зависало или шло долго, пользователь **не получал** ни приветствия, ни «Временная ошибка».
+
+### Что сделано
+- **`bot/handlers/main.py`**: при любой ошибке **`/start`** — **сначала** ответ пользователю, **потом** **`notify_admins`**; при **BadRequest** на первом ответе — **fallback-клавиатура** с **`url=`** вместо **`web_app=`**; лог **`start_command: sending reply`** и **`reply_text ok`**.
+
+---
+
+## 2026-03-27 — /start без ответа: expire после commit + диагностика БД
+
+### Причина
+После **`commit()`** у SQLAlchemy по умолчанию **`expire_on_commit=True`** — объект пользователя «протухает»; после **`session.close()`** в воркере доступ к **`subscriptions` / `has_active_subscription`** в основном потоке мог давать **ленивую загрузку** с уже закрытой сессией (ошибки / зависание). Плюс без **`statement_timeout`** запрос к Postgres мог висеть при lock.
+
+### Что сделано
+- **`bot/models/database.py`**: **`expire_on_commit=False`** у **`sessionmaker`**; для Postgres в **`connect_args.options`** — **`statement_timeout=30000`** (мс); **`pool_size=10`**, **`max_overflow=10`**.
+- **`bot/handlers/main.py`**: в **`get_or_create_user`** перед **`return`** — **`list(user.subscriptions)`**; логи **`get_or_create_user: begin/done`**; перед БД — **`send_chat_action(TYPING)`**.
+
+### Проверить
+После деплоя в логах цепочка: **`get_or_create_user: begin`** → **`done`** → **`user loaded`**. Если есть **begin** без **done** — смотреть Postgres (lock, `DATABASE_URL`, нагрузка).
+
+---
+
 ## 2026-03-27 — HAPP_ADD_DOMAIN_URL везде для второй базы Happ
 
 ### Запрос
