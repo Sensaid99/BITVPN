@@ -1938,7 +1938,11 @@
         }).catch(function() { if (cb) cb(); });
       }
       window.MINIAPP_API_BASE = apiBase;
-      window.MINIAPP_LOAD_AND_REFRESH_REF = function(cb) { loadFromApi(cb); };
+      window.MINIAPP_LOAD_AND_REFRESH_REF = function(cb) {
+        apiLoadPromise = null;
+        window._apiMeLoadAttempted = false;
+        loadFromApi(cb);
+      };
       function updateSupportLinksFromConfig() {
         var u = (window.API_CONFIG && window.API_CONFIG.support_username) ? window.API_CONFIG.support_username : 'HelpBit_bot';
         var el = document.getElementById('link-support'); if (el) el.href = 'https://t.me/' + u;
@@ -1952,7 +1956,27 @@
         });
       }
       if (tg && tg.ready) tg.ready();
-      setTimeout(startAppLoad, 350);
+      setTimeout(startAppLoad, 120);
+
+      // После возврата из Happ / браузера WebView может сбрасывать состояние; кэш apiLoadPromise мешал повторной загрузке /me → «Ошибка загрузки».
+      (function() {
+        var visTimer = null;
+        document.addEventListener('visibilitychange', function() {
+          if (document.visibilityState !== 'visible') return;
+          if (!apiBase) return;
+          if (visTimer) clearTimeout(visTimer);
+          visTimer = setTimeout(function() {
+            visTimer = null;
+            if (!getInitData()) return;
+            apiLoadPromise = null;
+            window._apiMeLoadAttempted = false;
+            loadFromApi(function() {
+              if (typeof renderSubsAndPayFromApi === 'function') renderSubsAndPayFromApi();
+              if (typeof updateProfileUI === 'function') updateProfileUI();
+            });
+          }, 400);
+        });
+      })();
 
       var TAB_IDS = ['main', 'subs', 'ref', 'profile'];
       var currentTabIndex = 0;
@@ -1986,8 +2010,19 @@
           if (mainStatusBadge && window._apiMeLoadAttempted) {
             mainStatusBadge.textContent = 'Ошибка загрузки';
             mainStatusBadge.classList.remove('active');
-            var code = (typeof window._apiMeLastStatus !== 'undefined' && window._apiMeLastStatus) ? ' Код ' + window._apiMeLastStatus + '.' : '';
-            mainStatusBadge.title = 'Нажмите, чтобы повторить.' + code + ' Откройте приложение из меню бота; проверьте WEBAPP_URL с ?api= и BOT_TOKEN на сервере.';
+            var st = (typeof window._apiMeLastStatus !== 'undefined' && window._apiMeLastStatus) ? window._apiMeLastStatus : 0;
+            var code = st ? ' HTTP ' + st + '.' : '';
+            var hint = 'Нажмите, чтобы повторить.' + code;
+            if (st === 401) {
+              hint += ' initData не принят API: на сервере в .env должен быть тот же BOT_TOKEN, что у бота в Telegram. После смены токена выполните: sudo systemctl restart miniapp-api vpn-bot.';
+            } else if (st === 503) {
+              hint += ' API не видит базу (DATABASE_URL) или конфиг.';
+            } else if (!st) {
+              hint += ' Нет ответа от API — проверьте ?api= в ссылке на мини-апп и что miniapp-api запущен.';
+            } else {
+              hint += ' Откройте приложение из меню бота; проверьте WEBAPP_URL с параметром ?api=.';
+            }
+            mainStatusBadge.title = hint;
             mainStatusBadge.style.cursor = 'pointer';
             mainStatusBadge.onclick = function() {
               mainStatusBadge.textContent = 'Загрузка…';

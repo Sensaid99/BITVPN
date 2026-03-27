@@ -9,7 +9,7 @@ import asyncio
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from telegram import BotCommand, MenuButtonWebApp, WebAppInfo
-from telegram.error import BadRequest, Forbidden, TimedOut
+from telegram.error import BadRequest, Forbidden
 from telegram.request import HTTPXRequest
 from telegram.ext import (
     Application, 
@@ -202,41 +202,21 @@ async def post_init(application: Application) -> None:
     pm = payment_manager.get_available_methods()
     logger.info(f"💳 Способы оплаты: {pm if pm else '(нет — проверьте YOOKASSA_* или YOOMONEY_TOKEN в .env)'}")
     
-    # Меню бота: одна команда — Запустить бота с ракетой
-    await application.bot.set_my_commands([BotCommand("start", "🚀 Запустить бота")])
-    
-    # Единственная кнопка для мини-приложения — «Открыть VPN» внизу; при каждом старте синхронизируем URL с ботом
+    # Меню: команда + кнопка WebApp — параллельно, быстрее выход к polling
     MINI_APP_URL = "https://bitvpn.vercel.app"
     webapp_url = (Config.WEBAPP_URL or "").strip().rstrip("/")
     if not webapp_url or "bitvpn.vercel.app" not in webapp_url:
         webapp_url = MINI_APP_URL
     try:
-        await application.bot.set_chat_menu_button(
-            menu_button=MenuButtonWebApp(text="Открыть VPN", web_app=WebAppInfo(url=webapp_url))
+        await asyncio.gather(
+            application.bot.set_my_commands([BotCommand("start", "🚀 Запустить бота")]),
+            application.bot.set_chat_menu_button(
+                menu_button=MenuButtonWebApp(text="Открыть VPN", web_app=WebAppInfo(url=webapp_url))
+            ),
         )
-        logger.info(f"✅ Кнопка «Открыть VPN» → {webapp_url}")
+        logger.info(f"✅ Команды и меню WebApp → {webapp_url}")
     except Exception as e:
-        logger.warning(f"Не удалось установить кнопку меню бота: {e}")
-    
-    # Send startup message to admins
-    startup_message = (
-        "🤖 <b>VPN Bot запущен успешно!</b>\n\n"
-        f"🆔 Бот: @{bot_info.username}\n"
-        f"📅 Время запуска: {logging.Formatter().formatTime(logging.LogRecord('', 0, '', 0, '', (), None))}\n"
-        f"⚙️ Режим отладки: {'✅' if Config.DEBUG else '❌'}\n"
-        f"🗄️ База данных: {'✅ Подключена' if db_manager else '❌ Ошибка'}\n\n"
-        "🎯 Бот готов к работе с пользователями!"
-    )
-    
-    for admin_id in Config.ADMIN_IDS:
-        try:
-            await application.bot.send_message(
-                chat_id=admin_id,
-                text=startup_message,
-                parse_mode='HTML'
-            )
-        except Exception as e:
-            logger.warning(f"Failed to send startup message to admin {admin_id}: {e}")
+        logger.warning("set_my_commands / set_chat_menu_button: %s", e)
 
     # Выдать безлимитную подписку на 10 устройств обоим админам (если ещё нет активной)
     try:
@@ -269,41 +249,8 @@ async def post_init(application: Application) -> None:
 
 
 async def post_shutdown(application: Application) -> None:
-    """Post shutdown tasks"""
+    """Post shutdown tasks — без рассылки в Telegram (ни клиентам, ни админам)."""
     logger.info("🛑 VPN Bot shutdown initiated")
-    
-    # Get bot info
-    try:
-        bot_info = await application.bot.get_me()
-        
-        # Send shutdown message to admins
-        shutdown_message = (
-            "🛑 <b>VPN Bot остановлен</b>\n\n"
-            f"🆔 Бот: @{bot_info.username}\n"
-            f"📅 Время остановки: {logging.Formatter().formatTime(logging.LogRecord('', 0, '', 0, '', (), None))}\n\n"
-            "ℹ️ Бот временно недоступен для пользователей."
-        )
-        
-        for admin_id in Config.ADMIN_IDS:
-            try:
-                await application.bot.send_message(
-                    chat_id=admin_id,
-                    text=shutdown_message,
-                    parse_mode='HTML'
-                )
-            except Exception as e:
-                logger.warning(f"Failed to send shutdown message to admin {admin_id}: {e}")
-                
-    except TimedOut:
-        # Нет связи с Telegram (как при падении на getMe) — не ждём повторно и не спамим WARNING
-        logger.info("Shutdown: пропуск уведомления админам — нет ответа от Telegram API (TimedOut)")
-    except Exception as e:
-        # При остановке бота httpx/telegram часто дают RuntimeError — не считаем это критичной ошибкой
-        if "HTTPXRequest" in str(e) or "not initialized" in str(e):
-            logger.debug("Shutdown: telegram/httpx already closed (%s)", e)
-        else:
-            logger.warning("Error during shutdown: %s", e)
-    
     logger.info("✅ VPN Bot shutdown completed")
 
 

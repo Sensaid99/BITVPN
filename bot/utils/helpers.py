@@ -52,9 +52,11 @@ def setup_logging():
     root_logger.addHandler(file_handler)
     root_logger.addHandler(console_handler)
     
-    # Suppress noisy libraries
+    # Suppress noisy libraries (httpx логирует каждый POST к api.telegram.org — тормозит journalctl)
     logging.getLogger('urllib3').setLevel(logging.WARNING)
     logging.getLogger('requests').setLevel(logging.WARNING)
+    logging.getLogger('httpx').setLevel(logging.WARNING)
+    logging.getLogger('httpcore').setLevel(logging.WARNING)
 
 
 def generate_referral_code(length: int = 8) -> str:

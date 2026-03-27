@@ -1246,6 +1246,9 @@ async def miniapp_me(request: Request):
 
         parsed = validate_init_data(init_data)
         if not parsed:
+            logger.warning(
+                "miniapp_me: initData не прошла проверку (часто BOT_TOKEN на API не совпадает с ботом в Telegram после смены токена — перезапустите miniapp-api и проверьте .env)."
+            )
             raise HTTPException(status_code=401, detail="Invalid initData")
 
         telegram_id, init_user = get_telegram_user_from_init(parsed)

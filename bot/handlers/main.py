@@ -385,12 +385,6 @@ async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
             )
         except Exception as e2:
             logger.error("start_command: notify_admins failed: %s", e2)
-        try:
-            await msg.reply_text(
-                "Сейчас не удалось ответить. Попробуйте ещё раз через минуту или напишите в поддержку.",
-            )
-        except Exception as e3:
-            logger.warning("start_command: fallback reply failed: %s", e3)
 
 
 async def show_plans(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
