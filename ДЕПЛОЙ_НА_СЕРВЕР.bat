@@ -47,6 +47,7 @@ if "%SERVER_IP%"=="" (
 echo 1. Синхронизация Mini App: webapp -^> public -^> index, api...
 if exist "webapp\index.html" (
     copy /Y "webapp\index.html" "public\index.html" >nul 2>nul
+    copy /Y "webapp\*.glb" "public\" >nul 2>nul
 )
 if exist "public\index.html" (
     copy /Y "public\index.html" "index.html" >nul

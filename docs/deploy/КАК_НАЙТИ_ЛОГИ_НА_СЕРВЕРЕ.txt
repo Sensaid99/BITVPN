@@ -25,6 +25,22 @@
   и вставь сюда в чат или в файл.
 
 
+── Логи API мини-аппа (systemd miniapp-api) ───────────────────
+
+  Если оплата/СБП в мини-аппе не работает и на Vercel логов нет —
+  API должно крутиться на вашем сервере. Смотреть поток логов:
+
+    sudo journalctl -u miniapp-api -f --no-pager
+
+  Последние 200 строк без follow:
+
+    sudo journalctl -u miniapp-api -n 200 --no-pager
+
+  Поиск по ошибке:
+
+    sudo journalctl -u miniapp-api -n 400 --no-pager | grep -i -E "error|exception|traceback"
+
+
 ── Способ 2. Файловые логи бота ────────────────────────────────
 
   Бот пишет в папку logs/ в каталоге проекта. На сервере это:

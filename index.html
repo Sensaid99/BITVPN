@@ -2500,7 +2500,7 @@
                       return r.json().then(function(data) { return { ok: r.ok, data: data }; });
                     }
                     return r.text().then(function(t) {
-                      return { ok: false, data: { detail: (t && (t.trim().toLowerCase().indexOf('<!doctype') === 0 || t.trim().toLowerCase().indexOf('<html') === 0)) ? 'Сервер вернул страницу вместо данных. Запустите API на своём сервере (см. ЛОГИ_API_НА_СЕРВЕРЕ.txt).' : (t && t.trim() ? t.trim() : 'Не удалось создать платёж. Запустите API на своём сервере (ЛОГИ_API_НА_СЕРВЕРЕ.txt).') } };
+                      return { ok: false, data: { detail: (t && (t.trim().toLowerCase().indexOf('<!doctype') === 0 || t.trim().toLowerCase().indexOf('<html') === 0)) ? 'Сервер вернул страницу вместо данных. Запустите API на своём сервере (см. docs/deploy/КАК_НАЙТИ_ЛОГИ_НА_СЕРВЕРЕ.txt, journalctl -u miniapp-api).' : (t && t.trim() ? t.trim() : 'Не удалось создать платёж. Запустите API на своём сервере (см. docs/deploy/КАК_НАЙТИ_ЛОГИ_НА_СЕРВЕРЕ.txt).') } };
                     });
                   }).catch(function() { return { ok: false, data: {} }; }).then(function(res) {
                     var data = res.data || {};

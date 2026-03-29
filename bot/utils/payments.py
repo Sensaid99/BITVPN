@@ -130,7 +130,7 @@ class YooKassaPayment:
                 "Content-Type": "application/json",
                 "Idempotence-Key": str(uuid.uuid4()),
             }
-            response = requests.post(url, json=payload, headers=headers, timeout=15)
+            response = requests.post(url, json=payload, headers=headers, timeout=30)
             if not response.ok:
                 try:
                     err = response.json()
@@ -188,7 +188,7 @@ class YooKassaPayment:
                 "Authorization": self._auth_header(),
                 "Content-Type": "application/json",
             }
-            response = requests.get(url, headers=headers, timeout=15)
+            response = requests.get(url, headers=headers, timeout=30)
             if not response.ok:
                 logger.warning("YooKassa get_payment HTTP %s: %s", response.status_code, response.text[:200])
                 return None

@@ -1,0 +1,16 @@
+﻿# Снижает нагрузку на индексацию Cursor: тяжёлые бинарники и копии мини-аппа.
+# Источник правок UI мини-аппа — webapp/index.html и webapp/*.glb
+
+logs/
+**/__pycache__/
+*.pyc
+*.glb
+
+# Производные копии одного и того же HTML (синхронизируются батниками из webapp/)
+/index.html
+public/index.html
+api/root_index.html
+
+# Локальные архивы / дампы
+*.tar.gz
+vpn-bot.tar.gz

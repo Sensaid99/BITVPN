@@ -24,8 +24,9 @@ if not exist "webapp\index.html" (
     goto :error
 )
 
-echo 1. Синхронизация webapp -^> public, index.html, api\root_index.html...
+echo 1. Синхронизация webapp -^> public, index.html, api\root_index.html + *.glb...
 copy /Y "webapp\index.html" "public\index.html" >nul 2>nul
+copy /Y "webapp\*.glb" "public\" >nul 2>nul
 copy /Y "public\index.html" "index.html" >nul 2>nul
 if exist "api" copy /Y "public\index.html" "api\root_index.html" >nul 2>nul
 echo    Готово.

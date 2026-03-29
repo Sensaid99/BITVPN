@@ -31,16 +31,10 @@ if errorlevel 1 (
     echo    [ОШИБКА] Не удалось скопировать в public\index.html
     goto :error
 )
+copy /Y "webapp\*.glb" "public\" >nul 2>nul
 copy /Y "public\index.html" "index.html" >nul 2>nul
-if exist "webapp\apple_iphone_15_pro_max_black.glb" (
-    copy /Y "webapp\apple_iphone_15_pro_max_black.glb" "public\apple_iphone_15_pro_max_black.glb" >nul 2>nul
-    copy /Y "webapp\apple_iphone_15_pro_max_black.glb" "apple_iphone_15_pro_max_black.glb" >nul 2>nul
-)
-if exist "api" (
-    copy /Y "public\index.html" "api\root_index.html" >nul 2>nul
-    if exist "public\apple_iphone_15_pro_max_black.glb" copy /Y "public\apple_iphone_15_pro_max_black.glb" "api\apple_iphone_15_pro_max_black.glb" >nul 2>nul
-)
-echo    Скопировано: webapp -^> public, index.html, api\root_index.html, apple_iphone_15_pro_max_black.glb
+if exist "api" copy /Y "public\index.html" "api\root_index.html" >nul 2>nul
+echo    Скопировано: webapp -^> public ^(+ *.glb^), index.html, api\root_index.html
 echo.
 
 REM 2. Пуш на GitHub

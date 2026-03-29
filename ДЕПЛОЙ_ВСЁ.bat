@@ -13,6 +13,7 @@ REM Сначала синхронизируем webapp -^> public, чтобы в
 echo 0. Синхронизация webapp -^> public, index, api...
 if exist "webapp\index.html" (
     copy /Y "webapp\index.html" "public\index.html" >nul 2>nul
+    copy /Y "webapp\*.glb" "public\" >nul 2>nul
     copy /Y "public\index.html" "index.html" >nul 2>nul
     if exist "api" copy /Y "public\index.html" "api\root_index.html" >nul 2>nul
     echo    Готово.

@@ -10,7 +10,7 @@
 - nginx-https-by-ip.conf   — образец server для HTTPS по IP (ручная настройка).
 - vpn-bot.service, miniapp-api.service — systemd (копировать вручную при первой настройке).
 
-Чтобы убрать «Ошибку загрузки» в мини-аппе — пошагово: docs/deploy/ПОШАГОВО_NGINX_И_ОШИБКА_ЗАГРУЗКИ.md
+Чтобы убрать «Ошибку загрузки» в мини-аппе: docs/deploy/ПРОВЕРКА_ПОСЛЕ_ДЕПЛОЯ.md, NGINX_HTTPS_ПО_IP.md, конфиги в этой папке (nginx-*.conf, apply-nginx-*.sh).
 (кратко: деплой → git pull на сервере → сертификат для IP → sudo bash deploy/apply-nginx-default.sh).
 
 Подробнее: docs/deploy/ЧТО_ДЕПЛОИТСЯ_И_КУДА.md

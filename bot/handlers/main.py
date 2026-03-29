@@ -85,7 +85,7 @@ def ensure_admin_unlimited_subscription(telegram_id: int) -> None:
         vpn_config_content = None
         if use_happ:
             install_code, _link = happ_client.create_happ_install_link(
-                Config.HAPP_API_URL,
+                happ_client.resolve_happ_base_add_install(),
                 Config.HAPP_PROVIDER_CODE,
                 Config.HAPP_AUTH_KEY,
                 10,
@@ -853,7 +853,7 @@ async def verify_payment(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
             if use_happ:
                 devices = happ_client.devices_from_plan_type(payment.plan_type)
                 install_code, _happ_link = happ_client.create_happ_install_link(
-                    Config.HAPP_API_URL,
+                    happ_client.resolve_happ_base_add_install(),
                     Config.HAPP_PROVIDER_CODE,
                     Config.HAPP_AUTH_KEY,
                     devices,
@@ -1246,7 +1246,7 @@ async def setup_device_handler(update: Update, context: ContextTypes.DEFAULT_TYP
     if not happ_link and Config.HAPP_PROVIDER_CODE and Config.HAPP_AUTH_KEY and Config.HAPP_SUBSCRIPTION_URL:
         try:
             install_code, _happ_link = happ_client.create_happ_install_link(
-                getattr(Config, 'HAPP_API_URL', None) or 'https://api.happ-proxy.com',
+                happ_client.resolve_happ_base_add_install(),
                 Config.HAPP_PROVIDER_CODE,
                 Config.HAPP_AUTH_KEY,
                 happ_client.devices_from_plan_type(sub.plan_type or ''),

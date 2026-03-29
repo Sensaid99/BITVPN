@@ -307,6 +307,55 @@ def _devices_from_plan_type(plan_type: str) -> int:
     return 1
 
 
+def _origin_for_happ_add_install(base: str) -> str:
+    """
+    Базовый origin для GET /api/add-install.
+    Apex happ-proxy.com (и www) часто отдаёт 404 на /api/add-install — нужен api-поддомен.
+    """
+    s = (base or "").strip()
+    if not s:
+        return "https://api.happ-proxy.com"
+    if "://" not in s:
+        s = "https://" + s.lstrip("/")
+    p = urllib.parse.urlparse(s)
+    host = ((p.hostname or "").lower()).rstrip(".")
+    if host in ("happ-proxy.com", "www.happ-proxy.com"):
+        logger.warning(
+            "Happ add-install: host %s → https://api.happ-proxy.com (apex не для /api/add-install)",
+            host or "?",
+        )
+        return "https://api.happ-proxy.com"
+    if not p.scheme or not p.netloc:
+        return "https://api.happ-proxy.com"
+    return f"{p.scheme}://{p.netloc}".rstrip("/")
+
+
+def resolve_happ_base_add_install() -> str:
+    """
+    Базовый URL только для GET /api/add-install.
+    Не путать с HAPP_ADD_DOMAIN_URL: на https://happ-proxy.com без api часто 404 на add-install.
+    """
+    try:
+        from bot.config.settings import Config
+
+        u = (getattr(Config, "HAPP_API_URL", None) or "").strip().rstrip("/")
+    except Exception:
+        u = ""
+    if not u:
+        u = (os.getenv("HAPP_API_URL") or "").strip().rstrip("/")
+    if not u:
+        return "https://api.happ-proxy.com"
+    return _origin_for_happ_add_install(u)
+
+
+def _normalize_api_url_for_add_install(api_url: str | None) -> str:
+    """Если передали корень happ-proxy.com вместо api — подменяем."""
+    u = (api_url or "").strip().rstrip("/")
+    if not u:
+        return resolve_happ_base_add_install()
+    return _origin_for_happ_add_install(u)
+
+
 def create_happ_install_link(
     api_url: str,
     provider_code: str,
@@ -321,6 +370,7 @@ def create_happ_install_link(
     Если subscription_base_url — ссылка happ:// (прямая ссылка из кабинета Happ),
     возвращает (None, subscription_base_url) без вызова API (выдаём ссылку как есть).
     """
+    api_url = _normalize_api_url_for_add_install(api_url)
     base = (subscription_base_url or "").strip()
     if base.lower().startswith("happ://"):
         return None, base
@@ -336,11 +386,22 @@ def create_happ_install_link(
     url = f"{api_url.rstrip('/')}/api/add-install"
     try:
         r = requests.get(url, params=params, headers=HAPP_HEADERS, timeout=10)
+        # Apex happ-proxy.com часто отдаёт 404 на add-install (старый код / неверный .env).
+        if r.status_code == 404:
+            ph = ((urllib.parse.urlparse(url).hostname or "").lower()).rstrip(".")
+            if ph in ("happ-proxy.com", "www.happ-proxy.com"):
+                retry_url = "https://api.happ-proxy.com/api/add-install"
+                logger.warning(
+                    "Happ add-install 404 on %s — retrying %s",
+                    url,
+                    retry_url,
+                )
+                r = requests.get(retry_url, params=params, headers=HAPP_HEADERS, timeout=10)
         if r.status_code == 404:
             logger.warning(
                 "Happ API 404: URL=%s (no /api/add-install here?). "
                 "Check HAPP_API_URL in .env; ask Happ support for the correct API base URL.",
-                url,
+                getattr(r, "url", None) or url,
             )
             return None, None
         try:

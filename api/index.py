@@ -32,7 +32,7 @@ def _catch_all(request: Request, exc: Exception):
     if path.startswith("/api/"):
         return JSONResponse(
             status_code=500,
-            content={"detail": "Временная ошибка сервера. Проверьте подключение и попробуйте снова. Если повторяется — запустите API на своём сервере (см. ЛОГИ_API_НА_СЕРВЕРЕ.txt)."},
+            content={"detail": "Временная ошибка сервера. Проверьте подключение и попробуйте снова. Если повторяется — запустите API на своём сервере (см. docs/deploy/КАК_НАЙТИ_ЛОГИ_НА_СЕРВЕРЕ.txt, journalctl -u miniapp-api)."},
         )
     return Response(content=_MINIMAL_HTML, media_type="text/html; charset=utf-8", status_code=200)
 
@@ -82,7 +82,7 @@ except Exception as _e:
         return JSONResponse(
             status_code=503,
             content={
-                "detail": "API недоступен на этом сервере. Укажите в ссылке на приложение свой сервер: ?api=https://ваш-домен (см. ЛОГИ_API_НА_СЕРВЕРЕ.txt)"
+                "detail": "API недоступен на этом сервере. Укажите в ссылке на приложение свой сервер: ?api=https://ваш-домен (см. docs/deploy/КАК_НАЙТИ_ЛОГИ_НА_СЕРВЕРЕ.txt)"
             },
         )
 
